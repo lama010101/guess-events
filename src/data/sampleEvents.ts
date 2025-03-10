@@ -4,7 +4,7 @@ import { HistoricalEvent } from "../types/game";
 export const sampleEvents: HistoricalEvent[] = [
   {
     id: "1",
-    imageUrl: "/lovable-uploads/7271ebc6-e084-4bc9-92ab-47a74ad0c612.png",
+    imageUrl: "/lovable-uploads/56eda9c6-12e4-4dc5-91cf-cc510c846eb3.png",
     location: {
       lat: 32.7767,
       lng: -96.7970,

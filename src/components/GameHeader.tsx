@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Settings, Share2 } from 'lucide-react';
+import { Settings, Share2, Home } from 'lucide-react';
 import { 
   Tooltip,
   TooltipContent,
@@ -16,6 +16,7 @@ interface GameHeaderProps {
   cumulativeScore: number;
   onShare?: () => void;
   onSettingsClick?: () => void;
+  onHomeClick?: () => void;
 }
 
 const GameHeader: React.FC<GameHeaderProps> = ({ 
@@ -23,7 +24,8 @@ const GameHeader: React.FC<GameHeaderProps> = ({
   totalRounds, 
   cumulativeScore,
   onShare,
-  onSettingsClick
+  onSettingsClick,
+  onHomeClick
 }) => {
   return (
     <div className="w-full bg-white dark:bg-gray-900 shadow-md rounded-lg p-4 mb-4 flex items-center justify-between">
@@ -38,6 +40,24 @@ const GameHeader: React.FC<GameHeaderProps> = ({
         </div>
       </div>
       <div className="flex items-center space-x-2">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={onHomeClick}
+                className="h-8 w-8"
+              >
+                <Home className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Go to Home Screen</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>

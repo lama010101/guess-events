@@ -27,8 +27,7 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ src, alt = "Historical photog
         src={src} 
         alt={alt} 
         className={`
-          ${zoomed ? 'max-h-screen max-w-full' : 'w-full h-full'} 
-          ${zoomed && imageOrientation === 'landscape' ? 'object-contain' : 'object-cover'} 
+          ${zoomed ? 'max-h-screen max-w-full object-contain' : 'w-full h-full object-cover'} 
         `}
       />
       

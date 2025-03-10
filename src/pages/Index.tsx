@@ -22,7 +22,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Home } from 'lucide-react';
 import { 
   GameSettings, 
   GameState, 
@@ -76,6 +75,7 @@ const Index = () => {
 
   // Handle location selection on the map
   const handleLocationSelect = (lat: number, lng: number) => {
+    console.log("Location selected:", lat, lng);
     setGameState(prev => ({
       ...prev,
       currentGuess: {
@@ -87,6 +87,7 @@ const Index = () => {
 
   // Handle year selection from the slider
   const handleYearSelect = (year: number) => {
+    console.log("Year selected:", year);
     setGameState(prev => ({
       ...prev,
       currentGuess: {
@@ -98,13 +99,29 @@ const Index = () => {
 
   // Handle timer expiration
   const handleTimeUp = () => {
+    console.log("Timer expired, submitting current guess");
     const currentEvent = gameState.events[gameState.currentRound - 1];
     const currentGuess = gameState.currentGuess || { location: null, year: 1960 };
     
-    const result = calculateRoundResult(
-      currentEvent, 
-      currentGuess
-    );
+    // If location is null, we can't properly calculate a score for location
+    let result: RoundResult;
+    
+    if (currentGuess.location) {
+      result = calculateRoundResult(currentEvent, currentGuess);
+    } else {
+      // Only calculate time score if there's no location
+      const yearError = Math.abs(currentEvent.year - currentGuess.year);
+      result = {
+        event: currentEvent,
+        guess: currentGuess,
+        distanceError: Infinity,
+        yearError,
+        locationScore: 0, // No points for location
+        timeScore: Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearError, 0.9)))),
+        totalScore: 0 // Will be updated next
+      };
+      result.totalScore = result.locationScore + result.timeScore;
+    }
 
     setGameState(prev => ({
       ...prev,
@@ -120,12 +137,43 @@ const Index = () => {
 
   // Submit the current guess and show results
   const submitGuess = () => {
+    console.log("Submitting guess:", gameState.currentGuess);
     if (!gameState.currentGuess) {
       toast({
         title: "Missing guess",
         description: "Please select both a location and a year.",
         variant: "destructive"
       });
+      return;
+    }
+
+    // Allow submitting with just a year if no location was selected
+    if (!gameState.currentGuess.location) {
+      toast({
+        title: "No location selected",
+        description: "You'll only receive points for your year guess.",
+      });
+      
+      const currentEvent = gameState.events[gameState.currentRound - 1];
+      const yearError = Math.abs(currentEvent.year - gameState.currentGuess.year);
+      const timeScore = Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearError, 0.9))));
+      
+      const result: RoundResult = {
+        event: currentEvent,
+        guess: gameState.currentGuess,
+        distanceError: Infinity,
+        yearError,
+        locationScore: 0,
+        timeScore,
+        totalScore: timeScore
+      };
+
+      setGameState(prev => ({
+        ...prev,
+        roundResults: [...prev.roundResults, result],
+        gameStatus: 'round-result'
+      }));
+      
       return;
     }
 
@@ -238,16 +286,8 @@ const Index = () => {
                 cumulativeScore={calculateCumulativeScore()}
                 onShare={handleShare}
                 onSettingsClick={() => setSettingsOpen(true)}
+                onHomeClick={handleGoHome}
               />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleGoHome}
-                className="ml-2"
-                title="Go to Home Screen"
-              >
-                <Home className="h-4 w-4" />
-              </Button>
             </div>
             
             {gameState.settings.timerEnabled && (
@@ -263,7 +303,7 @@ const Index = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div className="h-96">
-                <PhotoViewer src={currentEvent.imageUrl} />
+                <PhotoViewer src={currentEvent.imageUrl} alt={currentEvent.description} />
               </div>
               <div className="h-96">
                 <GameMap 
@@ -285,6 +325,7 @@ const Index = () => {
               <Button 
                 size="lg"
                 onClick={submitGuess}
+                disabled={!gameState.currentGuess?.year}
               >
                 Submit Guess
               </Button>
