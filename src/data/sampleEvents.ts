@@ -15,7 +15,7 @@ export const sampleEvents: HistoricalEvent[] = [
   },
   {
     id: "2",
-    imageUrl: "https://images.unsplash.com/photo-1605810230434-7631ac76ec81",
+    imageUrl: "https://images.unsplash.com/photo-1615309662472-4ca77a77a189",
     location: {
       lat: 40.7128,
       lng: -74.0060,
@@ -26,7 +26,7 @@ export const sampleEvents: HistoricalEvent[] = [
   },
   {
     id: "3",
-    imageUrl: "https://images.unsplash.com/photo-1519389950473-47ba0277781c",
+    imageUrl: "https://images.unsplash.com/photo-1576769267415-9642220d0e65",
     location: {
       lat: 37.7749,
       lng: -122.4194,
@@ -37,7 +37,7 @@ export const sampleEvents: HistoricalEvent[] = [
   },
   {
     id: "4",
-    imageUrl: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b",
+    imageUrl: "https://images.unsplash.com/photo-1532443661177-41c9fd95e471",
     location: {
       lat: 51.5074,
       lng: -0.1278,
@@ -48,7 +48,7 @@ export const sampleEvents: HistoricalEvent[] = [
   },
   {
     id: "5",
-    imageUrl: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6",
+    imageUrl: "https://images.unsplash.com/photo-1597858520171-563a8e8b9925",
     location: {
       lat: 52.5200,
       lng: 13.4050,

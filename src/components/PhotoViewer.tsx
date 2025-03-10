@@ -27,8 +27,17 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ src, alt = "Historical photog
         src={src} 
         alt={alt} 
         className={`
-          ${zoomed ? 'max-h-screen max-w-full object-contain' : 'w-full h-full object-cover'} 
+          ${zoomed ? 'max-h-screen max-w-screen w-auto h-auto object-contain' : 'w-full h-full object-cover'} 
         `}
+        style={{
+          // Ensure image takes the entire viewport in fullscreen, respecting orientation
+          ...(zoomed && {
+            width: imageOrientation === 'landscape' ? 'auto' : '100%',
+            height: imageOrientation === 'portrait' ? 'auto' : '100%',
+            maxWidth: '100vw',
+            maxHeight: '100vh'
+          })
+        }}
       />
       
       <Button 

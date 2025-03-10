@@ -1,7 +1,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 interface GameMapProps {
   onLocationSelect: (lat: number, lng: number) => void;
@@ -10,10 +10,6 @@ interface GameMapProps {
   isDisabled?: boolean;
 }
 
-// TEMPORARY API KEY - Replace with your own Mapbox token
-// In production, this should be stored in environment variables
-mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZWFpIiwiYSI6ImNsdDhucG8zcDBkODYyanBsNjJpZXJ6MHUifQ.a6LbYP9bx42myWdegExiIg';
-
 const GameMap: React.FC<GameMapProps> = ({ 
   onLocationSelect, 
   selectedLocation, 
@@ -21,9 +17,10 @@ const GameMap: React.FC<GameMapProps> = ({
   isDisabled = false 
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
-  const [marker, setMarker] = useState<mapboxgl.Marker | null>(null);
-  const [correctMarker, setCorrectMarker] = useState<mapboxgl.Marker | null>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const [marker, setMarker] = useState<L.Marker | null>(null);
+  const [correctMarker, setCorrectMarker] = useState<L.Marker | null>(null);
+  const [polyline, setPolyline] = useState<L.Polyline | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
 
   // Initialize map
@@ -31,28 +28,47 @@ const GameMap: React.FC<GameMapProps> = ({
     if (!mapRef.current || mapInstanceRef.current) return;
 
     try {
-      const map = new mapboxgl.Map({
-        container: mapRef.current,
-        style: 'mapbox://styles/mapbox/streets-v12',
-        center: [0, 20],
-        zoom: 1.5,
+      // Create custom icon
+      const blueIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        shadowSize: [41, 41]
       });
 
-      map.on('load', () => {
-        setMapLoaded(true);
-        console.log("Map loaded successfully");
+      const greenIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        shadowSize: [41, 41]
       });
 
-      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      // Initialize map
+      const map = L.map(mapRef.current, {
+        center: [20, 0],
+        zoom: 2,
+        layers: [
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          })
+        ]
+      });
 
+      // Add click event
       map.on('click', (e) => {
         if (!isDisabled) {
-          console.log("Map clicked at:", e.lngLat);
-          onLocationSelect(e.lngLat.lat, e.lngLat.lng);
+          console.log("Map clicked at:", e.latlng);
+          onLocationSelect(e.latlng.lat, e.latlng.lng);
         }
       });
 
       mapInstanceRef.current = map;
+      setMapLoaded(true);
+      console.log("Map loaded successfully");
     } catch (error) {
       console.error("Error initializing map:", error);
     }
@@ -79,10 +95,16 @@ const GameMap: React.FC<GameMapProps> = ({
 
       // Create new marker
       try {
-        const newMarker = new mapboxgl.Marker({
-          color: '#3b82f6',
-        })
-          .setLngLat([selectedLocation.lng, selectedLocation.lat])
+        const blueIcon = L.icon({
+          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+          shadowSize: [41, 41]
+        });
+
+        const newMarker = L.marker([selectedLocation.lat, selectedLocation.lng], { icon: blueIcon })
           .addTo(mapInstanceRef.current);
 
         setMarker(newMarker);
@@ -103,66 +125,51 @@ const GameMap: React.FC<GameMapProps> = ({
       correctMarker.remove();
     }
 
+    // Remove existing polyline
+    if (polyline) {
+      polyline.remove();
+      setPolyline(null);
+    }
+
     try {
-      const newCorrectMarker = new mapboxgl.Marker({
-        color: '#10b981',
-      })
-        .setLngLat([correctLocation.lng, correctLocation.lat])
+      const greenIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        shadowSize: [41, 41]
+      });
+
+      const newCorrectMarker = L.marker([correctLocation.lat, correctLocation.lng], { icon: greenIcon })
         .addTo(mapInstanceRef.current);
 
       setCorrectMarker(newCorrectMarker);
 
       // Add line between markers if both exist
-      if (selectedLocation && mapInstanceRef.current.isStyleLoaded()) {
-        // In Mapbox we need to remove old layer and source
-        const lineSourceId = 'line-source';
-        const lineLayerId = 'line-layer';
-        
-        if (mapInstanceRef.current.getLayer(lineLayerId)) {
-          mapInstanceRef.current.removeLayer(lineLayerId);
-        }
-        
-        if (mapInstanceRef.current.getSource(lineSourceId)) {
-          mapInstanceRef.current.removeSource(lineSourceId);
-        }
-
-        // Add the line source and layer
-        mapInstanceRef.current.addSource('line-source', {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            properties: {},
-            geometry: {
-              type: 'LineString',
-              coordinates: [
-                [selectedLocation.lng, selectedLocation.lat],
-                [correctLocation.lng, correctLocation.lat]
-              ]
-            }
+      if (selectedLocation && mapInstanceRef.current) {
+        const newPolyline = L.polyline(
+          [
+            [selectedLocation.lat, selectedLocation.lng],
+            [correctLocation.lat, correctLocation.lng]
+          ],
+          { 
+            color: '#ef4444',
+            weight: 2,
+            dashArray: '5, 5',
+            opacity: 0.7
           }
-        });
-
-        mapInstanceRef.current.addLayer({
-          id: 'line-layer',
-          type: 'line',
-          source: 'line-source',
-          layout: {
-            'line-join': 'round',
-            'line-cap': 'round'
-          },
-          paint: {
-            'line-color': '#ef4444',
-            'line-width': 2,
-            'line-dasharray': [2, 1]
-          }
-        });
+        ).addTo(mapInstanceRef.current);
+        
+        setPolyline(newPolyline);
 
         // Fit bounds to show both markers
-        const bounds = new mapboxgl.LngLatBounds()
-          .extend([selectedLocation.lng, selectedLocation.lat])
-          .extend([correctLocation.lng, correctLocation.lat]);
+        const bounds = L.latLngBounds(
+          [selectedLocation.lat, selectedLocation.lng],
+          [correctLocation.lat, correctLocation.lng]
+        );
 
-        mapInstanceRef.current.fitBounds(bounds, { padding: 50 });
+        mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
       }
     } catch (error) {
       console.error("Error adding correct marker or line:", error);

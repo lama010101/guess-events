@@ -1,146 +1,112 @@
 
 import React, { useState } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
+import { Link } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Settings, Play, Shield } from "lucide-react";
 import { GameSettings } from '@/types/game';
-import { Play, Clock, MapPin, Share2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 
 interface HomeScreenProps {
   onStartGame: (settings: GameSettings) => void;
 }
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
-  const { toast } = useToast();
   const [settings, setSettings] = useState<GameSettings>({
     distanceUnit: 'km',
     timerEnabled: false,
-    timerDuration: 5,
+    timerDuration: 5
   });
 
   const handleStartGame = () => {
     onStartGame(settings);
   };
 
-  const handleShareClick = () => {
-    navigator.clipboard.writeText(window.location.href)
-      .then(() => {
-        toast({
-          title: "Link copied!",
-          description: "Share this link with friends to challenge them.",
-        });
-      })
-      .catch(err => {
-        toast({
-          title: "Failed to copy link",
-          description: "Please try again or share the URL manually.",
-          variant: "destructive",
-        });
-      });
+  const handleSettingChange = (key: keyof GameSettings, value: any) => {
+    setSettings(prev => ({
+      ...prev,
+      [key]: value
+    }));
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-indigo-950 p-4">
-      <Card className="w-full max-w-md bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm shadow-xl">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-background to-background/80">
+      <Card className="w-full max-w-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
-            EVENTGUESSR
-          </CardTitle>
-          <CardDescription>
-            Test your knowledge of historical events by guessing when and where they happened
-          </CardDescription>
+          <CardTitle className="text-2xl sm:text-3xl">Historical Photo Hunt</CardTitle>
+          <CardDescription>Test your knowledge of historical events</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-4">
+        <CardContent>
+          <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <MapPin className="h-4 w-4 text-gray-500" />
-                <Label htmlFor="distanceUnit" className="text-sm font-medium">
-                  Distance Unit
-                </Label>
+              <div className="space-y-1">
+                <h4 className="font-medium leading-none">Distance Unit</h4>
+                <p className="text-sm text-muted-foreground">
+                  Choose your preferred unit of measurement
+                </p>
               </div>
               <div className="flex items-center space-x-2">
-                <Label htmlFor="kmUnit" className="text-sm">km</Label>
-                <Switch
-                  id="distanceUnit"
-                  checked={settings.distanceUnit === 'miles'}
-                  onCheckedChange={(checked) => 
-                    setSettings({...settings, distanceUnit: checked ? 'miles' : 'km'})
-                  }
-                />
-                <Label htmlFor="milesUnit" className="text-sm">miles</Label>
+                <Button
+                  variant={settings.distanceUnit === 'km' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleSettingChange('distanceUnit', 'km')}
+                >
+                  Kilometers
+                </Button>
+                <Button
+                  variant={settings.distanceUnit === 'miles' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleSettingChange('distanceUnit', 'miles')}
+                >
+                  Miles
+                </Button>
               </div>
             </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Clock className="h-4 w-4 text-gray-500" />
-                <Label htmlFor="timerEnabled" className="text-sm font-medium">
-                  Enable Timer
-                </Label>
-              </div>
-              <Switch
-                id="timerEnabled"
-                checked={settings.timerEnabled}
-                onCheckedChange={(checked) => 
-                  setSettings({...settings, timerEnabled: checked})
-                }
-              />
-            </div>
-            
-            {settings.timerEnabled && (
-              <div className="pt-2">
-                <Label htmlFor="timerDuration" className="text-sm font-medium block mb-2">
-                  Timer Duration: {settings.timerDuration} minutes
-                </Label>
-                <Slider
-                  id="timerDuration"
-                  min={1}
-                  max={10}
-                  step={1}
-                  value={[settings.timerDuration]}
-                  onValueChange={(value) => 
-                    setSettings({...settings, timerDuration: value[0]})
-                  }
-                />
-                <div className="flex justify-between mt-1 text-xs text-gray-500">
-                  <span>1 min</span>
-                  <span>5 min</span>
-                  <span>10 min</span>
+
+            <div className="flex flex-col space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <h4 className="font-medium leading-none">Enable Timer</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Play with a time limit for each round
+                  </p>
                 </div>
+                <Switch
+                  id="timer-enabled"
+                  checked={settings.timerEnabled}
+                  onCheckedChange={(checked) => handleSettingChange('timerEnabled', checked)}
+                />
               </div>
-            )}
-          </div>
-          
-          <Button 
-            className="w-full mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-            onClick={handleStartGame}
-          >
-            <Play className="mr-2 h-4 w-4" /> Start Game
-          </Button>
-          
-          <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleShareClick}
-            >
-              <Share2 className="mr-2 h-4 w-4" /> Challenge a Friend
-            </Button>
+              
+              {settings.timerEnabled && (
+                <div className="pt-2 pb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <Label htmlFor="timer-duration">Timer Duration: {settings.timerDuration} minutes</Label>
+                  </div>
+                  <Slider
+                    id="timer-duration"
+                    min={1}
+                    max={10}
+                    step={1}
+                    value={[settings.timerDuration]}
+                    onValueChange={(value) => handleSettingChange('timerDuration', value[0])}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </CardContent>
-        <CardFooter className="text-center text-xs text-gray-500">
-          5 rounds per game • 10,000 points per round
+        <CardFooter className="flex flex-col space-y-4">
+          <Button className="w-full" size="lg" onClick={handleStartGame}>
+            <Play className="mr-2 h-4 w-4" /> Start Game
+          </Button>
+          <div className="flex w-full justify-center">
+            <Link to="/admin" className="text-sm text-muted-foreground hover:text-primary flex items-center">
+              <Shield className="mr-1 h-3 w-3" /> Admin Panel
+            </Link>
+          </div>
         </CardFooter>
       </Card>
     </div>
