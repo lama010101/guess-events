@@ -24,7 +24,6 @@ const GameMap: React.FC<GameMapProps> = ({
   const [mapInstance, setMapInstance] = useState<mapboxgl.Map | null>(null);
   const [marker, setMarker] = useState<mapboxgl.Marker | null>(null);
   const [correctMarker, setCorrectMarker] = useState<mapboxgl.Marker | null>(null);
-  const [line, setLine] = useState<mapboxgl.Polyline | null>(null);
 
   // Initialize map
   useEffect(() => {
@@ -90,7 +89,7 @@ const GameMap: React.FC<GameMapProps> = ({
       setCorrectMarker(newCorrectMarker);
 
       // Draw line between guess and correct location if we have both
-      if (selectedLocation && line) {
+      if (selectedLocation && mapInstance.getSource('line-source')) {
         // In Mapbox we need to remove old layer and source
         const lineSourceId = 'line-source';
         const lineLayerId = 'line-layer';
@@ -106,42 +105,46 @@ const GameMap: React.FC<GameMapProps> = ({
 
       // Add line between markers if both exist
       if (selectedLocation && mapInstance.isStyleLoaded()) {
-        mapInstance.addSource('line-source', {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            properties: {},
-            geometry: {
-              type: 'LineString',
-              coordinates: [
-                [selectedLocation.lng, selectedLocation.lat],
-                [correctLocation.lng, correctLocation.lat]
-              ]
+        try {
+          mapInstance.addSource('line-source', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              properties: {},
+              geometry: {
+                type: 'LineString',
+                coordinates: [
+                  [selectedLocation.lng, selectedLocation.lat],
+                  [correctLocation.lng, correctLocation.lat]
+                ]
+              }
             }
-          }
-        });
+          });
 
-        mapInstance.addLayer({
-          id: 'line-layer',
-          type: 'line',
-          source: 'line-source',
-          layout: {
-            'line-join': 'round',
-            'line-cap': 'round'
-          },
-          paint: {
-            'line-color': '#ef4444',
-            'line-width': 2,
-            'line-dasharray': [2, 1]
-          }
-        });
+          mapInstance.addLayer({
+            id: 'line-layer',
+            type: 'line',
+            source: 'line-source',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round'
+            },
+            paint: {
+              'line-color': '#ef4444',
+              'line-width': 2,
+              'line-dasharray': [2, 1]
+            }
+          });
 
-        // Fit bounds to show both markers
-        const bounds = new mapboxgl.LngLatBounds()
-          .extend([selectedLocation.lng, selectedLocation.lat])
-          .extend([correctLocation.lng, correctLocation.lat]);
+          // Fit bounds to show both markers
+          const bounds = new mapboxgl.LngLatBounds()
+            .extend([selectedLocation.lng, selectedLocation.lat])
+            .extend([correctLocation.lng, correctLocation.lat]);
 
-        mapInstance.fitBounds(bounds, { padding: 50 });
+          mapInstance.fitBounds(bounds, { padding: 50 });
+        } catch (error) {
+          console.error("Error adding line between markers:", error);
+        }
       }
     }
   }, [correctLocation, selectedLocation, mapInstance]);

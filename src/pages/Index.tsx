@@ -12,6 +12,17 @@ import GameResults from '@/components/GameResults';
 import SettingsDialog from '@/components/SettingsDialog';
 import Timer from '@/components/Timer';
 import { sampleEvents } from '@/data/sampleEvents';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Home } from 'lucide-react';
 import { 
   GameSettings, 
   GameState, 
@@ -27,6 +38,7 @@ import {
 const Index = () => {
   const { toast } = useToast();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [confirmHomeOpen, setConfirmHomeOpen] = useState(false);
   const [gameState, setGameState] = useState<GameState>({
     settings: {
       distanceUnit: 'km',
@@ -87,9 +99,11 @@ const Index = () => {
   // Handle timer expiration
   const handleTimeUp = () => {
     const currentEvent = gameState.events[gameState.currentRound - 1];
+    const currentGuess = gameState.currentGuess || { location: null, year: 1960 };
+    
     const result = calculateRoundResult(
       currentEvent, 
-      gameState.currentGuess || { location: null, year: 1960 }
+      currentGuess
     );
 
     setGameState(prev => ({
@@ -110,15 +124,6 @@ const Index = () => {
       toast({
         title: "Missing guess",
         description: "Please select both a location and a year.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!gameState.currentGuess.location) {
-      toast({
-        title: "Missing location",
-        description: "Please select a location on the map.",
         variant: "destructive"
       });
       return;
@@ -154,6 +159,19 @@ const Index = () => {
         timerRemaining: prev.settings.timerEnabled ? prev.settings.timerDuration * 60 : undefined
       }));
     }
+  };
+
+  // Handle going back to home screen after confirmation
+  const handleGoHome = () => {
+    setConfirmHomeOpen(true);
+  };
+
+  const confirmGoHome = () => {
+    setGameState(prev => ({
+      ...prev,
+      gameStatus: 'not-started'
+    }));
+    setConfirmHomeOpen(false);
   };
 
   // Restart the game with the same settings
@@ -213,13 +231,24 @@ const Index = () => {
         const currentEvent = gameState.events[gameState.currentRound - 1];
         return (
           <div className="container mx-auto p-4 min-h-screen">
-            <GameHeader 
-              currentRound={gameState.currentRound} 
-              totalRounds={gameState.totalRounds}
-              cumulativeScore={calculateCumulativeScore()}
-              onShare={handleShare}
-              onSettingsClick={() => setSettingsOpen(true)}
-            />
+            <div className="flex justify-between items-center mb-4">
+              <GameHeader 
+                currentRound={gameState.currentRound} 
+                totalRounds={gameState.totalRounds}
+                cumulativeScore={calculateCumulativeScore()}
+                onShare={handleShare}
+                onSettingsClick={() => setSettingsOpen(true)}
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleGoHome}
+                className="ml-2"
+                title="Go to Home Screen"
+              >
+                <Home className="h-4 w-4" />
+              </Button>
+            </div>
             
             {gameState.settings.timerEnabled && (
               <div className="mb-4">
@@ -248,13 +277,14 @@ const Index = () => {
               <div className="w-full md:w-auto">
                 <YearSlider 
                   value={gameState.currentGuess?.year || 1960}
-                  onChange={handleYearSelect} 
+                  onChange={handleYearSelect}
+                  minYear={1900}
+                  maxYear={new Date().getFullYear()}
                 />
               </div>
               <Button 
                 size="lg"
                 onClick={submitGuess}
-                disabled={!gameState.currentGuess?.location}
               >
                 Submit Guess
               </Button>
@@ -301,6 +331,24 @@ const Index = () => {
         onOpenChange={setSettingsOpen}
         onSettingsChange={handleSettingsChange}
       />
+
+      <AlertDialog open={confirmHomeOpen} onOpenChange={setConfirmHomeOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Return to Home Screen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your current game will be canceled and your progress will be lost. 
+              Are you sure you want to go back to the home screen?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmGoHome}>
+              Yes, go to Home
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

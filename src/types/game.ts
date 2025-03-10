@@ -21,7 +21,7 @@ export interface PlayerGuess {
   location: {
     lat: number;
     lng: number;
-  };
+  } | null;
   year: number;
 }
 

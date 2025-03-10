@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Maximize, Minimize, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -10,13 +10,26 @@ interface PhotoViewerProps {
 
 const PhotoViewer: React.FC<PhotoViewerProps> = ({ src, alt = "Historical photograph" }) => {
   const [zoomed, setZoomed] = useState(false);
+  const [imageOrientation, setImageOrientation] = useState<'portrait' | 'landscape'>('landscape');
+  
+  useEffect(() => {
+    // Check image dimensions when loaded
+    const img = new Image();
+    img.onload = () => {
+      setImageOrientation(img.width > img.height ? 'landscape' : 'portrait');
+    };
+    img.src = src;
+  }, [src]);
   
   return (
     <div className={`relative rounded-lg overflow-hidden shadow-md ${zoomed ? 'fixed inset-0 z-50 bg-black flex items-center justify-center' : 'w-full h-full'}`}>
       <img 
         src={src} 
         alt={alt} 
-        className={`object-contain ${zoomed ? 'max-h-screen max-w-full' : 'w-full h-full'}`}
+        className={`
+          ${zoomed ? 'max-h-screen max-w-full' : 'w-full h-full'} 
+          ${zoomed && imageOrientation === 'landscape' ? 'object-contain' : 'object-cover'} 
+        `}
       />
       
       <Button 
