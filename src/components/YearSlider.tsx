@@ -12,8 +12,8 @@ interface YearSliderProps {
 }
 
 const YearSlider: React.FC<YearSliderProps> = ({
-  minYear = 1800,
-  maxYear = 2025,
+  minYear = 1900,
+  maxYear = new Date().getFullYear(),
   value,
   onChange,
   disabled = false
@@ -64,7 +64,7 @@ const YearSlider: React.FC<YearSliderProps> = ({
           className="w-32 text-center"
           disabled={disabled}
         />
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Year</span>
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 px-3 py-1 bg-blue-100 dark:bg-blue-900/40 rounded-full">Year</span>
       </div>
       <div className="px-2">
         <Slider

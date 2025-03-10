@@ -10,6 +10,7 @@ import GameHeader from '@/components/GameHeader';
 import RoundResultComponent from '@/components/RoundResult';
 import GameResults from '@/components/GameResults';
 import SettingsDialog from '@/components/SettingsDialog';
+import Timer from '@/components/Timer';
 import { sampleEvents } from '@/data/sampleEvents';
 import { 
   GameSettings, 
@@ -52,7 +53,12 @@ const Index = () => {
       totalRounds: 5,
       roundResults: [],
       gameStatus: 'in-progress',
-      currentGuess: null
+      currentGuess: {
+        location: null,
+        year: 1960 // Default year is now 1960
+      },
+      timerStartTime: settings.timerEnabled ? Date.now() : undefined,
+      timerRemaining: settings.timerEnabled ? settings.timerDuration * 60 : undefined
     });
   };
 
@@ -61,7 +67,7 @@ const Index = () => {
     setGameState(prev => ({
       ...prev,
       currentGuess: {
-        ...(prev.currentGuess || { year: 1950 }),
+        ...(prev.currentGuess || { year: 1960 }),
         location: { lat, lng }
       }
     }));
@@ -72,10 +78,30 @@ const Index = () => {
     setGameState(prev => ({
       ...prev,
       currentGuess: {
-        ...(prev.currentGuess || { location: { lat: 0, lng: 0 } }),
+        ...(prev.currentGuess || { location: null }),
         year
       }
     }));
+  };
+
+  // Handle timer expiration
+  const handleTimeUp = () => {
+    const currentEvent = gameState.events[gameState.currentRound - 1];
+    const result = calculateRoundResult(
+      currentEvent, 
+      gameState.currentGuess || { location: null, year: 1960 }
+    );
+
+    setGameState(prev => ({
+      ...prev,
+      roundResults: [...prev.roundResults, result],
+      gameStatus: 'round-result'
+    }));
+
+    toast({
+      title: "Time's up!",
+      description: "Your guess has been submitted automatically.",
+    });
   };
 
   // Submit the current guess and show results
@@ -120,7 +146,12 @@ const Index = () => {
         ...prev,
         currentRound: prev.currentRound + 1,
         gameStatus: 'in-progress',
-        currentGuess: null
+        currentGuess: {
+          location: null,
+          year: 1960 // Default year for each new round
+        },
+        timerStartTime: prev.settings.timerEnabled ? Date.now() : undefined,
+        timerRemaining: prev.settings.timerEnabled ? prev.settings.timerDuration * 60 : undefined
       }));
     }
   };
@@ -147,7 +178,10 @@ const Index = () => {
   const handleSettingsChange = (newSettings: GameSettings) => {
     setGameState(prev => ({
       ...prev,
-      settings: newSettings
+      settings: newSettings,
+      timerRemaining: newSettings.timerEnabled 
+        ? newSettings.timerDuration * 60 
+        : undefined
     }));
   };
 
@@ -187,6 +221,17 @@ const Index = () => {
               onSettingsClick={() => setSettingsOpen(true)}
             />
             
+            {gameState.settings.timerEnabled && (
+              <div className="mb-4">
+                <Timer 
+                  durationMinutes={gameState.settings.timerDuration}
+                  onTimeUp={handleTimeUp}
+                  isActive={gameState.gameStatus === 'in-progress'}
+                  remainingSeconds={gameState.timerRemaining}
+                />
+              </div>
+            )}
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div className="h-96">
                 <PhotoViewer src={currentEvent.imageUrl} />
@@ -202,7 +247,7 @@ const Index = () => {
             <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-6">
               <div className="w-full md:w-auto">
                 <YearSlider 
-                  value={gameState.currentGuess?.year || 1950} 
+                  value={gameState.currentGuess?.year || 1960}
                   onChange={handleYearSelect} 
                 />
               </div>

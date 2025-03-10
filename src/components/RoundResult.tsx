@@ -41,6 +41,9 @@ const RoundResultComponent: React.FC<RoundResultProps> = ({
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Your guess was</p>
                     <p className="font-medium">{formattedDistance} away</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      Correct location: {event.location.name}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-500 dark:text-gray-400">Points</p>
@@ -54,7 +57,7 @@ const RoundResultComponent: React.FC<RoundResultProps> = ({
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Your guess was</p>
-                    <p className="font-medium">{yearError} years away</p>
+                    <p className="font-medium">{Math.abs(yearError)} years away</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                       You guessed: {guess.year} | Actual: {event.year}
                     </p>

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Maximize, Minimize } from 'lucide-react';
+import { Maximize, Minimize, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface PhotoViewerProps {
@@ -27,6 +27,17 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ src, alt = "Historical photog
       >
         {zoomed ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
       </Button>
+
+      {zoomed && (
+        <Button
+          variant="outline"
+          size="icon"
+          className="absolute top-4 right-4 bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm hover:bg-white/90 dark:hover:bg-gray-800/90"
+          onClick={() => setZoomed(false)}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 };

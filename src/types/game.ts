@@ -43,4 +43,6 @@ export interface GameState {
   roundResults: RoundResult[];
   gameStatus: 'not-started' | 'in-progress' | 'round-result' | 'game-over';
   currentGuess: PlayerGuess | null;
+  timerStartTime?: number; // timestamp when timer started
+  timerRemaining?: number; // seconds remaining
 }

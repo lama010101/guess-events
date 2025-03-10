@@ -1,6 +1,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
-import { MapPin } from 'lucide-react';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 
 interface GameMapProps {
   onLocationSelect: (lat: number, lng: number) => void;
@@ -9,6 +10,10 @@ interface GameMapProps {
   isDisabled?: boolean;
 }
 
+// TEMPORARY API KEY - Replace with your own Mapbox token
+// In production, this should be stored in environment variables
+mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZWFpIiwiYSI6ImNsdDhucG8zcDBkODYyanBsNjJpZXJ6MHUifQ.a6LbYP9bx42myWdegExiIg';
+
 const GameMap: React.FC<GameMapProps> = ({ 
   onLocationSelect, 
   selectedLocation, 
@@ -16,93 +21,53 @@ const GameMap: React.FC<GameMapProps> = ({
   isDisabled = false 
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
-  const [marker, setMarker] = useState<google.maps.Marker | null>(null);
-  const [correctMarker, setCorrectMarker] = useState<google.maps.Marker | null>(null);
-  const [line, setLine] = useState<google.maps.Polyline | null>(null);
+  const [mapInstance, setMapInstance] = useState<mapboxgl.Map | null>(null);
+  const [marker, setMarker] = useState<mapboxgl.Marker | null>(null);
+  const [correctMarker, setCorrectMarker] = useState<mapboxgl.Marker | null>(null);
+  const [line, setLine] = useState<mapboxgl.Polyline | null>(null);
 
+  // Initialize map
   useEffect(() => {
-    const loadGoogleMapsScript = () => {
-      const googleMapsScript = document.createElement('script');
-      googleMapsScript.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBsY7TWsifdT-O81OSRxOhGbmT-Mnns2sE&callback=initMap`;
-      googleMapsScript.async = true;
-      googleMapsScript.defer = true;
-      window.initMap = () => {
-        setMapLoaded(true);
-      };
-      document.head.appendChild(googleMapsScript);
-    };
+    if (!mapRef.current || mapInstance) return;
 
-    if (!window.google) {
-      loadGoogleMapsScript();
-    } else {
-      setMapLoaded(true);
-    }
-  }, []);
+    const map = new mapboxgl.Map({
+      container: mapRef.current,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [0, 20],
+      zoom: 1.5,
+    });
 
-  useEffect(() => {
-    if (mapLoaded && mapRef.current && !mapInstance) {
-      const map = new google.maps.Map(mapRef.current, {
-        center: { lat: 20, lng: 0 },
-        zoom: 2,
-        disableDefaultUI: true,
-        zoomControl: true,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: true,
-        styles: [
-          {
-            featureType: "administrative",
-            elementType: "labels",
-            stylers: [{ visibility: "off" }]
-          },
-          {
-            featureType: "poi",
-            stylers: [{ visibility: "off" }]
-          },
-          {
-            featureType: "transit",
-            stylers: [{ visibility: "off" }]
-          }
-        ]
+    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+    if (!isDisabled) {
+      map.on('click', (e) => {
+        if (!isDisabled) {
+          onLocationSelect(e.lngLat.lat, e.lngLat.lng);
+        }
       });
-
-      setMapInstance(map);
-
-      if (!isDisabled) {
-        map.addListener('click', (e: google.maps.MapMouseEvent) => {
-          if (e.latLng && !isDisabled) {
-            const lat = e.latLng.lat();
-            const lng = e.latLng.lng();
-            onLocationSelect(lat, lng);
-          }
-        });
-      }
     }
-  }, [mapLoaded, onLocationSelect, mapInstance, isDisabled]);
+
+    setMapInstance(map);
+
+    return () => {
+      map.remove();
+    };
+  }, [isDisabled, onLocationSelect, mapInstance]);
 
   // Update marker when selectedLocation changes
   useEffect(() => {
     if (mapInstance && selectedLocation) {
       // Remove existing marker if it exists
       if (marker) {
-        marker.setMap(null);
+        marker.remove();
       }
 
       // Create new marker
-      const newMarker = new google.maps.Marker({
-        position: { lat: selectedLocation.lat, lng: selectedLocation.lng },
-        map: mapInstance,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          fillColor: '#3b82f6',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2,
-          scale: 8,
-        },
-      });
+      const newMarker = new mapboxgl.Marker({
+        color: '#3b82f6',
+      })
+        .setLngLat([selectedLocation.lng, selectedLocation.lat])
+        .addTo(mapInstance);
 
       setMarker(newMarker);
     }
@@ -113,49 +78,70 @@ const GameMap: React.FC<GameMapProps> = ({
     if (mapInstance && correctLocation) {
       // Show correct marker
       if (correctMarker) {
-        correctMarker.setMap(null);
+        correctMarker.remove();
       }
 
-      const newCorrectMarker = new google.maps.Marker({
-        position: { lat: correctLocation.lat, lng: correctLocation.lng },
-        map: mapInstance,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          fillColor: '#10b981',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2,
-          scale: 8,
-        },
-      });
+      const newCorrectMarker = new mapboxgl.Marker({
+        color: '#10b981',
+      })
+        .setLngLat([correctLocation.lng, correctLocation.lat])
+        .addTo(mapInstance);
 
       setCorrectMarker(newCorrectMarker);
 
       // Draw line between guess and correct location if we have both
-      if (selectedLocation) {
-        if (line) {
-          line.setMap(null);
+      if (selectedLocation && line) {
+        // In Mapbox we need to remove old layer and source
+        const lineSourceId = 'line-source';
+        const lineLayerId = 'line-layer';
+        
+        if (mapInstance.getLayer(lineLayerId)) {
+          mapInstance.removeLayer(lineLayerId);
         }
+        
+        if (mapInstance.getSource(lineSourceId)) {
+          mapInstance.removeSource(lineSourceId);
+        }
+      }
 
-        const newLine = new google.maps.Polyline({
-          path: [
-            { lat: selectedLocation.lat, lng: selectedLocation.lng },
-            { lat: correctLocation.lat, lng: correctLocation.lng }
-          ],
-          geodesic: true,
-          strokeColor: '#ef4444',
-          strokeOpacity: 0.8,
-          strokeWeight: 2,
-          map: mapInstance
+      // Add line between markers if both exist
+      if (selectedLocation && mapInstance.isStyleLoaded()) {
+        mapInstance.addSource('line-source', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'LineString',
+              coordinates: [
+                [selectedLocation.lng, selectedLocation.lat],
+                [correctLocation.lng, correctLocation.lat]
+              ]
+            }
+          }
         });
 
-        setLine(newLine);
+        mapInstance.addLayer({
+          id: 'line-layer',
+          type: 'line',
+          source: 'line-source',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+          },
+          paint: {
+            'line-color': '#ef4444',
+            'line-width': 2,
+            'line-dasharray': [2, 1]
+          }
+        });
 
         // Fit bounds to show both markers
-        const bounds = new google.maps.LatLngBounds();
-        bounds.extend(new google.maps.LatLng(selectedLocation.lat, selectedLocation.lng));
-        bounds.extend(new google.maps.LatLng(correctLocation.lat, correctLocation.lng));
-        mapInstance.fitBounds(bounds, 50); // 50px padding
+        const bounds = new mapboxgl.LngLatBounds()
+          .extend([selectedLocation.lng, selectedLocation.lat])
+          .extend([correctLocation.lng, correctLocation.lat]);
+
+        mapInstance.fitBounds(bounds, { padding: 50 });
       }
     }
   }, [correctLocation, selectedLocation, mapInstance]);

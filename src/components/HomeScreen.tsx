@@ -11,9 +11,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { GameSettings } from '@/types/game';
 import { Play, Clock, MapPin, Share2 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
 import { useToast } from '@/hooks/use-toast';
 
 interface HomeScreenProps {
@@ -61,7 +61,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <MapPin className="h-4 w-4 text-gray-500" />
@@ -97,6 +97,29 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
                 }
               />
             </div>
+            
+            {settings.timerEnabled && (
+              <div className="pt-2">
+                <Label htmlFor="timerDuration" className="text-sm font-medium block mb-2">
+                  Timer Duration: {settings.timerDuration} minutes
+                </Label>
+                <Slider
+                  id="timerDuration"
+                  min={1}
+                  max={10}
+                  step={1}
+                  value={[settings.timerDuration]}
+                  onValueChange={(value) => 
+                    setSettings({...settings, timerDuration: value[0]})
+                  }
+                />
+                <div className="flex justify-between mt-1 text-xs text-gray-500">
+                  <span>1 min</span>
+                  <span>5 min</span>
+                  <span>10 min</span>
+                </div>
+              </div>
+            )}
           </div>
           
           <Button 
