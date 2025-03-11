@@ -23,6 +23,7 @@ import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import LoginForm from './LoginForm';
 import RegisterForm from './RegisterForm';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AuthButtonProps {
   topBar?: boolean;
@@ -31,44 +32,46 @@ interface AuthButtonProps {
 const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  
-  // Mock logged-in state for demo
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userData, setUserData] = useState({
-    id: "123",
-    username: "HistoryBuff",
-    profilePicture: "https://i.pravatar.cc/150?img=3"
-  });
+  const { user, profile, signOut, isLoading } = useAuth();
   
   const handleGoogleSignIn = () => {
-    // Mock Google sign-in
-    setIsLoggedIn(true);
-    setOpen(false);
+    // TODO: Implement Google sign-in when needed
+    console.log("Google sign-in clicked");
   };
   
-  const handleSignOut = () => {
-    setIsLoggedIn(false);
+  const handleSignOut = async () => {
+    await signOut();
   };
   
   const handleViewProfile = () => {
-    navigate(`/profile/${userData.id}`);
+    if (user) {
+      navigate(`/profile/${user.id}`);
+    }
   };
   
-  if (isLoggedIn) {
+  if (isLoading) {
+    return (
+      <Button variant="ghost" size="sm" disabled>
+        Loading...
+      </Button>
+    );
+  }
+  
+  if (user && profile) {
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-8 w-8 rounded-full">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={userData.profilePicture} alt={userData.username} />
-              <AvatarFallback>{userData.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+              <AvatarImage src={profile.avatar_url || ''} alt={profile.username} />
+              <AvatarFallback>{profile.username.slice(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="end" forceMount>
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">{userData.username}</p>
+              <p className="text-sm font-medium leading-none">{profile.username}</p>
               <p className="text-xs leading-none text-muted-foreground">
                 Account Settings
               </p>
@@ -88,6 +91,14 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
           <DropdownMenuItem>
             <span>Settings</span>
           </DropdownMenuItem>
+          {profile.role === 'admin' && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/admin')}>
+                <span>Admin Dashboard</span>
+              </DropdownMenuItem>
+            </>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSignOut}>
             <LogIn className="mr-2 h-4 w-4" />
@@ -170,16 +181,10 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
               <TabsTrigger value="register">Register</TabsTrigger>
             </TabsList>
             <TabsContent value="login">
-              <LoginForm onSuccess={() => {
-                setIsLoggedIn(true);
-                setOpen(false);
-              }} />
+              <LoginForm onSuccess={() => setOpen(false)} />
             </TabsContent>
             <TabsContent value="register">
-              <RegisterForm onSuccess={() => {
-                setIsLoggedIn(true);
-                setOpen(false);
-              }} />
+              <RegisterForm onSuccess={() => setOpen(false)} />
             </TabsContent>
           </Tabs>
         </DialogContent>
