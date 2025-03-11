@@ -7,3 +7,33 @@ const SUPABASE_URL = "https://yonlkixpgeiiqiexengg.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvbmxraXhwZ2VpaXFpZXhlbmdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE2ODQ5MDcsImV4cCI6MjA1NzI2MDkwN30.PAj_4trbj-y37eHFC7yVPI7oYcUeWwhwo2iGadoI5oY";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+// Helper functions for authentication with Google
+export const signInWithGoogle = async () => {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/`
+    }
+  });
+  
+  return { data, error };
+};
+
+// Helper to upload avatar images
+export const uploadAvatar = async (userId: string, file: File) => {
+  const fileExt = file.name.split('.').pop();
+  const filePath = `${userId}/avatar.${fileExt}`;
+  
+  const { error: uploadError } = await supabase.storage
+    .from('avatars')
+    .upload(filePath, file, { upsert: true });
+    
+  if (uploadError) {
+    throw uploadError;
+  }
+  
+  const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+  
+  return data.publicUrl;
+};

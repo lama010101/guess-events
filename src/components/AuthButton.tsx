@@ -1,14 +1,15 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { UserPlus, LogIn, User } from 'lucide-react';
+import { UserPlus, LogIn, User, Camera } from 'lucide-react';
 import { 
   Dialog, 
   DialogContent, 
   DialogDescription, 
   DialogHeader, 
   DialogTitle, 
-  DialogTrigger
+  DialogTrigger,
+  DialogClose
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -24,6 +25,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import LoginForm from './LoginForm';
 import RegisterForm from './RegisterForm';
 import { useAuth } from '@/contexts/AuthContext';
+import { signInWithGoogle } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuthButtonProps {
   topBar?: boolean;
@@ -33,10 +36,29 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const { user, profile, signOut, isLoading } = useAuth();
+  const { toast } = useToast();
   
-  const handleGoogleSignIn = () => {
-    // TODO: Implement Google sign-in when needed
-    console.log("Google sign-in clicked");
+  const handleGoogleSignIn = async () => {
+    try {
+      const { error } = await signInWithGoogle();
+      
+      if (error) {
+        toast({
+          title: "Sign in failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        setOpen(false);
+      }
+    } catch (error: any) {
+      console.error("Google sign-in error:", error);
+      toast({
+        title: "Sign in failed",
+        description: error.message || "Something went wrong",
+        variant: "destructive",
+      });
+    }
   };
   
   const handleSignOut = async () => {

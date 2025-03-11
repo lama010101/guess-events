@@ -116,7 +116,6 @@ const GameMap: React.FC<GameMapProps> = ({
         setMarker(newMarker);
         
         // Don't reset the view when placing a pin - maintain current view
-        // mapInstanceRef.current.setView([selectedLocation.lat, selectedLocation.lng], mapInstanceRef.current.getZoom());
       } catch (error) {
         console.error("Error adding marker:", error);
       }

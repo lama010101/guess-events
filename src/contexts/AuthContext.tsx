@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, uploadAvatar } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { useToast } from '@/hooks/use-toast';
 
@@ -21,6 +21,7 @@ type AuthContextType = {
   signUp: (email: string, password: string, username: string) => Promise<{ error: any | null }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: any | null }>;
+  updateAvatar: (file: File) => Promise<{ error: any | null, url: string | null }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -196,6 +197,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateAvatar = async (file: File) => {
+    try {
+      if (!user) return { error: new Error('User not logged in'), url: null };
+      
+      // First, check if the avatars bucket exists
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const avatarBucketExists = buckets?.some(bucket => bucket.name === 'avatars');
+      
+      // If it doesn't exist, create it
+      if (!avatarBucketExists) {
+        const { error: createBucketError } = await supabase.storage.createBucket('avatars', {
+          public: true
+        });
+        
+        if (createBucketError) {
+          console.error('Error creating avatars bucket:', createBucketError);
+          return { error: createBucketError, url: null };
+        }
+      }
+      
+      // Upload the avatar
+      const publicUrl = await uploadAvatar(user.id, file);
+      
+      // Update the profile with the new avatar URL
+      const { error } = await updateProfile({ avatar_url: publicUrl });
+      
+      if (error) {
+        return { error, url: null };
+      }
+      
+      return { error: null, url: publicUrl };
+    } catch (error) {
+      console.error('Update avatar error:', error);
+      return { error, url: null };
+    }
+  };
+
   const value = {
     session,
     user,
@@ -205,6 +243,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signOut,
     updateProfile,
+    updateAvatar,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -21,6 +21,9 @@ import {
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import AuthButton from './AuthButton';
+import { format } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface HomeScreenProps {
   onStartGame: (settings: GameSettings) => void;
@@ -28,6 +31,8 @@ interface HomeScreenProps {
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
   const { toast } = useToast();
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const [settings, setSettings] = useState<GameSettings>({
     distanceUnit: 'km',
     timerEnabled: false,
@@ -37,66 +42,160 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
   const [showFriendsDialog, setShowFriendsDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
+  const [dailyCompleted, setDailyCompleted] = useState(false);
+  const [dailyScore, setDailyScore] = useState(0);
+  const [friendsList, setFriendsList] = useState<any[]>([]);
+  const [gameSessionLink, setGameSessionLink] = useState('');
+  
+  // Get today's date formatted
+  const todayDate = format(new Date(), 'MMMM d, yyyy');
 
-  // Mock friends data
-  const allFriends = [
-    { id: "1", name: "HistoryBuff", image: "https://i.pravatar.cc/150?img=1" },
-    { id: "2", name: "MapMaster", image: "https://i.pravatar.cc/150?img=2" },
-    { id: "3", name: "TimeTraveler", image: "https://i.pravatar.cc/150?img=3" },
-    { id: "4", name: "HistoryNerd", image: "https://i.pravatar.cc/150?img=4" },
-    { id: "5", name: "GeographyPro", image: "https://i.pravatar.cc/150?img=5" },
-  ];
+  // Check if user has completed today's challenge
+  useEffect(() => {
+    if (user) {
+      checkDailyCompletion();
+      fetchFriends();
+    }
+  }, [user]);
 
-  const filteredFriends = allFriends.filter(friend => 
+  // Function to check if user has completed today's challenge
+  const checkDailyCompletion = async () => {
+    if (!user) return;
+    
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const { data, error } = await supabase
+        .from('game_results')
+        .select('*, game_sessions(*)')
+        .eq('user_id', user.id)
+        .gte('created_at', today.toISOString())
+        .eq('game_sessions.game_mode', 'daily')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        setDailyCompleted(true);
+        setDailyScore(data[0].total_score);
+      }
+    } catch (error) {
+      console.error('Error checking daily completion:', error);
+    }
+  };
+
+  // Fetch friends list
+  const fetchFriends = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('friends')
+        .select('*, friend:friend_id(id, username, avatar_url)')
+        .eq('user_id', user.id)
+        .eq('status', 'accepted');
+      
+      if (error) throw error;
+      
+      if (data) {
+        const friends = data.map(item => ({
+          id: item.friend.id,
+          name: item.friend.username,
+          image: item.friend.avatar_url,
+        }));
+        setFriendsList(friends);
+      }
+    } catch (error) {
+      console.error('Error fetching friends:', error);
+    }
+  };
+
+  const filteredFriends = friendsList.filter(friend => 
     friend.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleStartGame = (mode: 'daily' | 'friends') => {
+  const handleStartGame = async (mode: 'daily' | 'friends') => {
     const newSettings = {
       ...settings,
       gameMode: mode
     };
     
     if (mode === 'friends') {
-      setShowFriendsDialog(true);
+      // Create a game session first
+      try {
+        if (!user) {
+          toast({
+            title: "Sign in required",
+            description: "Please sign in to create a game with friends",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        const { data, error } = await supabase
+          .from('game_sessions')
+          .insert({
+            creator_id: user.id,
+            game_mode: 'friends',
+            settings: newSettings
+          })
+          .select()
+          .single();
+          
+        if (error) throw error;
+        
+        if (data) {
+          const sessionUrl = `${window.location.origin}/game/${data.id}`;
+          setGameSessionLink(sessionUrl);
+          setShowFriendsDialog(true);
+        }
+      } catch (error) {
+        console.error('Error creating game session:', error);
+        toast({
+          title: "Error",
+          description: "Failed to create game session",
+          variant: "destructive",
+        });
+      }
     } else {
       onStartGame(newSettings);
     }
   };
 
-  const handleStartFriendsGame = () => {
-    // Copy the game session link to clipboard
-    const gameURL = window.location.href;
-    navigator.clipboard.writeText(gameURL)
-      .then(() => {
-        toast({
-          title: "Link copied!",
-          description: "Game link copied to clipboard. Share with your friends!",
-        });
-        
-        // Send notifications to selected friends
-        if (selectedFriends.length > 0) {
-          toast({
-            title: "Invitations sent!",
-            description: `Sent invitations to ${selectedFriends.length} friends.`,
-          });
-        }
-        
-        onStartGame({
-          ...settings,
-          gameMode: 'friends'
-        });
-        
-        setShowFriendsDialog(false);
-        setSelectedFriends([]);
-      })
-      .catch(err => {
-        toast({
-          title: "Failed to copy link",
-          description: "Please try again or share the URL manually.",
-          variant: "destructive",
-        });
+  const handleStartFriendsGame = async () => {
+    try {
+      // Copy the game session link to clipboard
+      await navigator.clipboard.writeText(gameSessionLink);
+      
+      toast({
+        title: "Link copied!",
+        description: "Game link copied to clipboard. Share with your friends!",
       });
+      
+      // Send notifications to selected friends
+      if (selectedFriends.length > 0) {
+        // Here you would implement a notification system
+        // For now, just show a toast
+        toast({
+          title: "Invitations sent!",
+          description: `Sent invitations to ${selectedFriends.length} friends.`,
+        });
+      }
+      
+      // Navigate to the game
+      navigate(gameSessionLink);
+      
+      setShowFriendsDialog(false);
+      setSelectedFriends([]);
+    } catch (err) {
+      toast({
+        title: "Failed to copy link",
+        description: "Please try again or share the URL manually.",
+        variant: "destructive",
+      });
+    }
   };
 
   const toggleFriendSelection = (friendId: string) => {
@@ -161,13 +260,24 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
-          <Button 
-            className="w-full" 
-            size="lg" 
-            onClick={() => handleStartGame('daily')}
-          >
-            <Trophy className="mr-2 h-4 w-4" /> Daily Competition
-          </Button>
+          {dailyCompleted ? (
+            <Button 
+              className="w-full" 
+              size="lg" 
+              disabled
+            >
+              <Trophy className="mr-2 h-4 w-4" /> Daily Competition Completed ({todayDate}): {dailyScore}
+            </Button>
+          ) : (
+            <Button 
+              className="w-full" 
+              size="lg" 
+              onClick={() => handleStartGame('daily')}
+            >
+              <Trophy className="mr-2 h-4 w-4" /> Daily Competition ({todayDate})
+            </Button>
+          )}
+          
           <Button 
             className="w-full" 
             variant="outline" 
@@ -176,11 +286,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
           >
             <Users className="mr-2 h-4 w-4" /> Play with Friends
           </Button>
-          <div className="flex w-full justify-center">
-            <Link to="/admin" className="text-sm text-muted-foreground hover:text-primary flex items-center">
-              <Shield className="mr-1 h-3 w-3" /> Admin Panel
-            </Link>
-          </div>
+          
+          {profile?.role === 'admin' && (
+            <div className="flex w-full justify-center">
+              <Link to="/admin" className="text-sm text-muted-foreground hover:text-primary flex items-center">
+                <Shield className="mr-1 h-3 w-3" /> Admin Panel
+              </Link>
+            </div>
+          )}
         </CardFooter>
       </Card>
       
@@ -189,11 +302,25 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
           <DialogHeader>
             <DialogTitle>Invite Friends to Play</DialogTitle>
             <DialogDescription>
-              Select friends to invite to your game session. They'll receive a notification to join.
+              Game link copied to clipboard. Share the link or select friends to invite to your game session. They'll receive a notification to join.
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
+            <div className="flex items-center gap-2">
+              <Input 
+                value={gameSessionLink} 
+                readOnly 
+                className="flex-1"
+              />
+              <Button 
+                size="sm" 
+                onClick={() => navigator.clipboard.writeText(gameSessionLink)}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -201,6 +328,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
                 className="pl-8"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                autoFocus={false}
               />
             </div>
             
@@ -210,7 +338,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
                   <div
                     key={friend.id}
                     className={`flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 cursor-pointer ${
-                      selectedFriends.includes(friend.id) ? 'bg-blue-50' : ''
+                      selectedFriends.includes(friend.id) ? 'bg-green-50' : ''
                     }`}
                     onClick={() => toggleFriendSelection(friend.id)}
                   >
