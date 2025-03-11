@@ -12,6 +12,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/round/:roundId" element={<Index />} />
+        <Route path="/game/:sessionId" element={<Index />} />
+        <Route path="/game/:sessionId/round/:roundId" element={<Index />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/profile/:userId" element={<UserProfile />} />
         <Route path="*" element={<NotFound />} />

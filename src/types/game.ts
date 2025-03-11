@@ -47,6 +47,7 @@ export interface GameState {
   timerStartTime?: number; // timestamp when timer started
   timerRemaining?: number; // seconds remaining
   sessionId?: string; // unique ID for the game session
+  userAvatar?: string | null; // user's profile picture
 }
 
 export interface UserProfile {
@@ -64,5 +65,20 @@ export interface UserProfile {
   preferences: {
     defaultDistanceUnit: 'km' | 'miles';
   };
+  createdAt: Date;
+}
+
+export interface Friend {
+  id: string;
+  username: string;
+  profilePicture?: string;
+  status: 'online' | 'offline' | 'playing';
+}
+
+export interface FriendRequest {
+  id: string;
+  from: UserProfile;
+  to: UserProfile;
+  status: 'pending' | 'accepted' | 'rejected';
   createdAt: Date;
 }

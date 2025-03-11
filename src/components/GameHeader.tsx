@@ -8,7 +8,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 import { formatNumber } from '@/utils/gameUtils';
+import AuthButton from './AuthButton';
 
 interface GameHeaderProps {
   currentRound: number;
@@ -27,8 +29,10 @@ const GameHeader: React.FC<GameHeaderProps> = ({
   onSettingsClick,
   onHomeClick
 }) => {
+  const { toast } = useToast();
+
   return (
-    <div className="w-full bg-white dark:bg-gray-900 shadow-md rounded-lg p-4 mb-4 flex items-center justify-between">
+    <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 shadow-md rounded-b-lg p-4 flex items-center justify-between">
       <div className="flex items-center space-x-6">
         <div className="flex flex-col">
           <span className="text-sm text-gray-500 dark:text-gray-400">Round</span>
@@ -40,6 +44,8 @@ const GameHeader: React.FC<GameHeaderProps> = ({
         </div>
       </div>
       <div className="flex items-center space-x-2">
+        <AuthButton topBar={true} />
+        
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>

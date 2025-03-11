@@ -12,13 +12,15 @@ interface RoundResultProps {
   onNextRound: () => void;
   distanceUnit: 'km' | 'miles';
   isLastRound: boolean;
+  userAvatar?: string | null;
 }
 
 const RoundResultComponent: React.FC<RoundResultProps> = ({ 
   result, 
   onNextRound, 
   distanceUnit,
-  isLastRound
+  isLastRound,
+  userAvatar = null
 }) => {
   const { event, guess, distanceError, yearError, locationScore, timeScore, totalScore } = result;
   
@@ -46,6 +48,7 @@ const RoundResultComponent: React.FC<RoundResultProps> = ({
                 correctLocation={event.location}
                 showCorrectPin={true}
                 isDisabled={true}
+                userAvatar={userAvatar}
               />
             </div>
             
@@ -94,7 +97,7 @@ const RoundResultComponent: React.FC<RoundResultProps> = ({
           </div>
         </CardContent>
         <CardFooter className="flex justify-center">
-          <Button onClick={onNextRound} className="w-full md:w-auto">
+          <Button onClick={onNextRound} className="w-full">
             {isLastRound ? 'See Final Results' : 'Next Round'}
           </Button>
         </CardFooter>

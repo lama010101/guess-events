@@ -26,11 +26,11 @@ const GameResults: React.FC<GameResultsProps> = ({
   
   // Placeholder leaderboard data
   const leaderboardData = [
-    { rank: 1, userId: '1', username: 'HistoryBuff', avatar: null, dailyScore: 45000, totalScore: 45000, avgScore: 9000 },
-    { rank: 2, userId: '2', username: 'TimeTraveler', avatar: null, dailyScore: 42500, totalScore: 42500, avgScore: 8500 },
-    { rank: 3, userId: '3', username: 'MapMaster', avatar: null, dailyScore: 40000, totalScore: 40000, avgScore: 8000 },
-    { rank: 4, userId: '4', username: 'HistoryNerd', avatar: null, dailyScore: 37500, totalScore: 37500, avgScore: 7500 },
-    { rank: 5, userId: '5', username: 'You', avatar: null, dailyScore: totalScore, totalScore: totalScore, avgScore: totalScore / 5 },
+    { rank: 1, userId: '1', username: 'HistoryBuff', avatar: "https://i.pravatar.cc/150?img=1", dailyScore: 45000, totalScore: 45000, avgScore: 9000 },
+    { rank: 2, userId: '2', username: 'TimeTraveler', avatar: "https://i.pravatar.cc/150?img=2", dailyScore: 42500, totalScore: 42500, avgScore: 8500 },
+    { rank: 3, userId: '3', username: 'MapMaster', avatar: "https://i.pravatar.cc/150?img=3", dailyScore: 40000, totalScore: 40000, avgScore: 8000 },
+    { rank: 4, userId: '4', username: 'HistoryNerd', avatar: "https://i.pravatar.cc/150?img=4", dailyScore: 37500, totalScore: 37500, avgScore: 7500 },
+    { rank: 5, userId: '5', username: 'You', avatar: "https://i.pravatar.cc/150?img=5", dailyScore: totalScore, totalScore: totalScore, avgScore: totalScore / 5 },
   ].sort((a, b) => {
     if (leaderboardSort === 'daily') return b.dailyScore - a.dailyScore;
     if (leaderboardSort === 'total') return b.totalScore - a.totalScore;
@@ -158,11 +158,11 @@ const GameResults: React.FC<GameResultsProps> = ({
           </Tabs>
         </CardContent>
         <CardFooter className="flex justify-center space-x-4">
-          <Button onClick={onRestart} className="flex items-center gap-2">
+          <Button onClick={onRestart} className="flex items-center gap-2 flex-1">
             <RotateCcw className="h-4 w-4" />
             Play Again
           </Button>
-          <Button variant="outline" onClick={onHome} className="flex items-center gap-2">
+          <Button variant="outline" onClick={onHome} className="flex items-center gap-2 flex-1">
             <Home className="h-4 w-4" />
             Return to Home
           </Button>

@@ -111,5 +111,60 @@ export const sampleEvents: HistoricalEvent[] = [
     },
     year: 1945,
     description: "Aftermath of the atomic bombing in Hiroshima, showing the destruction caused during World War II."
+  },
+  {
+    id: "11",
+    imageUrl: "https://images.unsplash.com/photo-1547922657-b370d1687eb1",
+    location: {
+      lat: 37.8199,
+      lng: -122.4783,
+      name: "San Francisco, USA"
+    },
+    year: 1937,
+    description: "Construction of the Golden Gate Bridge in San Francisco."
+  },
+  {
+    id: "12",
+    imageUrl: "https://images.unsplash.com/photo-1544987075-f7dd7542100c",
+    location: {
+      lat: 27.1751,
+      lng: 78.0421,
+      name: "Agra, India"
+    },
+    year: 1653,
+    description: "The Taj Mahal shortly after its completion."
+  },
+  {
+    id: "13",
+    imageUrl: "https://images.unsplash.com/photo-1655637389010-12f7542e8c6f",
+    location: {
+      lat: 29.9792,
+      lng: 31.1342,
+      name: "Giza, Egypt"
+    },
+    year: -2560,
+    description: "Construction of the Great Pyramid of Giza."
+  },
+  {
+    id: "14",
+    imageUrl: "https://images.unsplash.com/photo-1610018556010-6a11691bc905",
+    location: {
+      lat: 41.9028,
+      lng: 12.4964,
+      name: "Rome, Italy"
+    },
+    year: 80,
+    description: "The Colosseum in Rome during the Roman Empire."
+  },
+  {
+    id: "15",
+    imageUrl: "https://images.unsplash.com/photo-1533757879476-5763a2240d0c",
+    location: {
+      lat: 43.0424,
+      lng: -76.1316,
+      name: "Normandy, France"
+    },
+    year: 1944,
+    description: "D-Day landings at Normandy during World War II."
   }
 ];
