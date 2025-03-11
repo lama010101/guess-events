@@ -42,7 +42,8 @@ const Index = () => {
     settings: {
       distanceUnit: 'km',
       timerEnabled: false,
-      timerDuration: 5
+      timerDuration: 5,
+      gameMode: 'daily'
     },
     events: [],
     currentRound: 1,
@@ -278,57 +279,62 @@ const Index = () => {
       case 'in-progress':
         const currentEvent = gameState.events[gameState.currentRound - 1];
         return (
-          <div className="container mx-auto p-4 min-h-screen">
-            <div className="flex justify-between items-center mb-4">
-              <GameHeader 
-                currentRound={gameState.currentRound} 
-                totalRounds={gameState.totalRounds}
-                cumulativeScore={calculateCumulativeScore()}
-                onShare={handleShare}
-                onSettingsClick={() => setSettingsOpen(true)}
-                onHomeClick={handleGoHome}
-              />
-            </div>
-            
-            {gameState.settings.timerEnabled && (
-              <div className="mb-4">
-                <Timer 
-                  durationMinutes={gameState.settings.timerDuration}
-                  onTimeUp={handleTimeUp}
-                  isActive={gameState.gameStatus === 'in-progress'}
-                  remainingSeconds={gameState.timerRemaining}
-                />
-              </div>
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div className="h-96">
-                <PhotoViewer src={currentEvent.imageUrl} alt={currentEvent.description} />
-              </div>
-              <div className="h-96">
-                <GameMap 
-                  onLocationSelect={handleLocationSelect} 
-                  selectedLocation={gameState.currentGuess?.location}
+          <div className="container mx-auto p-4 min-h-screen bg-[#f3f3f3]">
+            <div className="fixed top-0 left-0 right-0 z-10 bg-white shadow-sm">
+              <div className="container mx-auto p-4">
+                <GameHeader 
+                  currentRound={gameState.currentRound} 
+                  totalRounds={gameState.totalRounds}
+                  cumulativeScore={calculateCumulativeScore()}
+                  onShare={handleShare}
+                  onSettingsClick={() => setSettingsOpen(true)}
+                  onHomeClick={handleGoHome}
                 />
               </div>
             </div>
             
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-6">
-              <div className="w-full md:w-auto">
-                <YearSlider 
-                  value={gameState.currentGuess?.year || 1960}
-                  onChange={handleYearSelect}
-                  minYear={1900}
-                  maxYear={new Date().getFullYear()}
-                />
+            <div className="pt-20">
+              {gameState.settings.timerEnabled && (
+                <div className="mb-4">
+                  <Timer 
+                    durationMinutes={gameState.settings.timerDuration}
+                    onTimeUp={handleTimeUp}
+                    isActive={gameState.gameStatus === 'in-progress'}
+                    remainingSeconds={gameState.timerRemaining}
+                  />
+                </div>
+              )}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="h-96">
+                  <PhotoViewer src={currentEvent.imageUrl} alt={currentEvent.description} />
+                </div>
+                <div className="h-96">
+                  <GameMap 
+                    onLocationSelect={handleLocationSelect} 
+                    selectedLocation={gameState.currentGuess?.location}
+                  />
+                </div>
               </div>
-              <Button 
-                size="lg"
-                onClick={submitGuess}
-                disabled={!gameState.currentGuess?.year}
-              >
-                Submit Guess
-              </Button>
+              
+              <div className="flex flex-col justify-between items-center gap-6 mb-6">
+                <div className="w-full">
+                  <YearSlider 
+                    value={gameState.currentGuess?.year || 1960}
+                    onChange={handleYearSelect}
+                    minYear={1900}
+                    maxYear={new Date().getFullYear()}
+                  />
+                </div>
+                <Button 
+                  size="lg"
+                  onClick={submitGuess}
+                  disabled={!gameState.currentGuess?.year}
+                  className="w-full md:w-auto"
+                >
+                  Submit Guess
+                </Button>
+              </div>
             </div>
           </div>
         );
@@ -336,19 +342,20 @@ const Index = () => {
       case 'round-result':
         const lastResult = gameState.roundResults[gameState.roundResults.length - 1];
         return (
-          <div className="container mx-auto p-4 min-h-screen">
+          <div className="container mx-auto p-4 min-h-screen bg-[#f3f3f3]">
             <RoundResultComponent 
               result={lastResult} 
               onNextRound={handleNextRound} 
               distanceUnit={gameState.settings.distanceUnit}
               isLastRound={gameState.currentRound === gameState.totalRounds}
+              userAvatar={gameState.userAvatar}
             />
           </div>
         );
       
       case 'game-over':
         return (
-          <div className="container mx-auto p-4 min-h-screen">
+          <div className="container mx-auto p-4 min-h-screen bg-[#f3f3f3]">
             <GameResults 
               results={gameState.roundResults} 
               onRestart={handleRestart}
