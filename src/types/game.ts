@@ -15,6 +15,7 @@ export interface GameSettings {
   distanceUnit: 'km' | 'miles';
   timerEnabled: boolean;
   timerDuration: number; // in minutes
+  gameMode: 'daily' | 'friends';
 }
 
 export interface PlayerGuess {
@@ -45,4 +46,23 @@ export interface GameState {
   currentGuess: PlayerGuess | null;
   timerStartTime?: number; // timestamp when timer started
   timerRemaining?: number; // seconds remaining
+  sessionId?: string; // unique ID for the game session
+}
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  email: string;
+  profilePicture?: string;
+  friends: string[]; // Array of user IDs
+  stats: {
+    gamesPlayed: number;
+    totalScore: number;
+    averageScore: number;
+    highestDailyScore: number;
+  };
+  preferences: {
+    defaultDistanceUnit: 'km' | 'miles';
+  };
+  createdAt: Date;
 }

@@ -6,22 +6,49 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Settings, Play, Shield } from "lucide-react";
+import { Settings, Play, Shield, Copy, Users, Trophy } from "lucide-react";
 import { GameSettings } from '@/types/game';
+import { useToast } from "@/hooks/use-toast";
+import AuthButton from './AuthButton';
 
 interface HomeScreenProps {
   onStartGame: (settings: GameSettings) => void;
 }
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
+  const { toast } = useToast();
   const [settings, setSettings] = useState<GameSettings>({
     distanceUnit: 'km',
     timerEnabled: false,
-    timerDuration: 5
+    timerDuration: 5,
+    gameMode: 'daily'
   });
 
-  const handleStartGame = () => {
-    onStartGame(settings);
+  const handleStartGame = (mode: 'daily' | 'friends') => {
+    const newSettings = {
+      ...settings,
+      gameMode: mode
+    };
+    
+    if (mode === 'friends') {
+      // Copy the game session link to clipboard
+      navigator.clipboard.writeText(window.location.href)
+        .then(() => {
+          toast({
+            title: "Link copied!",
+            description: "Game link copied to clipboard. Share with your friends!",
+          });
+        })
+        .catch(err => {
+          toast({
+            title: "Failed to copy link",
+            description: "Please try again or share the URL manually.",
+            variant: "destructive",
+          });
+        });
+    }
+    
+    onStartGame(newSettings);
   };
 
   const handleSettingChange = (key: keyof GameSettings, value: any) => {
@@ -32,39 +59,18 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-background to-background/80">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-[#f3f3f3]">
+      <div className="absolute top-4 right-4">
+        <AuthButton />
+      </div>
+      
       <Card className="w-full max-w-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl sm:text-3xl">Historical Photo Hunt</CardTitle>
+          <CardTitle className="text-2xl sm:text-3xl">GUESS HISTORY</CardTitle>
           <CardDescription>Test your knowledge of historical events</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <h4 className="font-medium leading-none">Distance Unit</h4>
-                <p className="text-sm text-muted-foreground">
-                  Choose your preferred unit of measurement
-                </p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant={settings.distanceUnit === 'km' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleSettingChange('distanceUnit', 'km')}
-                >
-                  Kilometers
-                </Button>
-                <Button
-                  variant={settings.distanceUnit === 'miles' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleSettingChange('distanceUnit', 'miles')}
-                >
-                  Miles
-                </Button>
-              </div>
-            </div>
-
             <div className="flex flex-col space-y-2">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -99,8 +105,20 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
-          <Button className="w-full" size="lg" onClick={handleStartGame}>
-            <Play className="mr-2 h-4 w-4" /> Start Game
+          <Button 
+            className="w-full" 
+            size="lg" 
+            onClick={() => handleStartGame('daily')}
+          >
+            <Trophy className="mr-2 h-4 w-4" /> Daily Competition
+          </Button>
+          <Button 
+            className="w-full" 
+            variant="outline" 
+            size="lg" 
+            onClick={() => handleStartGame('friends')}
+          >
+            <Users className="mr-2 h-4 w-4" /> Play with Friends
           </Button>
           <div className="flex w-full justify-center">
             <Link to="/admin" className="text-sm text-muted-foreground hover:text-primary flex items-center">

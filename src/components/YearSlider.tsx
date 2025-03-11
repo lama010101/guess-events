@@ -12,7 +12,7 @@ interface YearSliderProps {
 }
 
 const YearSlider: React.FC<YearSliderProps> = ({
-  minYear = 1900,
+  minYear = 1800,
   maxYear = new Date().getFullYear(),
   value,
   onChange,
@@ -52,8 +52,9 @@ const YearSlider: React.FC<YearSliderProps> = ({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center space-x-4">
+    <div className="space-y-4 w-full">
+      <div className="flex items-center">
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-4">Year</span>
         <Input
           type="number"
           min={minYear}
@@ -61,12 +62,11 @@ const YearSlider: React.FC<YearSliderProps> = ({
           value={yearInput}
           onChange={handleInputChange}
           onBlur={handleInputBlur}
-          className="w-32 text-center"
+          className="w-32 text-center bg-blue-100"
           disabled={disabled}
         />
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 px-3 py-1 bg-blue-100 dark:bg-blue-900/40 rounded-full">Year</span>
       </div>
-      <div className="px-2">
+      <div className="px-2 w-full">
         <Slider
           value={[value]}
           min={minYear}

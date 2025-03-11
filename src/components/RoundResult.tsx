@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { formatNumber, convertToMiles } from '@/utils/gameUtils';
 import GameMap from './GameMap';
+import PhotoViewer from './PhotoViewer';
 
 interface RoundResultProps {
   result: RoundResult;
@@ -34,7 +35,21 @@ const RoundResultComponent: React.FC<RoundResultProps> = ({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex flex-col space-y-4">
+            <div className="h-96">
+              <PhotoViewer src={event.imageUrl} alt={event.description} />
+            </div>
+            
+            <div className="h-96">
+              <GameMap 
+                onLocationSelect={() => {}} 
+                selectedLocation={guess.location}
+                correctLocation={event.location}
+                showCorrectPin={true}
+                isDisabled={true}
+              />
+            </div>
+            
+            <div className="md:col-span-2 flex flex-col space-y-4">
               <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
                 <h3 className="font-semibold text-lg mb-2">Location</h3>
                 <div className="flex justify-between items-center">
@@ -76,19 +91,10 @@ const RoundResultComponent: React.FC<RoundResultProps> = ({
                 </div>
               </div>
             </div>
-            
-            <div className="h-96">
-              <GameMap 
-                onLocationSelect={() => {}} 
-                selectedLocation={guess.location}
-                correctLocation={event.location}
-                isDisabled={true}
-              />
-            </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-end">
-          <Button onClick={onNextRound}>
+        <CardFooter className="flex justify-center">
+          <Button onClick={onNextRound} className="w-full md:w-auto">
             {isLastRound ? 'See Final Results' : 'Next Round'}
           </Button>
         </CardFooter>
