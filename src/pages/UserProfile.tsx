@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -34,7 +33,10 @@ const UserProfile = () => {
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Load profile data
+  const handleDistanceUnitChange = (unit: "km" | "miles") => {
+    setDistanceUnit(unit);
+  };
+  
   React.useEffect(() => {
     if (user && userId) {
       const isOwn = user.id === userId;
@@ -81,7 +83,6 @@ const UserProfile = () => {
   
   const loadStats = async (id: string) => {
     try {
-      // Get game results
       const { data: gameResults, error: gameError } = await supabase
         .from('game_results')
         .select('*')
@@ -90,13 +91,11 @@ const UserProfile = () => {
       if (gameError) throw gameError;
       
       if (gameResults) {
-        // Calculate stats
         const gamesPlayed = gameResults.length;
         const totalScore = gameResults.reduce((sum, game) => sum + game.total_score, 0);
         const averageScore = gamesPlayed > 0 ? Math.round(totalScore / gamesPlayed) : 0;
         const highestScore = gamesPlayed > 0 ? Math.max(...gameResults.map(game => game.total_score)) : 0;
         
-        // Parse round results to calculate perfect guesses
         let perfectYearGuesses = 0;
         let perfectLocationGuesses = 0;
         
@@ -189,7 +188,6 @@ const UserProfile = () => {
   };
   
   const handleAddFriend = (friendId: string) => {
-    // Implementation for adding friends
     toast({
       title: "Friend request sent",
       description: "They will be notified of your request."
@@ -292,7 +290,7 @@ const UserProfile = () => {
                         id="defaultUnit" 
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         value={distanceUnit}
-                        onChange={(e) => setDistanceUnit(e.target.value as 'km' | 'miles')}
+                        onChange={(e) => handleDistanceUnitChange(e.target.value as "km" | "miles")}
                       >
                         <option value="km">Kilometers</option>
                         <option value="miles">Miles</option>
@@ -395,7 +393,6 @@ const UserProfile = () => {
                       <div className="mb-6">
                         <h3 className="font-semibold mb-2">Search Results</h3>
                         <div className="space-y-2">
-                          {/* Placeholder for search results */}
                           <div className="flex justify-between items-center p-2 bg-white rounded-lg">
                             <div className="flex items-center gap-2">
                               <Avatar className="h-8 w-8">
@@ -418,7 +415,6 @@ const UserProfile = () => {
                     <div>
                       <h3 className="font-semibold mb-2">Your Friends</h3>
                       <div className="space-y-2">
-                        {/* Placeholder for friends list */}
                         <div className="flex justify-between items-center p-2 bg-white rounded-lg">
                             <div className="flex items-center gap-2">
                               <Avatar className="h-8 w-8">

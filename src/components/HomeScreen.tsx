@@ -93,7 +93,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
     try {
       const { data, error } = await supabase
         .from('friends')
-        .select('*, friend:friend_id(id, username, avatar_url)')
+        .select(`
+          id,
+          friend:profiles!friends_friend_id_fkey(
+            id,
+            username,
+            avatar_url
+          )
+        `)
         .eq('user_id', user.id)
         .eq('status', 'accepted');
       
@@ -125,19 +132,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
     if (mode === 'friends') {
       // Create a game session first
       try {
-        if (!user) {
-          toast({
-            title: "Sign in required",
-            description: "Please sign in to create a game with friends",
-            variant: "destructive",
-          });
-          return;
-        }
+        const creatorId = user ? user.id : 'anonymous';
         
         const { data, error } = await supabase
           .from('game_sessions')
           .insert({
-            creator_id: user.id,
+            creator_id: creatorId,
             game_mode: 'friends',
             settings: newSettings
           })
@@ -149,6 +149,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
         if (data) {
           const sessionUrl = `${window.location.origin}/game/${data.id}`;
           setGameSessionLink(sessionUrl);
+          
+          try {
+            await navigator.clipboard.writeText(sessionUrl);
+          } catch (err) {
+            console.error('Failed to copy to clipboard:', err);
+          }
+          
           setShowFriendsDialog(true);
         }
       } catch (error) {
@@ -166,16 +173,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
 
   const handleStartFriendsGame = async () => {
     try {
-      // Copy the game session link to clipboard
+      // Copy the game session link to clipboard again (in case it failed before)
       await navigator.clipboard.writeText(gameSessionLink);
       
-      toast({
-        title: "Link copied!",
-        description: "Game link copied to clipboard. Share with your friends!",
-      });
-      
-      // Send notifications to selected friends
-      if (selectedFriends.length > 0) {
+      // Send notifications to selected friends if user is logged in
+      if (user && selectedFriends.length > 0) {
         // Here you would implement a notification system
         // For now, just show a toast
         toast({
@@ -211,6 +213,23 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
       ...prev,
       [key]: value
     }));
+  };
+
+  // Handle copy link button click
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(gameSessionLink);
+      toast({
+        title: "Link copied!",
+        description: "Game link copied to clipboard.",
+      });
+    } catch (err) {
+      toast({
+        title: "Failed to copy link",
+        description: "Please try again or share the URL manually.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -302,7 +321,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
           <DialogHeader>
             <DialogTitle>Invite Friends to Play</DialogTitle>
             <DialogDescription>
-              Game link copied to clipboard. Share the link or select friends to invite to your game session. They'll receive a notification to join.
+              You can now share the game link that was copied to your clipboard. You can also select friends to invite to your game session. They'll receive a notification to join.
             </DialogDescription>
           </DialogHeader>
           
@@ -315,51 +334,57 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
               />
               <Button 
                 size="sm" 
-                onClick={() => navigator.clipboard.writeText(gameSessionLink)}
+                onClick={handleCopyLink}
               >
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
             
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search friends..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                autoFocus={false}
-              />
-            </div>
-            
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-              {filteredFriends.length > 0 ? (
-                filteredFriends.map(friend => (
-                  <div
-                    key={friend.id}
-                    className={`flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 cursor-pointer ${
-                      selectedFriends.includes(friend.id) ? 'bg-green-50' : ''
-                    }`}
-                    onClick={() => toggleFriendSelection(friend.id)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={friend.image} alt={friend.name} />
-                        <AvatarFallback>{friend.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <span>{friend.name}</span>
-                    </div>
-                    {selectedFriends.includes(friend.id) ? (
-                      <X className="h-5 w-5 text-gray-400" />
-                    ) : (
-                      <UserPlus className="h-5 w-5 text-gray-400" />
-                    )}
-                  </div>
-                ))
-              ) : (
-                <p className="text-center text-sm text-gray-500 py-2">No friends found</p>
-              )}
-            </div>
+            {user && (
+              <>
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search friends..."
+                    className="pl-8"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    autoFocus={false}
+                  />
+                </div>
+                
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {filteredFriends.length > 0 ? (
+                    filteredFriends.map(friend => (
+                      <div
+                        key={friend.id}
+                        className={`flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 cursor-pointer ${
+                          selectedFriends.includes(friend.id) ? 'bg-green-50' : ''
+                        }`}
+                        onClick={() => toggleFriendSelection(friend.id)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarImage src={friend.image} alt={friend.name} />
+                            <AvatarFallback>{friend.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <span>{friend.name}</span>
+                        </div>
+                        {selectedFriends.includes(friend.id) ? (
+                          <X className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <UserPlus className="h-5 w-5 text-gray-400" />
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center text-sm text-gray-500 py-2">
+                      {user ? "No friends found" : "Sign in to invite friends"}
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
           </div>
           
           <DialogFooter className="flex flex-col sm:flex-row gap-2">
@@ -371,7 +396,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
               className="w-full sm:w-auto"
               onClick={handleStartFriendsGame}
             >
-              Start Game & Invite ({selectedFriends.length} selected)
+              Start Game {user && selectedFriends.length > 0 && `& Invite (${selectedFriends.length} selected)`}
             </Button>
           </DialogFooter>
         </DialogContent>

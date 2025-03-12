@@ -22,6 +22,17 @@ export const signInWithGoogle = async () => {
 
 // Helper to upload avatar images
 export const uploadAvatar = async (userId: string, file: File) => {
+  // First check if the avatars bucket exists
+  const { data: buckets } = await supabase.storage.listBuckets();
+  const avatarBucketExists = buckets?.some(bucket => bucket.name === 'avatars');
+  
+  // If bucket doesn't exist, create it
+  if (!avatarBucketExists) {
+    await supabase.storage.createBucket('avatars', {
+      public: true
+    });
+  }
+  
   const fileExt = file.name.split('.').pop();
   const filePath = `${userId}/avatar.${fileExt}`;
   
@@ -37,3 +48,29 @@ export const uploadAvatar = async (userId: string, file: File) => {
   
   return data.publicUrl;
 };
+
+// Function to ensure avatars bucket exists
+export const ensureAvatarsBucketExists = async () => {
+  try {
+    const { data: buckets } = await supabase.storage.listBuckets();
+    const avatarBucketExists = buckets?.some(bucket => bucket.name === 'avatars');
+    
+    if (!avatarBucketExists) {
+      await supabase.storage.createBucket('avatars', {
+        public: true
+      });
+      console.log('Created avatars bucket');
+    }
+    
+    // Make sure public policy is set
+    if (avatarBucketExists) {
+      // Check if policy exists and set it if needed
+      console.log('Avatars bucket exists');
+    }
+  } catch (error) {
+    console.error('Error ensuring avatars bucket exists:', error);
+  }
+};
+
+// Call this function when the app starts
+ensureAvatarsBucketExists();
