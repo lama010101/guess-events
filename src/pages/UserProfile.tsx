@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,8 @@ const UserProfile = () => {
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const handleDistanceUnitChange = (unit: "km" | "miles") => {
+  // This function now correctly handles the type for distanceUnit
+  const handleDistanceUnitChange = (unit: 'km' | 'miles') => {
     setDistanceUnit(unit);
   };
   
@@ -290,7 +292,7 @@ const UserProfile = () => {
                         id="defaultUnit" 
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         value={distanceUnit}
-                        onChange={(e) => handleDistanceUnitChange(e.target.value as "km" | "miles")}
+                        onChange={(e) => handleDistanceUnitChange(e.target.value as 'km' | 'miles')}
                       >
                         <option value="km">Kilometers</option>
                         <option value="miles">Miles</option>
