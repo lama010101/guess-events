@@ -18,6 +18,8 @@ const YearSlider: React.FC<YearSliderProps> = ({
   onChange,
   disabled = false
 }) => {
+  // Calculate the default year to be 1962 as specified in the requirements
+  const defaultYear = 1962;
   const [yearInput, setYearInput] = useState(value.toString());
 
   useEffect(() => {
