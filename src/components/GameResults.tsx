@@ -163,7 +163,7 @@ const GameResults: React.FC<GameResultsProps> = ({
             </TabsContent>
           </Tabs>
         </CardContent>
-        <CardFooter className="flex justify-center space-x-4">
+        <CardFooter className="flex justify-center space-x-4 gap-4">
           {!isDailyMode && (
             <Button onClick={onRestart} className="flex items-center gap-2 flex-1">
               <RotateCcw className="h-4 w-4" />

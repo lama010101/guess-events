@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Trophy } from "lucide-react";
+import { Trophy, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface DailyCompetitionButtonProps {
@@ -36,12 +36,15 @@ const DailyCompetitionButton: React.FC<DailyCompetitionButtonProps> = ({
     <Button 
       className="w-full" 
       size="lg" 
-      variant="default"
+      variant={user ? "default" : "outline"}
       onClick={onStartGame}
-      disabled={!user}
     >
       <Trophy className="mr-2 h-4 w-4" /> Daily Competition ({todayDate})
-      {!user && " - Sign in required"}
+      {!user && (
+        <span className="ml-1 flex items-center text-sm text-gray-500 dark:text-gray-400">
+          <ShieldAlert className="ml-1 h-3 w-3" /> Sign in required
+        </span>
+      )}
     </Button>
   );
 };

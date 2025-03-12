@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { signInWithEmail } from '@/integrations/supabase/auth';
+import { AlertCircle } from 'lucide-react';
 
 interface LoginFormProps {
   onSuccess: () => void;
@@ -18,21 +19,25 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
     
     try {
       // Use the signInWithEmail function from auth.ts for consistency
       const { error } = await signInWithEmail(email, password);
       
-      if (!error) {
+      if (error) {
+        setError(error.message);
+      } else {
         onSuccess();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      toast('Login failed. Please try again.');
+      setError('Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -40,6 +45,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative flex items-start">
+          <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
+      
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input 
@@ -86,6 +98,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
       >
         {isLoading ? "Signing in..." : "Sign In"}
       </Button>
+      
+      <div className="text-center text-sm mt-4">
+        <p className="text-gray-500">Need an account? Switch to Register tab</p>
+      </div>
     </form>
   );
 };

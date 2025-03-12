@@ -27,10 +27,12 @@ const GameMap: React.FC<GameMapProps> = ({
   const [correctMarker, setCorrectMarker] = useState<L.Marker | null>(null);
   const [polyline, setPolyline] = useState<L.Polyline | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const mapInitializedRef = useRef(false);
 
-  // Initialize map
+  // Initialize map only once
   useEffect(() => {
-    if (!mapRef.current || mapInstanceRef.current) return;
+    if (!mapRef.current || mapInstanceRef.current || mapInitializedRef.current) return;
+    mapInitializedRef.current = true;
 
     try {
       // Initialize map
@@ -47,7 +49,6 @@ const GameMap: React.FC<GameMapProps> = ({
       // Add click event
       map.on('click', (e) => {
         if (!isDisabled) {
-          console.log("Map clicked at:", e.latlng);
           onLocationSelect(e.latlng.lat, e.latlng.lng);
         }
       });
@@ -60,20 +61,27 @@ const GameMap: React.FC<GameMapProps> = ({
     }
 
     return () => {
+      // Do not remove the map on unmount - this prevents view reset
+      // We'll only clean up on final component unmount
+    };
+  }, [isDisabled, onLocationSelect]);
+
+  // Properly clean up the map only when component is fully unmounted
+  useEffect(() => {
+    return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
+        mapInitializedRef.current = false;
       }
     };
-  }, [isDisabled, onLocationSelect]);
+  }, []);
 
   // Update marker when selectedLocation changes
   useEffect(() => {
     if (!mapLoaded || !mapInstanceRef.current) return;
     
     if (selectedLocation) {
-      console.log("Updating marker with location:", selectedLocation);
-      
       // Remove existing marker if it exists
       if (marker) {
         marker.remove();
@@ -115,8 +123,6 @@ const GameMap: React.FC<GameMapProps> = ({
           .addTo(mapInstanceRef.current);
 
         setMarker(newMarker);
-        
-        // DO NOT call map.setView or map.fitBounds here
       } catch (error) {
         console.error("Error adding marker:", error);
       }
@@ -126,8 +132,6 @@ const GameMap: React.FC<GameMapProps> = ({
   // Show correct location and line if provided
   useEffect(() => {
     if (!mapLoaded || !mapInstanceRef.current || !correctLocation || !showCorrectPin) return;
-
-    console.log("Adding correct location marker:", correctLocation);
     
     // Show correct marker
     if (correctMarker) {

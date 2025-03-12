@@ -7,6 +7,7 @@ import Admin from "./pages/Admin";
 import UserProfile from "./pages/UserProfile";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoutes from "./components/ProtectedRoutes";
+import { Toaster as SonnerToaster } from "sonner";
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />
+        <SonnerToaster position="top-right" closeButton richColors />
       </Router>
     </AuthProvider>
   );
