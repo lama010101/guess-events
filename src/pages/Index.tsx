@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -405,7 +406,7 @@ const Index = () => {
               </div>
             </div>
             
-            <div className="fixed bottom-0 left-0 right-0 z-60 bg-white shadow-md border-t border-gray-200">
+            <div className="fixed bottom-0 left-0 right-0 z-40 bg-white shadow-md border-t border-gray-200">
               <div className="container mx-auto p-4">
                 <Button 
                   size="lg"
@@ -450,13 +451,29 @@ const Index = () => {
         );
       
       case 'game-over':
+        const isDailyMode = gameState.settings.gameMode === 'daily';
         return (
           <div className="container mx-auto p-4 min-h-screen bg-[#f3f3f3]">
-            <GameResults 
-              results={gameState.roundResults} 
-              onRestart={handleRestart}
-              onHome={handleReturnHome}
-            />
+            <div className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
+              <div className="container mx-auto p-4">
+                <GameHeader 
+                  currentRound={gameState.currentRound} 
+                  totalRounds={gameState.totalRounds}
+                  cumulativeScore={calculateCumulativeScore()}
+                  onShare={handleShare}
+                  onSettingsClick={() => setSettingsOpen(true)}
+                  onHomeClick={handleGoHome}
+                />
+              </div>
+            </div>
+            
+            <div className="pt-20">
+              <GameResults 
+                results={gameState.roundResults} 
+                onRestart={isDailyMode ? handleReturnHome : handleRestart}
+                onHome={handleReturnHome}
+              />
+            </div>
           </div>
         );
       

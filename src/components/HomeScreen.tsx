@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -257,6 +258,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
+            {/* Daily Competition button with signin requirement */}
             {dailyCompleted ? (
               <Button 
                 className="w-full" 
@@ -272,8 +274,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
                 size="lg" 
                 variant="default"
                 onClick={() => handleStartGame('daily')}
+                disabled={!user}
               >
                 <Trophy className="mr-2 h-4 w-4" /> Daily Competition ({todayDate})
+                {!user && " - Sign in required"}
               </Button>
             )}
             

@@ -33,14 +33,18 @@ export const uploadAvatar = async (userId: string, file: File) => {
     await ensureAvatarsBucketExists();
     
     const fileExt = file.name.split('.').pop();
-    const filePath = `${userId}.${fileExt}`;
+    const timestamp = Date.now(); // Add timestamp to prevent caching issues
+    const filePath = `${userId}-${timestamp}.${fileExt}`;
     
     console.log(`Uploading to path: avatars/${filePath}`);
     
     // Upload the file
     const { error: uploadError, data } = await supabase.storage
       .from('avatars')
-      .upload(filePath, file, { upsert: true });
+      .upload(filePath, file, { 
+        upsert: true,
+        cacheControl: 'no-cache' // Disable caching
+      });
     
     console.log("Upload response:", { error: uploadError, data });
     

@@ -9,6 +9,7 @@ import { Home, RotateCcw, Medal, Trophy, Users } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import AuthButton from './AuthButton';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface GameResultsProps {
   results: RoundResult[];
@@ -21,8 +22,12 @@ const GameResults: React.FC<GameResultsProps> = ({
   onRestart,
   onHome
 }) => {
+  const { user } = useAuth();
   const totalScore = results.reduce((sum, result) => sum + result.totalScore, 0);
   const [leaderboardSort, setLeaderboardSort] = useState<'daily' | 'total' | 'average'>('daily');
+  
+  // Check if we're in daily mode by examining the first result's event properties
+  const isDailyMode = results.length > 0 && results[0].event.gameMode === 'daily';
   
   // Placeholder leaderboard data
   const leaderboardData = [
@@ -158,11 +163,13 @@ const GameResults: React.FC<GameResultsProps> = ({
           </Tabs>
         </CardContent>
         <CardFooter className="flex justify-center space-x-4">
-          <Button onClick={onRestart} className="flex items-center gap-2 flex-1">
-            <RotateCcw className="h-4 w-4" />
-            Play Again
-          </Button>
-          <Button variant="outline" onClick={onHome} className="flex items-center gap-2 flex-1">
+          {!isDailyMode && (
+            <Button onClick={onRestart} className="flex items-center gap-2 flex-1">
+              <RotateCcw className="h-4 w-4" />
+              Play Again
+            </Button>
+          )}
+          <Button variant={isDailyMode ? "default" : "outline"} onClick={onHome} className="flex items-center gap-2 flex-1">
             <Home className="h-4 w-4" />
             Return to Home
           </Button>
