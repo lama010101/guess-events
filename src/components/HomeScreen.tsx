@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
-import { Settings, Play, Shield, Copy, Users, Trophy, Search, X, UserPlus, Bell } from "lucide-react";
+import { Settings, Play, Shield, Copy, Users, Trophy, Search, X, UserPlus, Bell, User } from "lucide-react";
 import { GameSettings } from '@/types/game';
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -48,10 +47,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
   const [friendsList, setFriendsList] = useState<any[]>([]);
   const [gameSessionLink, setGameSessionLink] = useState('');
   
-  // Get today's date formatted
   const todayDate = format(new Date(), 'MMMM d, yyyy');
 
-  // Check if user has completed today's challenge
   useEffect(() => {
     if (user) {
       checkDailyCompletion();
@@ -59,7 +56,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
     }
   }, [user]);
 
-  // Function to check if user has completed today's challenge
   const checkDailyCompletion = async () => {
     if (!user) return;
     
@@ -87,7 +83,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
     }
   };
 
-  // Fetch friends list
   const fetchFriends = async () => {
     if (!user) return;
     
@@ -124,14 +119,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
     friend.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleStartGame = async (mode: 'daily' | 'friends') => {
+  const handleStartGame = async (mode: 'daily' | 'friends' | 'single') => {
     const newSettings = {
       ...settings,
       gameMode: mode
     };
     
     if (mode === 'friends') {
-      // Create a game session first
       try {
         const creatorId = user ? user.id : 'anonymous';
         
@@ -157,7 +151,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
             console.error('Failed to copy to clipboard:', err);
           }
           
-          // Show different dialog based on login status
           if (user) {
             setShowFriendsDialog(true);
           } else {
@@ -179,20 +172,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
 
   const handleStartFriendsGame = async () => {
     try {
-      // Copy the game session link to clipboard again (in case it failed before)
       await navigator.clipboard.writeText(gameSessionLink);
       
-      // Send notifications to selected friends if user is logged in
       if (user && selectedFriends.length > 0) {
-        // Here you would implement a notification system
-        // For now, just show a toast
         toast({
           title: "Invitations sent!",
           description: `Sent invitations to ${selectedFriends.length} friends.`,
         });
       }
       
-      // Navigate to the game
       navigate(gameSessionLink);
       
       setShowFriendsDialog(false);
@@ -221,7 +209,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
     }));
   };
 
-  // Handle copy link button click
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(gameSessionLink);
@@ -285,6 +272,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
+          <Button 
+            className="w-full" 
+            size="lg" 
+            onClick={() => handleStartGame('single')}
+          >
+            <User className="mr-2 h-4 w-4" /> Singleplayer
+          </Button>
+          
           {dailyCompleted ? (
             <Button 
               className="w-full" 
@@ -322,7 +317,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
         </CardFooter>
       </Card>
       
-      {/* Dialog for registered users */}
       <Dialog open={showFriendsDialog} onOpenChange={setShowFriendsDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -409,7 +403,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog for guest users */}
       <Dialog open={showAuthPrompt} onOpenChange={setShowAuthPrompt}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

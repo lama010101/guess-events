@@ -1,4 +1,3 @@
-
 export interface HistoricalEvent {
   id: string;
   imageUrl: string;
@@ -15,7 +14,7 @@ export interface GameSettings {
   distanceUnit: 'km' | 'miles';
   timerEnabled: boolean;
   timerDuration: number; // in minutes
-  gameMode: 'daily' | 'friends';
+  gameMode: 'daily' | 'friends' | 'single';
 }
 
 export interface PlayerGuess {
