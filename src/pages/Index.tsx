@@ -62,7 +62,6 @@ const Index = () => {
   });
 
   const fetchEvents = async (count = 5) => {
-    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('historical_events')
@@ -94,6 +93,63 @@ const Index = () => {
       console.error("Error fetching events:", error);
       sonnerToast.error("Failed to load historical events");
       return [];
+    }
+  };
+
+  const startGame = async (settings: GameSettings) => {
+    if (isLoading) return; // Prevent multiple calls while loading
+    
+    setIsLoading(true);
+    
+    try {
+      const events = await fetchEvents(5);
+      
+      if (!events || events.length === 0) {
+        toast({
+          title: "Error",
+          description: "Could not load historical events. Please try again later.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const eventsWithMode = events.map(event => ({
+        ...event,
+        gameMode: settings.gameMode
+      }));
+      
+      setGameState({
+        settings: {
+          ...settings,
+          distanceUnit: profile?.default_distance_unit || settings.distanceUnit
+        },
+        events: eventsWithMode,
+        currentRound: 1,
+        totalRounds: 5,
+        roundResults: [],
+        gameStatus: 'in-progress',
+        currentGuess: {
+          location: null,
+          year: 1962
+        },
+        timerStartTime: settings.timerEnabled ? Date.now() : undefined,
+        timerRemaining: settings.timerEnabled ? settings.timerDuration * 60 : undefined,
+        userAvatar: profile?.avatar_url
+      });
+
+      setActiveView('photo');
+
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('round', '1');
+      window.history.replaceState({}, '', currentUrl.toString());
+      
+    } catch (error) {
+      console.error("Error starting game:", error);
+      toast({
+        title: "Error",
+        description: "Failed to start game. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -147,65 +203,6 @@ const Index = () => {
       }));
     }
   }, [profile]);
-
-  const startGame = async (settings: GameSettings) => {
-    setIsLoading(true);
-    
-    try {
-      const events = await fetchEvents(5);
-      
-      if (events.length === 0) {
-        toast({
-          title: "Error",
-          description: "Could not load historical events. Please try again later.",
-          variant: "destructive"
-        });
-        setIsLoading(false);
-        return;
-      }
-      
-      const eventsWithMode = events.map(event => ({
-        ...event,
-        gameMode: settings.gameMode
-      }));
-      
-      setGameState({
-        settings: {
-          ...settings,
-          distanceUnit: profile?.default_distance_unit || settings.distanceUnit
-        },
-        events: eventsWithMode,
-        currentRound: 1,
-        totalRounds: 5,
-        roundResults: [],
-        gameStatus: 'in-progress',
-        currentGuess: {
-          location: null,
-          year: 1962
-        },
-        timerStartTime: settings.timerEnabled ? Date.now() : undefined,
-        timerRemaining: settings.timerEnabled ? settings.timerDuration * 60 : undefined,
-        userAvatar: profile?.avatar_url
-      });
-
-      setActiveView('photo');
-
-      const currentUrl = new URL(window.location.href);
-      currentUrl.searchParams.set('round', '1');
-      window.history.replaceState({}, '', currentUrl.toString());
-      
-    } catch (error) {
-      console.error("Error starting game:", error);
-      toast({
-        title: "Error",
-        description: "Failed to start game. Please try again.",
-        variant: "destructive"
-      });
-      setIsLoading(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleLocationSelect = (lat: number, lng: number) => {
     console.log("Location selected:", lat, lng);
@@ -583,4 +580,3 @@ const Index = () => {
 };
 
 export default Index;
-

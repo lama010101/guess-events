@@ -46,15 +46,15 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
       <Button 
         variant={topBar ? "outline" : "default"} 
         onClick={handleButtonClick}
-        className="z-50" // Increased z-index to ensure visibility
+        className="relative z-[60]"
       >
         {topBar ? "Register" : "Register / Sign In"}
       </Button>
       
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="sm:max-w-[425px] z-[9999]">
+        <DialogContent className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[9999] sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Welcome to HistoryGuessr</DialogTitle>
+            <DialogTitle>Welcome to Time Trek</DialogTitle>
           </DialogHeader>
           
           <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab}>

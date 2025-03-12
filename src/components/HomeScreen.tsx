@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -68,16 +67,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
     }
     
     try {
-      setLocalLoading(true);
       await onStartGame(settings);
     } catch (error) {
       console.error("Error starting game:", error);
       toast.error("Could not start game. Please try again later.");
-      // Important: Reset loading state on error
-      setLocalLoading(false);
     }
-    // We don't need a finally block here because if onStartGame succeeds,
-    // HomeScreen will be unmounted and replaced with the game view
   };
 
   const handleSettingsChange = (newSettings: GameSettings) => {
@@ -87,8 +81,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
     }));
   };
 
-  // Use only local loading state for button display
-  const buttonLoading = localLoading || isLoading;
+  const buttonLoading = isLoading;
 
   return (
     <div className="container mx-auto p-4 min-h-screen flex flex-col justify-center items-center">
