@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,8 +9,12 @@ import { sampleEvents } from '@/data/sampleEvents';
 import { useAuth } from '@/contexts/AuthContext';
 import DailyCompetitionButton from './DailyCompetitionButton';
 import AuthPromptDialog from './AuthPromptDialog';
+import HomeHeader from './HomeHeader';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
+import SettingsDialog from './SettingsDialog';
 
 interface HomeScreenProps {
   onStartGame: (settings: GameSettings) => void;
@@ -18,10 +23,18 @@ interface HomeScreenProps {
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false }) => {
   const { user, profile } = useAuth();
+  const { toast: uiToast } = useToast();
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [dailyCompleted, setDailyCompleted] = useState(false);
   const [dailyScore, setDailyScore] = useState(0);
   const [localLoading, setLocalLoading] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settings, setSettings] = useState<GameSettings>({
+    distanceUnit: 'km',
+    timerEnabled: false,
+    timerDuration: 5,
+    gameMode: 'classic'
+  });
   const today = format(new Date(), 'yyyy-MM-dd');
 
   useEffect(() => {
@@ -30,6 +43,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
       checkDailyCompetition();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (profile && profile.default_distance_unit) {
+      setSettings(prev => ({
+        ...prev,
+        distanceUnit: profile.default_distance_unit || 'km'
+      }));
+    }
+  }, [profile]);
 
   const checkDailyCompetition = async () => {
     try {
@@ -52,9 +74,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
       await onStartGame(settings);
     } catch (error) {
       console.error("Error starting game:", error);
+      toast.error("Could not start game. Please try again later.");
     } finally {
       setLocalLoading(false);
     }
+  };
+
+  const handleSettingsChange = (newSettings: GameSettings) => {
+    setSettings(prevSettings => ({
+      ...prevSettings,
+      ...newSettings
+    }));
   };
 
   // Use either the parent isLoading or local loading state
@@ -62,7 +92,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
 
   return (
     <div className="container mx-auto p-4 min-h-screen flex flex-col justify-center items-center">
-      <div className="w-full max-w-4xl mx-auto pb-8">
+      <HomeHeader onSettingsClick={() => setSettingsOpen(true)} />
+      
+      <div className="w-full max-w-4xl mx-auto pb-8 pt-20">
         <Card className="w-full">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl">Time Trek</CardTitle>
@@ -97,10 +129,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
                     <CardFooter>
                       <Button 
                         onClick={() => handleStartGame({
+                          ...settings,
                           gameMode: 'classic',
-                          distanceUnit: 'km',
-                          timerEnabled: false,
-                          timerDuration: 5
+                          timerEnabled: false
                         })} 
                         className="w-full"
                         disabled={buttonLoading}
@@ -132,10 +163,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
                     <CardFooter>
                       <Button 
                         onClick={() => handleStartGame({
+                          ...settings,
                           gameMode: 'timed',
-                          distanceUnit: 'km',
-                          timerEnabled: true,
-                          timerDuration: 5
+                          timerEnabled: true
                         })} 
                         className="w-full"
                         disabled={buttonLoading}
@@ -161,10 +191,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
                     dailyScore={dailyScore}
                     user={user}
                     onStartGame={() => handleStartGame({
+                      ...settings,
                       gameMode: 'daily',
-                      distanceUnit: 'km',
-                      timerEnabled: false,
-                      timerDuration: 5
+                      timerEnabled: false
                     })}
                     isLoading={buttonLoading}
                   />
@@ -181,10 +210,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
                         className="w-full" 
                         variant="outline"
                         onClick={() => handleStartGame({
+                          ...settings,
                           gameMode: 'friends',
-                          distanceUnit: 'km',
-                          timerEnabled: false,
-                          timerDuration: 5
+                          timerEnabled: false
                         })}
                         disabled={buttonLoading}
                       >
@@ -209,6 +237,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
       <AuthPromptDialog 
         open={showAuthPrompt} 
         onOpenChange={setShowAuthPrompt}
+      />
+      
+      <SettingsDialog 
+        open={settingsOpen}
+        settings={settings}
+        onOpenChange={setSettingsOpen}
+        onSettingsChange={handleSettingsChange}
       />
     </div>
   );

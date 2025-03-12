@@ -1,3 +1,4 @@
+
 export interface HistoricalEvent {
   id: string;
   imageUrl: string;
@@ -8,14 +9,14 @@ export interface HistoricalEvent {
   };
   year: number;
   description: string;
-  gameMode?: 'daily' | 'friends' | 'single';
+  gameMode?: 'daily' | 'friends' | 'single' | 'classic' | 'timed';
 }
 
 export interface GameSettings {
   distanceUnit: 'km' | 'miles';
   timerEnabled: boolean;
   timerDuration: number; // in minutes
-  gameMode: 'daily' | 'friends' | 'single';
+  gameMode: 'daily' | 'friends' | 'single' | 'classic' | 'timed';
 }
 
 export type GameMode = 'daily' | 'friends' | 'classic' | 'timed';
