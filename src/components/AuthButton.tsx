@@ -21,6 +21,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
   const [activeTab, setActiveTab] = useState<string>(topBar ? "register" : "login");
   const { user } = useAuth();
 
+  // Only render the button if user is not logged in
   if (user) {
     return null;
   }
@@ -34,7 +35,6 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
   };
 
   const handleButtonClick = () => {
-    // If in topBar mode, pre-select the register tab
     if (topBar) {
       setActiveTab("register");
     }
@@ -46,6 +46,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
       <Button 
         variant={topBar ? "outline" : "default"} 
         onClick={handleButtonClick}
+        className="z-10" // Ensure button is visible
       >
         {topBar ? "Register" : "Register / Sign In"}
       </Button>
@@ -56,7 +57,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
             <DialogTitle>Welcome to HistoryGuessr</DialogTitle>
           </DialogHeader>
           
-          <Tabs defaultValue={topBar ? "register" : "login"} value={activeTab} onValueChange={setActiveTab}>
+          <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="register">Register</TabsTrigger>

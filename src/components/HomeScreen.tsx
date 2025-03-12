@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Map, Globe, Wand2, Trophy, RefreshCw, Loader } from 'lucide-react';
+import { Map, Globe, Wand2, Trophy, Loader } from 'lucide-react';
 import { GameSettings } from '@/types/game';
 import { sampleEvents } from '@/data/sampleEvents';
 import { useAuth } from '@/contexts/AuthContext';
@@ -85,7 +85,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
     }));
   };
 
-  // Use local loading state instead of the prop
+  // Use only local loading state for button display
   const buttonLoading = localLoading;
 
   return (
