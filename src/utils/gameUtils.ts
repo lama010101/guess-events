@@ -82,3 +82,8 @@ export function shuffleArray<T>(array: T[]): T[] {
 export function formatNumber(num: number): string {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
+
+// Check if a game is in daily mode
+export function isDailyMode(results: RoundResult[]): boolean {
+  return results.length > 0 && results[0].event.gameMode === 'daily';
+}

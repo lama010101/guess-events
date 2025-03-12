@@ -17,6 +17,7 @@ function App() {
           <Route path="/round/:roundId" element={<Index />} />
           <Route path="/game/:sessionId" element={<Index />} />
           <Route path="/game/:sessionId/round/:roundId" element={<Index />} />
+          <Route path="/leaderboard" element={<Index />} />
           <Route 
             path="/admin" 
             element={

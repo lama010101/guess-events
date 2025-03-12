@@ -6,24 +6,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
-import { Settings, Play, Shield, Copy, Users, Trophy, Search, X, UserPlus, Bell, User } from "lucide-react";
+import { Shield, Users, User } from "lucide-react";
 import { GameSettings } from '@/types/game';
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
-  DialogTitle,
-  DialogClose,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import AuthButton from './AuthButton';
-import { format } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import DailyCompetitionButton from './DailyCompetitionButton';
+import FriendsDialog from './FriendsDialog';
+import AuthPromptDialog from './AuthPromptDialog';
 
 interface HomeScreenProps {
   onStartGame: (settings: GameSettings) => void;
@@ -49,8 +40,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
   const [dailyScore, setDailyScore] = useState(0);
   const [friendsList, setFriendsList] = useState<any[]>([]);
   const [gameSessionLink, setGameSessionLink] = useState('');
-  
-  const todayDate = format(new Date(), 'MMMM d, yyyy');
 
   useEffect(() => {
     if (user) {
@@ -260,27 +249,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {dailyCompleted ? (
-              <Button 
-                className="w-full" 
-                size="lg" 
-                variant="default"
-                disabled
-              >
-                <Trophy className="mr-2 h-4 w-4" /> Daily Competition Completed ({todayDate}): {dailyScore}
-              </Button>
-            ) : (
-              <Button 
-                className="w-full" 
-                size="lg" 
-                variant="default"
-                onClick={() => handleStartGame('daily')}
-                disabled={!user}
-              >
-                <Trophy className="mr-2 h-4 w-4" /> Daily Competition ({todayDate})
-                {!user && " - Sign in required"}
-              </Button>
-            )}
+            <DailyCompetitionButton 
+              dailyCompleted={dailyCompleted}
+              dailyScore={dailyScore}
+              user={user}
+              onStartGame={() => handleStartGame('daily')}
+            />
             
             <div className="flex flex-col space-y-2">
               <div className="flex items-center justify-between">
@@ -344,114 +318,24 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
         </CardFooter>
       </Card>
       
-      <Dialog open={showFriendsDialog} onOpenChange={setShowFriendsDialog}>
-        <DialogContent className="sm:max-w-md z-[9999]">
-          <DialogHeader>
-            <DialogTitle>Invite Friends to Play</DialogTitle>
-            <DialogDescription>
-              You can now share the game link that was copied to your clipboard. You can also select friends to invite to your game session. They'll receive a notification to join.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="flex items-center gap-2">
-              <Input 
-                value={gameSessionLink} 
-                readOnly 
-                className="flex-1"
-              />
-              <Button 
-                size="sm" 
-                onClick={handleCopyLink}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            {user && (
-              <>
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search friends..."
-                    className="pl-8"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    autoFocus={false}
-                  />
-                </div>
-                
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                  {filteredFriends.length > 0 ? (
-                    filteredFriends.map(friend => (
-                      <div
-                        key={friend.id}
-                        className={`flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 cursor-pointer ${
-                          selectedFriends.includes(friend.id) ? 'bg-green-50' : ''
-                        }`}
-                        onClick={() => toggleFriendSelection(friend.id)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarImage src={friend.image} alt={friend.name} />
-                            <AvatarFallback>{friend.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                          </Avatar>
-                          <span>{friend.name}</span>
-                        </div>
-                        {selectedFriends.includes(friend.id) ? (
-                          <X className="h-5 w-5 text-gray-400" />
-                        ) : (
-                          <UserPlus className="h-5 w-5 text-gray-400" />
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-center text-sm text-gray-500 py-2">
-                      {user ? "No friends found" : "Sign in to invite friends"}
-                    </p>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-          
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <Button 
-              variant="default" 
-              className="w-full sm:w-auto"
-              onClick={handleStartFriendsGame}
-            >
-              Start Game {user && selectedFriends.length > 0 && `& Invite (${selectedFriends.length} selected)`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <FriendsDialog 
+        open={showFriendsDialog}
+        onOpenChange={setShowFriendsDialog}
+        gameSessionLink={gameSessionLink}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        filteredFriends={filteredFriends}
+        selectedFriends={selectedFriends}
+        onToggleFriend={toggleFriendSelection}
+        onCopyLink={handleCopyLink}
+        onStartGame={handleStartFriendsGame}
+        user={user}
+      />
 
-      <Dialog open={showAuthPrompt} onOpenChange={setShowAuthPrompt}>
-        <DialogContent className="sm:max-w-md z-[9999]">
-          <DialogHeader>
-            <DialogTitle>Authentication Required</DialogTitle>
-            <DialogDescription>
-              Please sign in or register to play the Daily Competition and track your progress.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="flex justify-center">
-              <AuthButton />
-            </div>
-          </div>
-          
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AuthPromptDialog 
+        open={showAuthPrompt}
+        onOpenChange={setShowAuthPrompt}
+      />
     </div>
   );
 };
