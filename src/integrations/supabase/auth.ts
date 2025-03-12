@@ -16,9 +16,15 @@ export const signInWithGoogle = async () => {
     });
     
     if (error) {
-      if (error.message?.includes('provider is not enabled')) {
+      // Handle provider not enabled error
+      if (error.message?.includes('provider is not enabled') || 
+          error.message?.includes('Unsupported provider')) {
         console.error('Google auth provider is not enabled in Supabase:', error);
-        throw new Error('Google login is not properly configured. Please enable Google provider in Supabase dashboard.');
+        toast.error(
+          'Google login is not configured. Please enable Google provider in Supabase dashboard.',
+          { duration: 5000 }
+        );
+        return { data: null, error: new Error('Google login is not properly configured. Please enable Google provider in Supabase dashboard.') };
       }
       throw error;
     }
@@ -32,25 +38,53 @@ export const signInWithGoogle = async () => {
 
 // Helper function for email authentication
 export const signInWithEmail = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password
-  });
-  
-  return { data, error };
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    
+    if (error) {
+      toast.error(error.message, { duration: 5000 });
+    }
+    
+    return { data, error };
+  } catch (error: any) {
+    toast.error('Failed to sign in. Please try again.', { duration: 5000 });
+    return { data: null, error };
+  }
 };
 
 // Helper function for signing out
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  return { error };
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error('Failed to sign out. Please try again.', { duration: 5000 });
+    }
+    return { error };
+  } catch (error: any) {
+    toast.error('Failed to sign out. Please try again.', { duration: 5000 });
+    return { error };
+  }
 };
 
 // Helper function for password reset
 export const resetPassword = async (email: string) => {
-  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/reset-password`,
-  });
-  
-  return { data, error };
+  try {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    
+    if (error) {
+      toast.error(error.message, { duration: 5000 });
+    } else {
+      toast.success('Password reset email sent!', { duration: 5000 });
+    }
+    
+    return { data, error };
+  } catch (error: any) {
+    toast.error('Failed to send reset email. Please try again.', { duration: 5000 });
+    return { data: null, error };
+  }
 };

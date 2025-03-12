@@ -1,14 +1,14 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { UserPlus, LogIn, User, Camera } from 'lucide-react';
+import { UserPlus, LogIn, User } from 'lucide-react';
 import { 
   Dialog, 
   DialogContent, 
   DialogDescription, 
   DialogHeader, 
   DialogTitle, 
-  DialogTrigger,
-  DialogClose
+  DialogTrigger
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -24,8 +24,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import LoginForm from './LoginForm';
 import RegisterForm from './RegisterForm';
 import { useAuth } from '@/contexts/AuthContext';
-import { signInWithGoogle } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { signInWithGoogle } from '@/integrations/supabase/auth';
+import { toast } from 'sonner';
 
 interface AuthButtonProps {
   topBar?: boolean;
@@ -35,26 +35,14 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const { user, profile, signOut, isLoading } = useAuth();
-  const { toast } = useToast();
   
   const handleGoogleSignIn = async () => {
     try {
       const { error } = await signInWithGoogle();
       
       if (error) {
-        if (error.message?.includes('not properly configured') || error.message?.includes('provider is not enabled')) {
-          toast({
-            title: "Google login not available",
-            description: "Google authentication is not properly configured. Please use email/password for now.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Sign in failed",
-            description: error.message || "Unable to sign in with Google",
-            variant: "destructive",
-          });
-        }
+        // We don't need to show toast here as it's already handled in the auth.ts file
+        console.error("Google sign-in error:", error.message);
       } else {
         setOpen(false);
       }

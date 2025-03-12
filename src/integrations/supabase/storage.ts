@@ -40,7 +40,8 @@ export const uploadAvatar = async (userId: string, file: File) => {
     if (uploadError) {
       // Check if it's a storage permission error
       if (uploadError.message?.includes('row-level security policy') || 
-          uploadError.status === 400) {
+          uploadError.message?.includes('bucket does not exist') ||
+          uploadError.message?.includes('access denied')) {
         throw new Error('Permission denied: Unable to upload avatar. Please contact support.');
       }
       throw uploadError;
