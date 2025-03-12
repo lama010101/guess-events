@@ -16,11 +16,11 @@ interface HomeHeaderProps {
 
 const HomeHeader: React.FC<HomeHeaderProps> = ({ onSettingsClick }) => {
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 shadow-md rounded-b-lg p-4 flex items-center justify-between">
+    <div className="fixed top-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 shadow-md rounded-b-lg p-4 flex items-center justify-between">
       <div className="flex items-center space-x-6">
         <h1 className="text-xl font-bold">Time Trek</h1>
       </div>
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-2 relative">
         <AuthButton topBar={true} />
         
         {onSettingsClick && (

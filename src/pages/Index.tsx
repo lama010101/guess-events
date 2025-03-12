@@ -160,6 +160,7 @@ const Index = () => {
           description: "Could not load historical events. Please try again later.",
           variant: "destructive"
         });
+        setIsLoading(false);
         return;
       }
       
@@ -200,6 +201,7 @@ const Index = () => {
         description: "Failed to start game. Please try again.",
         variant: "destructive"
       });
+      setIsLoading(false);
     } finally {
       setIsLoading(false);
     }
@@ -505,7 +507,7 @@ const Index = () => {
               </div>
             </div>
             
-            <div className="pt-20 pb-24">
+            <div className="pt-20">
               <RoundResultComponent 
                 result={lastResult} 
                 onNextRound={handleNextRound} 
@@ -581,3 +583,4 @@ const Index = () => {
 };
 
 export default Index;
+

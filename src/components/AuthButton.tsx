@@ -46,7 +46,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
       <Button 
         variant={topBar ? "outline" : "default"} 
         onClick={handleButtonClick}
-        className="z-10" // Ensure button is visible
+        className="z-50" // Increased z-index to ensure visibility
       >
         {topBar ? "Register" : "Register / Sign In"}
       </Button>
