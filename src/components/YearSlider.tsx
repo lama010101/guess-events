@@ -12,7 +12,7 @@ interface YearSliderProps {
 }
 
 const YearSlider: React.FC<YearSliderProps> = ({
-  minYear = 1800,
+  minYear = 1900,
   maxYear = new Date().getFullYear(),
   value,
   onChange,

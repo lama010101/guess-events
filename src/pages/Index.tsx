@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -53,9 +52,7 @@ const Index = () => {
     currentGuess: null
   });
 
-  // Initialize a new game with the given settings
   const startGame = (settings: GameSettings) => {
-    // Get 5 random events from the sample data
     const shuffledEvents = shuffleArray(sampleEvents).slice(0, 5);
     
     setGameState({
@@ -67,26 +64,24 @@ const Index = () => {
       gameStatus: 'in-progress',
       currentGuess: {
         location: null,
-        year: 1960 // Default year is now 1960
+        year: 1962 // Default year is now 1962
       },
       timerStartTime: settings.timerEnabled ? Date.now() : undefined,
       timerRemaining: settings.timerEnabled ? settings.timerDuration * 60 : undefined
     });
   };
 
-  // Handle location selection on the map
   const handleLocationSelect = (lat: number, lng: number) => {
     console.log("Location selected:", lat, lng);
     setGameState(prev => ({
       ...prev,
       currentGuess: {
-        ...(prev.currentGuess || { year: 1960 }),
+        ...(prev.currentGuess || { year: 1962 }),
         location: { lat, lng }
       }
     }));
   };
 
-  // Handle year selection from the slider
   const handleYearSelect = (year: number) => {
     console.log("Year selected:", year);
     setGameState(prev => ({
@@ -98,28 +93,25 @@ const Index = () => {
     }));
   };
 
-  // Handle timer expiration
   const handleTimeUp = () => {
     console.log("Timer expired, submitting current guess");
     const currentEvent = gameState.events[gameState.currentRound - 1];
-    const currentGuess = gameState.currentGuess || { location: null, year: 1960 };
+    const currentGuess = gameState.currentGuess || { location: null, year: 1962 };
     
-    // If location is null, we can't properly calculate a score for location
     let result: RoundResult;
     
     if (currentGuess.location) {
       result = calculateRoundResult(currentEvent, currentGuess);
     } else {
-      // Only calculate time score if there's no location
       const yearError = Math.abs(currentEvent.year - currentGuess.year);
       result = {
         event: currentEvent,
         guess: currentGuess,
         distanceError: Infinity,
         yearError,
-        locationScore: 0, // No points for location
+        locationScore: 0,
         timeScore: Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearError, 0.9)))),
-        totalScore: 0 // Will be updated next
+        totalScore: 0
       };
       result.totalScore = result.locationScore + result.timeScore;
     }
@@ -136,7 +128,6 @@ const Index = () => {
     });
   };
 
-  // Submit the current guess and show results
   const submitGuess = () => {
     console.log("Submitting guess:", gameState.currentGuess);
     if (!gameState.currentGuess) {
@@ -148,7 +139,6 @@ const Index = () => {
       return;
     }
 
-    // Allow submitting with just a year if no location was selected
     if (!gameState.currentGuess.location) {
       toast({
         title: "No location selected",
@@ -188,7 +178,6 @@ const Index = () => {
     }));
   };
 
-  // Progress to the next round or end the game
   const handleNextRound = () => {
     if (gameState.currentRound === gameState.totalRounds) {
       setGameState(prev => ({
@@ -202,7 +191,7 @@ const Index = () => {
         gameStatus: 'in-progress',
         currentGuess: {
           location: null,
-          year: 1960 // Default year for each new round
+          year: 1962
         },
         timerStartTime: prev.settings.timerEnabled ? Date.now() : undefined,
         timerRemaining: prev.settings.timerEnabled ? prev.settings.timerDuration * 60 : undefined
@@ -210,7 +199,6 @@ const Index = () => {
     }
   };
 
-  // Handle going back to home screen after confirmation
   const handleGoHome = () => {
     setConfirmHomeOpen(true);
   };
@@ -223,12 +211,10 @@ const Index = () => {
     setConfirmHomeOpen(false);
   };
 
-  // Restart the game with the same settings
   const handleRestart = () => {
     startGame(gameState.settings);
   };
 
-  // Return to the home screen
   const handleReturnHome = () => {
     setGameState(prev => ({
       ...prev,
@@ -236,12 +222,10 @@ const Index = () => {
     }));
   };
 
-  // Calculate the cumulative score
   const calculateCumulativeScore = () => {
     return gameState.roundResults.reduce((sum, result) => sum + result.totalScore, 0);
   };
 
-  // Handle settings changes
   const handleSettingsChange = (newSettings: GameSettings) => {
     setGameState(prev => ({
       ...prev,
@@ -252,7 +236,6 @@ const Index = () => {
     }));
   };
 
-  // Handle share button click
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href)
       .then(() => {
@@ -270,7 +253,6 @@ const Index = () => {
       });
   };
 
-  // Render the current game view based on game status
   const renderGameView = () => {
     switch (gameState.gameStatus) {
       case 'not-started':
@@ -320,7 +302,7 @@ const Index = () => {
               <div className="flex flex-col justify-between items-center gap-6 mb-6">
                 <div className="w-full">
                   <YearSlider 
-                    value={gameState.currentGuess?.year || 1960}
+                    value={gameState.currentGuess?.year || 1962}
                     onChange={handleYearSelect}
                     minYear={1900}
                     maxYear={new Date().getFullYear()}
