@@ -22,6 +22,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [dailyCompleted, setDailyCompleted] = useState(false);
   const [dailyScore, setDailyScore] = useState(0);
+  const [localLoading, setLocalLoading] = useState(false);
   const today = format(new Date(), 'yyyy-MM-dd');
 
   useEffect(() => {
@@ -41,13 +42,22 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
     }
   };
 
-  const handleStartGame = (settings: GameSettings) => {
+  const handleStartGame = async (settings: GameSettings) => {
     if (settings.gameMode === 'daily' && !user) {
       setShowAuthPrompt(true);
       return;
     }
-    onStartGame(settings);
+    
+    setLocalLoading(true);
+    try {
+      await onStartGame(settings);
+    } finally {
+      setLocalLoading(false);
+    }
   };
+
+  // Use either the parent isLoading or local loading state
+  const buttonLoading = isLoading || localLoading;
 
   return (
     <div className="container mx-auto p-4 min-h-screen flex flex-col justify-center items-center">
@@ -92,9 +102,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
                           timerDuration: 5
                         })} 
                         className="w-full"
-                        disabled={isLoading}
+                        disabled={buttonLoading}
                       >
-                        {isLoading ? (
+                        {buttonLoading ? (
                           <>
                             <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                             Loading...
@@ -127,9 +137,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
                           timerDuration: 5
                         })} 
                         className="w-full"
-                        disabled={isLoading}
+                        disabled={buttonLoading}
                       >
-                        {isLoading ? (
+                        {buttonLoading ? (
                           <>
                             <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                             Loading...
@@ -155,6 +165,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
                       timerEnabled: false,
                       timerDuration: 5
                     })}
+                    isLoading={buttonLoading}
                   />
                   
                   <Card>
@@ -174,9 +185,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
                           timerEnabled: false,
                           timerDuration: 5
                         })}
-                        disabled={isLoading}
+                        disabled={buttonLoading}
                       >
-                        {isLoading ? (
+                        {buttonLoading ? (
                           <>
                             <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                             Loading...
