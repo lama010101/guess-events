@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,7 +26,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [dailyCompleted, setDailyCompleted] = useState(false);
   const [dailyScore, setDailyScore] = useState(0);
-  const [localLoading, setLocalLoading] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settings, setSettings] = useState<GameSettings>({
     distanceUnit: 'km',
@@ -39,7 +37,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
 
   useEffect(() => {
     if (user) {
-      // Check if user has completed today's daily competition
       checkDailyCompetition();
     }
   }, [user]);
@@ -55,7 +52,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
 
   const checkDailyCompetition = async () => {
     try {
-      // Implementation will be added in future when game results are stored
       setDailyCompleted(false);
       setDailyScore(0);
     } catch (error) {
@@ -69,14 +65,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
       return;
     }
     
-    setLocalLoading(true);
     try {
       await onStartGame(settings);
     } catch (error) {
       console.error("Error starting game:", error);
       toast.error("Could not start game. Please try again later.");
-    } finally {
-      setLocalLoading(false);
     }
   };
 
@@ -87,8 +80,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
     }));
   };
 
-  // Use either the parent isLoading or local loading state
-  const buttonLoading = isLoading || localLoading;
+  const buttonLoading = isLoading;
 
   return (
     <div className="container mx-auto p-4 min-h-screen flex flex-col justify-center items-center">
