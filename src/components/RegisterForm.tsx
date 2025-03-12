@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { AlertCircle } from 'lucide-react';
 
 interface RegisterFormProps {
   onSuccess: () => void;
@@ -32,12 +34,16 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
     try {
       const { error } = await signUp(email, password, username);
       
-      if (!error) {
+      if (error) {
+        setError(error.message || 'Registration failed');
+        toast.error('Registration failed. Please try again.');
+      } else {
+        toast.success('Account created successfully!');
         onSuccess();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Registration error:', err);
-      setError('Registration failed. Please try again.');
+      setError(err?.message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -45,6 +51,13 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
   
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative flex items-start">
+          <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
+    
       <div className="space-y-2">
         <Label htmlFor="username">Username</Label>
         <Input 
@@ -86,10 +99,6 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
           onChange={(e) => setConfirmPassword(e.target.value)}
         />
       </div>
-      
-      {error && (
-        <div className="text-red-500 text-sm">{error}</div>
-      )}
       
       <Button 
         type="submit" 

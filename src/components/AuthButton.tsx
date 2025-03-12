@@ -130,7 +130,6 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
         {!topBar && "Register / Sign In"}
       </Button>
       
-      {/* Dialog for authentication */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[425px] z-[9999]">
           <DialogHeader>
