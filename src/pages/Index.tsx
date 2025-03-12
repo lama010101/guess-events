@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -66,7 +67,7 @@ const Index = () => {
       gameStatus: 'in-progress',
       currentGuess: {
         location: null,
-        year: 1962 // Default year is now 1962
+        year: 1962 // Default year is 1962 as per requirements
       },
       timerStartTime: settings.timerEnabled ? Date.now() : undefined,
       timerRemaining: settings.timerEnabled ? settings.timerDuration * 60 : undefined
