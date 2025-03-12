@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -12,7 +11,6 @@ import GameResults from '@/components/GameResults';
 import SettingsDialog from '@/components/SettingsDialog';
 import Timer from '@/components/Timer';
 import ViewToggle from '@/components/ViewToggle';
-import { sampleEvents } from '@/data/sampleEvents';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +34,8 @@ import {
 } from '@/utils/gameUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { toast as sonnerToast } from "sonner";
 
 const Index = () => {
   const { toast } = useToast();
@@ -45,6 +45,7 @@ const Index = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmHomeOpen, setConfirmHomeOpen] = useState(false);
   const [activeView, setActiveView] = useState<'photo' | 'map'>('photo');
+  const [isLoading, setIsLoading] = useState(false);
   const [gameState, setGameState] = useState<GameState>({
     settings: {
       distanceUnit: profile?.default_distance_unit || 'km',
@@ -59,6 +60,44 @@ const Index = () => {
     gameStatus: 'not-started',
     currentGuess: null
   });
+
+  const fetchEvents = async (count = 5) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('historical_events')
+        .select('*');
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data && data.length > 0) {
+        const events: HistoricalEvent[] = data.map(event => ({
+          id: event.id,
+          year: event.year,
+          description: event.description,
+          imageUrl: event.image_url,
+          location: {
+            name: event.location_name,
+            lat: Number(event.latitude),
+            lng: Number(event.longitude)
+          }
+        }));
+        
+        return shuffleArray(events).slice(0, count);
+      } else {
+        sonnerToast.error("No events found in database");
+        return [];
+      }
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      sonnerToast.error("Failed to load historical events");
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (gameState.gameStatus === 'in-progress') {
@@ -109,39 +148,61 @@ const Index = () => {
     }
   }, [profile]);
 
-  const startGame = (settings: GameSettings) => {
-    // Create a copy of the events and add gameMode to each event
-    const shuffledEvents = shuffleArray(sampleEvents)
-      .slice(0, 5)
-      .map(event => ({
+  const startGame = async (settings: GameSettings) => {
+    setIsLoading(true);
+    
+    try {
+      const events = await fetchEvents(5);
+      
+      if (events.length === 0) {
+        toast({
+          title: "Error",
+          description: "Could not load historical events. Please try again later.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const eventsWithMode = events.map(event => ({
         ...event,
         gameMode: settings.gameMode
       }));
-    
-    setGameState({
-      settings: {
-        ...settings,
-        distanceUnit: profile?.default_distance_unit || settings.distanceUnit
-      },
-      events: shuffledEvents,
-      currentRound: 1,
-      totalRounds: 5,
-      roundResults: [],
-      gameStatus: 'in-progress',
-      currentGuess: {
-        location: null,
-        year: 1962
-      },
-      timerStartTime: settings.timerEnabled ? Date.now() : undefined,
-      timerRemaining: settings.timerEnabled ? settings.timerDuration * 60 : undefined,
-      userAvatar: profile?.avatar_url
-    });
+      
+      setGameState({
+        settings: {
+          ...settings,
+          distanceUnit: profile?.default_distance_unit || settings.distanceUnit
+        },
+        events: eventsWithMode,
+        currentRound: 1,
+        totalRounds: 5,
+        roundResults: [],
+        gameStatus: 'in-progress',
+        currentGuess: {
+          location: null,
+          year: 1962
+        },
+        timerStartTime: settings.timerEnabled ? Date.now() : undefined,
+        timerRemaining: settings.timerEnabled ? settings.timerDuration * 60 : undefined,
+        userAvatar: profile?.avatar_url
+      });
 
-    setActiveView('photo');
+      setActiveView('photo');
 
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.set('round', '1');
-    window.history.replaceState({}, '', currentUrl.toString());
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('round', '1');
+      window.history.replaceState({}, '', currentUrl.toString());
+      
+    } catch (error) {
+      console.error("Error starting game:", error);
+      toast({
+        title: "Error",
+        description: "Failed to start game. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleLocationSelect = (lat: number, lng: number) => {
@@ -352,7 +413,7 @@ const Index = () => {
   const renderGameView = () => {
     switch (gameState.gameStatus) {
       case 'not-started':
-        return <HomeScreen onStartGame={startGame} />;
+        return <HomeScreen onStartGame={startGame} isLoading={isLoading} />;
       
       case 'in-progress':
         const currentEvent = gameState.events[gameState.currentRound - 1];
@@ -388,7 +449,7 @@ const Index = () => {
                   <YearSlider 
                     value={gameState.currentGuess?.year || 1962}
                     onChange={handleYearSelect}
-                    minYear={1900}
+                    minYear={1800}
                     maxYear={new Date().getFullYear()}
                   />
                 </div>

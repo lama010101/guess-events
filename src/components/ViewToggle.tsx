@@ -13,12 +13,12 @@ const ViewToggle: React.FC<ViewToggleProps> = ({
   onViewChange 
 }) => {
   return (
-    <div className="flex space-x-2 justify-center mb-4 z-[100] relative">
+    <div className="flex space-x-2 justify-center mb-4 z-50 relative pointer-events-auto">
       <Button
         variant={activeView === 'photo' ? 'default' : 'outline'}
         size="sm"
         onClick={() => onViewChange('photo')}
-        className="flex-1 max-w-32 pointer-events-auto"
+        className="flex-1 max-w-32"
       >
         <Image className="mr-2 h-4 w-4" />
         Photo
@@ -27,7 +27,7 @@ const ViewToggle: React.FC<ViewToggleProps> = ({
         variant={activeView === 'map' ? 'default' : 'outline'}
         size="sm"
         onClick={() => onViewChange('map')}
-        className="flex-1 max-w-32 pointer-events-auto"
+        className="flex-1 max-w-32"
       >
         <MapPin className="mr-2 h-4 w-4" />
         Map
