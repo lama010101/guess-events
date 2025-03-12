@@ -110,13 +110,13 @@ const GameMap: React.FC<GameMapProps> = ({
           });
         }
 
-        // Add marker at location without changing view
+        // Add marker at location WITHOUT changing the view or zoom
         const newMarker = L.marker([selectedLocation.lat, selectedLocation.lng], { icon: markerIcon })
           .addTo(mapInstanceRef.current);
 
         setMarker(newMarker);
         
-        // DO NOT reset the view or change the map position
+        // DO NOT call map.setView or map.fitBounds here
       } catch (error) {
         console.error("Error adding marker:", error);
       }
@@ -194,9 +194,9 @@ const GameMap: React.FC<GameMapProps> = ({
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden shadow-md">
-      <div ref={mapRef} className="w-full h-full" />
+      <div ref={mapRef} className="w-full h-full z-10" />
       {!selectedLocation && !isDisabled && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium text-gray-700 shadow-sm z-10">
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium text-gray-700 shadow-sm z-20">
           Click on the map to place your guess
         </div>
       )}

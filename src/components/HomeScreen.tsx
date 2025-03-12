@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -344,7 +345,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
       </Card>
       
       <Dialog open={showFriendsDialog} onOpenChange={setShowFriendsDialog}>
-        <DialogContent className="sm:max-w-md z-50">
+        <DialogContent className="sm:max-w-md z-[9999]">
           <DialogHeader>
             <DialogTitle>Invite Friends to Play</DialogTitle>
             <DialogDescription>
@@ -430,7 +431,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
       </Dialog>
 
       <Dialog open={showAuthPrompt} onOpenChange={setShowAuthPrompt}>
-        <DialogContent className="sm:max-w-md z-50">
+        <DialogContent className="sm:max-w-md z-[9999]">
           <DialogHeader>
             <DialogTitle>Authentication Required</DialogTitle>
             <DialogDescription>

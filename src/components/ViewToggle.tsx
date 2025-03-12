@@ -13,7 +13,7 @@ const ViewToggle: React.FC<ViewToggleProps> = ({
   onViewChange 
 }) => {
   return (
-    <div className="flex space-x-2 justify-center mb-4 z-30 relative">
+    <div className="flex space-x-2 justify-center mb-4 z-[60] relative">
       <Button
         variant={activeView === 'photo' ? 'default' : 'outline'}
         size="sm"
