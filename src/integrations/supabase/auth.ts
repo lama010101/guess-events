@@ -1,16 +1,33 @@
 
 import { supabase } from './client';
+import { toast } from 'sonner';
 
 // Helper functions for authentication with Google
 export const signInWithGoogle = async () => {
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: `${window.location.origin}/`
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/`,
+        queryParams: {
+          prompt: 'select_account'
+        }
+      }
+    });
+    
+    if (error) {
+      if (error.message?.includes('provider is not enabled')) {
+        console.error('Google auth provider is not enabled in Supabase:', error);
+        throw new Error('Google login is not properly configured. Please enable Google provider in Supabase dashboard.');
+      }
+      throw error;
     }
-  });
-  
-  return { data, error };
+    
+    return { data, error: null };
+  } catch (error: any) {
+    console.error('Google sign-in error:', error);
+    return { data: null, error };
+  }
 };
 
 // Helper function for email authentication

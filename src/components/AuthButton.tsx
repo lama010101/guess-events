@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { UserPlus, LogIn, User, Camera } from 'lucide-react';
@@ -43,11 +42,19 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
       const { error } = await signInWithGoogle();
       
       if (error) {
-        toast({
-          title: "Sign in failed",
-          description: error.message,
-          variant: "destructive",
-        });
+        if (error.message?.includes('not properly configured') || error.message?.includes('provider is not enabled')) {
+          toast({
+            title: "Google login not available",
+            description: "Google authentication is not properly configured. Please use email/password for now.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Sign in failed",
+            description: error.message || "Unable to sign in with Google",
+            variant: "destructive",
+          });
+        }
       } else {
         setOpen(false);
       }
