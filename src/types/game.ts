@@ -1,3 +1,4 @@
+
 export interface HistoricalEvent {
   id: string;
   imageUrl: string;
@@ -8,6 +9,7 @@ export interface HistoricalEvent {
   };
   year: number;
   description: string;
+  gameMode?: 'daily' | 'friends' | 'single';
 }
 
 export interface GameSettings {

@@ -110,7 +110,13 @@ const Index = () => {
   }, [profile]);
 
   const startGame = (settings: GameSettings) => {
-    const shuffledEvents = shuffleArray(sampleEvents).slice(0, 5);
+    // Create a copy of the events and add gameMode to each event
+    const shuffledEvents = shuffleArray(sampleEvents)
+      .slice(0, 5)
+      .map(event => ({
+        ...event,
+        gameMode: settings.gameMode
+      }));
     
     setGameState({
       settings: {
@@ -451,7 +457,6 @@ const Index = () => {
         );
       
       case 'game-over':
-        const isDailyMode = gameState.settings.gameMode === 'daily';
         return (
           <div className="container mx-auto p-4 min-h-screen bg-[#f3f3f3]">
             <div className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
@@ -470,7 +475,7 @@ const Index = () => {
             <div className="pt-20">
               <GameResults 
                 results={gameState.roundResults} 
-                onRestart={isDailyMode ? handleReturnHome : handleRestart}
+                onRestart={handleRestart}
                 onHome={handleReturnHome}
               />
             </div>

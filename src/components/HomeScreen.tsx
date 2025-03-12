@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -33,12 +32,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
   const { toast } = useToast();
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  
   const [settings, setSettings] = useState<GameSettings>({
     distanceUnit: profile?.default_distance_unit || 'km',
     timerEnabled: false,
     timerDuration: 5,
     gameMode: 'daily'
   });
+  
   const [showFriendsDialog, setShowFriendsDialog] = useState(false);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -258,7 +259,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {/* Daily Competition button with signin requirement */}
             {dailyCompleted ? (
               <Button 
                 className="w-full" 

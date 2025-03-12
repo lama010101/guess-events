@@ -26,8 +26,9 @@ const GameResults: React.FC<GameResultsProps> = ({
   const totalScore = results.reduce((sum, result) => sum + result.totalScore, 0);
   const [leaderboardSort, setLeaderboardSort] = useState<'daily' | 'total' | 'average'>('daily');
   
-  // Check if we're in daily mode by examining the first result's event properties
-  const isDailyMode = results.length > 0 && results[0].event.gameMode === 'daily';
+  // Check if we're in daily mode by examining if gameMode is set to daily
+  const isDailyMode = results.length > 0 && 
+    results[0].event.gameMode ? results[0].event.gameMode === 'daily' : false;
   
   // Placeholder leaderboard data
   const leaderboardData = [

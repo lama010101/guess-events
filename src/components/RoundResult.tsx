@@ -34,13 +34,8 @@ const RoundResultComponent: React.FC<RoundResultProps> = ({
   const isPerfectScore = totalScore === 10000;
 
   return (
-    <div className="flex flex-col space-y-4 w-full max-w-5xl mx-auto pb-20">
-      {/* Fixed header for the Round Result screen */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 shadow-md p-4">
-        <h2 className="text-xl font-bold text-center">Round Result</h2>
-      </div>
-      
-      <div className="pt-16">
+    <div className="flex flex-col space-y-4 w-full max-w-5xl mx-auto pb-20 z-20">
+      <div className="pt-0">
         <Card className="w-full">
           <CardHeader>
             <CardTitle>Round Result</CardTitle>
@@ -130,7 +125,7 @@ const RoundResultComponent: React.FC<RoundResultProps> = ({
       </div>
       
       {/* Fixed footer with Next Round button */}
-      <div className="fixed bottom-0 left-0 right-0 z-10 bg-white shadow-md border-t border-gray-200 p-4">
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-white shadow-md border-t border-gray-200 p-4">
         <div className="container mx-auto">
           <Button onClick={onNextRound} className="w-full">
             {isLastRound ? 'See Final Results' : 'Next Round'}

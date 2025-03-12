@@ -110,14 +110,13 @@ const GameMap: React.FC<GameMapProps> = ({
           });
         }
 
-        // CRITICAL FIX: Add marker at location without changing view
+        // Add marker at location without changing view
         const newMarker = L.marker([selectedLocation.lat, selectedLocation.lng], { icon: markerIcon })
           .addTo(mapInstanceRef.current);
 
         setMarker(newMarker);
         
-        // Explicitly DO NOT reset the view, keep the current view
-        // No mapInstanceRef.current.fitBounds or setView calls here
+        // DO NOT reset the view or change the map position
       } catch (error) {
         console.error("Error adding marker:", error);
       }
@@ -178,14 +177,15 @@ const GameMap: React.FC<GameMapProps> = ({
         
         setPolyline(newPolyline);
 
-        // Fit bounds to show both markers - this is only for the results screen
-        // so it's okay to change the view here
-        const bounds = L.latLngBounds(
-          [selectedLocation.lat, selectedLocation.lng],
-          [correctLocation.lat, correctLocation.lng]
-        );
-
-        mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
+        // ONLY fit bounds in results view - not during gameplay
+        if (showCorrectPin) {
+          const bounds = L.latLngBounds(
+            [selectedLocation.lat, selectedLocation.lng],
+            [correctLocation.lat, correctLocation.lng]
+          );
+  
+          mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
+        }
       }
     } catch (error) {
       console.error("Error adding correct marker or line:", error);

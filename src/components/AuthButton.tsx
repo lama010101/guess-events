@@ -55,7 +55,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
         variant={topBar ? "outline" : "default"} 
         onClick={() => setOpen(true)}
         size={topBar ? "sm" : "default"}
-        className={topBar ? "h-8" : ""}
+        className={`${topBar ? "h-8" : ""} pointer-events-auto`}
       >
         <UserPlus className="mr-2 h-4 w-4" />
         {!topBar && "Register / Sign In"}
@@ -67,7 +67,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+          <Button variant="ghost" className="relative h-8 w-8 rounded-full pointer-events-auto">
             <Avatar className="h-8 w-8">
               <AvatarImage src={profile.avatar_url || ''} alt={profile.username} />
               <AvatarFallback>{profile.username.slice(0, 2).toUpperCase()}</AvatarFallback>
@@ -84,32 +84,32 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleViewProfile}>
+          <DropdownMenuItem onClick={handleViewProfile} className="pointer-events-auto">
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleGoToLeaderboard}>
+          <DropdownMenuItem onClick={handleGoToLeaderboard} className="pointer-events-auto">
             <Trophy className="mr-2 h-4 w-4" />
             <span>Leaderboard</span>
           </DropdownMenuItem>
-          <DropdownMenuItem>
+          <DropdownMenuItem className="pointer-events-auto">
             <Users className="mr-2 h-4 w-4" />
             <span>Friends</span>
           </DropdownMenuItem>
-          <DropdownMenuItem>
+          <DropdownMenuItem className="pointer-events-auto">
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </DropdownMenuItem>
           {profile.role === 'admin' && (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/admin')}>
+              <DropdownMenuItem onClick={() => navigate('/admin')} className="pointer-events-auto">
                 <span>Admin Dashboard</span>
               </DropdownMenuItem>
             </>
           )}
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleSignOut}>
+          <DropdownMenuItem onClick={handleSignOut} className="pointer-events-auto">
             <LogIn className="mr-2 h-4 w-4" />
             <span>Sign out</span>
           </DropdownMenuItem>
