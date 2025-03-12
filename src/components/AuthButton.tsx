@@ -130,7 +130,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
         {!topBar && "Register / Sign In"}
       </Button>
       
-      {/* Fixed a key issue by removing Date.now() which was causing re-renders */}
+      {/* Dialog for authentication */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[425px] z-[9999]">
           <DialogHeader>
