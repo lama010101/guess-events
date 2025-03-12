@@ -1,4 +1,3 @@
-
 export interface HistoricalEvent {
   id: string;
   imageUrl: string;
@@ -18,6 +17,8 @@ export interface GameSettings {
   timerDuration: number; // in minutes
   gameMode: 'daily' | 'friends' | 'single';
 }
+
+export type GameMode = 'daily' | 'friends' | 'classic' | 'timed';
 
 export interface PlayerGuess {
   location: {

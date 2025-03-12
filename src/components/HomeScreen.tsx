@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -51,6 +50,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
     setLocalLoading(true);
     try {
       await onStartGame(settings);
+    } catch (error) {
+      console.error("Error starting game:", error);
     } finally {
       setLocalLoading(false);
     }
@@ -207,8 +208,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
       
       <AuthPromptDialog 
         open={showAuthPrompt} 
-        onOpenChange={setShowAuthPrompt} 
-        source="daily-competition"
+        onOpenChange={setShowAuthPrompt}
       />
     </div>
   );
