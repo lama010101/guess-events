@@ -130,8 +130,9 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
         {!topBar && "Register / Sign In"}
       </Button>
       
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[425px] z-50">
+      {/* Force React to re-render the Dialog by adding a key with current timestamp */}
+      <Dialog key={Date.now()} open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[425px] z-[9999]"> {/* Increased z-index */}
           <DialogHeader>
             <DialogTitle>Account Access</DialogTitle>
             <DialogDescription>

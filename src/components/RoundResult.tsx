@@ -36,7 +36,7 @@ const RoundResultComponent: React.FC<RoundResultProps> = ({
   return (
     <div className="flex flex-col space-y-4 w-full max-w-5xl mx-auto pb-20">
       {/* Fixed header for the Round Result screen */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 shadow-md rounded-b-lg p-4">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 shadow-md p-4">
         <h2 className="text-xl font-bold text-center">Round Result</h2>
       </div>
       

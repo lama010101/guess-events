@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase, uploadAvatar } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
+import { uploadAvatar } from '@/integrations/supabase/storage';
 import { Session, User } from '@supabase/supabase-js';
 import { useToast } from '@/hooks/use-toast';
 
@@ -201,15 +202,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       if (!user) return { error: new Error('User not logged in'), url: null };
       
-      // Create the storage bucket with properly configured RLS policies through code
-      // This is more reliable than trying to create it through the AuthContext
+      console.log("Starting avatar upload process for user:", user.id);
+      
+      // Upload the avatar
       try {
-        // Upload the avatar first - uploadAvatar will handle bucket creation if needed
         const publicUrl = await uploadAvatar(user.id, file);
         
         if (!publicUrl) {
           throw new Error('Upload failed: No public URL returned');
         }
+        
+        console.log("Avatar uploaded successfully, updating profile with URL:", publicUrl);
         
         // Update the profile with the new avatar URL
         const { error } = await updateProfile({ avatar_url: publicUrl });

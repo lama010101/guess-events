@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -115,8 +114,8 @@ const GameMap: React.FC<GameMapProps> = ({
 
         setMarker(newMarker);
         
-        // IMPORTANT: Don't reset the view when placing a pin - maintain current view
-        // Previously the code might have called fitBounds or setView here which would change the view
+        // Explicitly DO NOT reset the view, keep the current view
+        // No mapInstanceRef.current.fitBounds or setView calls here
       } catch (error) {
         console.error("Error adding marker:", error);
       }
@@ -177,7 +176,8 @@ const GameMap: React.FC<GameMapProps> = ({
         
         setPolyline(newPolyline);
 
-        // Fit bounds to show both markers
+        // Fit bounds to show both markers - this is only for the results screen
+        // so it's okay to change the view here
         const bounds = L.latLngBounds(
           [selectedLocation.lat, selectedLocation.lng],
           [correctLocation.lat, correctLocation.lng]

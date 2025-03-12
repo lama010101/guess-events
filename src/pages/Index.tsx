@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -60,7 +59,12 @@ const Index = () => {
     currentGuess: null
   });
 
-  // Update URL when round changes
+  useEffect(() => {
+    if (gameState.gameStatus === 'in-progress') {
+      setActiveView('photo');
+    }
+  }, [gameState.currentRound, gameState.gameStatus]);
+
   useEffect(() => {
     if (gameState.gameStatus === 'in-progress') {
       const currentUrl = new URL(window.location.href);
@@ -69,7 +73,6 @@ const Index = () => {
     }
   }, [gameState.currentRound, gameState.gameStatus]);
 
-  // Check for round in URL when component mounts
   useEffect(() => {
     if (gameState.gameStatus === 'in-progress') {
       const params = new URLSearchParams(location.search);
@@ -92,7 +95,6 @@ const Index = () => {
     }
   }, [location.search]);
 
-  // Update settings when profile changes
   useEffect(() => {
     if (profile) {
       setGameState(prev => ({
@@ -121,14 +123,15 @@ const Index = () => {
       gameStatus: 'in-progress',
       currentGuess: {
         location: null,
-        year: 1962 // Default year is 1962 as per requirements
+        year: 1962
       },
       timerStartTime: settings.timerEnabled ? Date.now() : undefined,
       timerRemaining: settings.timerEnabled ? settings.timerDuration * 60 : undefined,
       userAvatar: profile?.avatar_url
     });
 
-    // Update URL with round parameter
+    setActiveView('photo');
+
     const currentUrl = new URL(window.location.href);
     currentUrl.searchParams.set('round', '1');
     window.history.replaceState({}, '', currentUrl.toString());
@@ -247,7 +250,6 @@ const Index = () => {
         ...prev,
         gameStatus: 'game-over'
       }));
-      // Clear round parameter from URL
       const currentUrl = new URL(window.location.href);
       currentUrl.searchParams.delete('round');
       window.history.replaceState({}, '', currentUrl.toString());
@@ -265,7 +267,6 @@ const Index = () => {
         timerRemaining: prev.settings.timerEnabled ? prev.settings.timerDuration * 60 : undefined
       }));
       
-      // Update URL with new round parameter
       const currentUrl = new URL(window.location.href);
       currentUrl.searchParams.set('round', nextRound.toString());
       window.history.replaceState({}, '', currentUrl.toString());
@@ -283,7 +284,6 @@ const Index = () => {
     }));
     setConfirmHomeOpen(false);
     
-    // Clear round parameter from URL
     const currentUrl = new URL(window.location.href);
     currentUrl.searchParams.delete('round');
     window.history.replaceState({}, '', currentUrl.toString());
@@ -299,7 +299,6 @@ const Index = () => {
       gameStatus: 'not-started'
     }));
     
-    // Clear round parameter from URL
     const currentUrl = new URL(window.location.href);
     currentUrl.searchParams.delete('round');
     window.history.replaceState({}, '', currentUrl.toString());
@@ -406,7 +405,7 @@ const Index = () => {
               </div>
             </div>
             
-            <div className="fixed bottom-0 left-0 right-0 z-50 bg-white shadow-md border-t border-gray-200">
+            <div className="fixed bottom-0 left-0 right-0 z-[60] bg-white shadow-md border-t border-gray-200">
               <div className="container mx-auto p-4">
                 <Button 
                   size="lg"
@@ -463,7 +462,7 @@ const Index = () => {
       />
 
       <AlertDialog open={confirmHomeOpen} onOpenChange={setConfirmHomeOpen}>
-        <AlertDialogContent className="z-50">
+        <AlertDialogContent className="z-[9999]">
           <AlertDialogHeader>
             <AlertDialogTitle>Return to Home Screen?</AlertDialogTitle>
             <AlertDialogDescription>

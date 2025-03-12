@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -130,7 +129,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
   );
 
   const handleStartGame = async (mode: 'daily' | 'friends' | 'single') => {
-    // Require authentication for daily mode
     if (mode === 'daily' && !user) {
       toast({
         title: "Authentication Required",
@@ -293,11 +291,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
-          {/* Daily button first as requested */}
           {dailyCompleted ? (
             <Button 
               className="w-full" 
               size="lg" 
+              variant="default"
               disabled
             >
               <Trophy className="mr-2 h-4 w-4" /> Daily Competition Completed ({todayDate}): {dailyScore}
@@ -306,6 +304,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
             <Button 
               className="w-full" 
               size="lg" 
+              variant="default"
               onClick={() => handleStartGame('daily')}
             >
               <Trophy className="mr-2 h-4 w-4" /> Daily Competition ({todayDate})
@@ -315,6 +314,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
           <Button 
             className="w-full" 
             size="lg" 
+            variant="secondary"
             onClick={() => handleStartGame('single')}
           >
             <User className="mr-2 h-4 w-4" /> Singleplayer
@@ -322,7 +322,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
           
           <Button 
             className="w-full"
-            variant="default"
+            variant="outline"
             size="lg" 
             onClick={() => handleStartGame('friends')}
           >
