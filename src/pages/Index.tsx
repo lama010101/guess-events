@@ -10,6 +10,7 @@ import RoundResultComponent from '@/components/RoundResult';
 import GameResults from '@/components/GameResults';
 import SettingsDialog from '@/components/SettingsDialog';
 import Timer from '@/components/Timer';
+import ViewToggle from '@/components/ViewToggle';
 import { sampleEvents } from '@/data/sampleEvents';
 import {
   AlertDialog,
@@ -37,6 +38,7 @@ const Index = () => {
   const { toast } = useToast();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmHomeOpen, setConfirmHomeOpen] = useState(false);
+  const [activeView, setActiveView] = useState<'photo' | 'map'>('photo');
   const [gameState, setGameState] = useState<GameState>({
     settings: {
       distanceUnit: 'km',
@@ -253,6 +255,10 @@ const Index = () => {
       });
   };
 
+  const handleViewChange = (view: 'photo' | 'map') => {
+    setActiveView(view);
+  };
+
   const renderGameView = () => {
     switch (gameState.gameStatus) {
       case 'not-started':
@@ -262,7 +268,7 @@ const Index = () => {
         const currentEvent = gameState.events[gameState.currentRound - 1];
         return (
           <div className="container mx-auto p-4 min-h-screen bg-[#f3f3f3]">
-            <div className="fixed top-0 left-0 right-0 z-10 bg-white shadow-sm">
+            <div className="fixed top-0 left-0 right-0 z-10 bg-white shadow-md">
               <div className="container mx-auto p-4">
                 <GameHeader 
                   currentRound={gameState.currentRound} 
@@ -275,31 +281,19 @@ const Index = () => {
               </div>
             </div>
             
-            <div className="pt-20">
-              {gameState.settings.timerEnabled && (
-                <div className="mb-4">
-                  <Timer 
-                    durationMinutes={gameState.settings.timerDuration}
-                    onTimeUp={handleTimeUp}
-                    isActive={gameState.gameStatus === 'in-progress'}
-                    remainingSeconds={gameState.timerRemaining}
-                  />
-                </div>
-              )}
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div className="h-96">
-                  <PhotoViewer src={currentEvent.imageUrl} alt={currentEvent.description} />
-                </div>
-                <div className="h-96">
-                  <GameMap 
-                    onLocationSelect={handleLocationSelect} 
-                    selectedLocation={gameState.currentGuess?.location}
-                  />
-                </div>
-              </div>
-              
-              <div className="flex flex-col justify-between items-center gap-6 mb-6">
+            <div className="pt-20 pb-24">
+              <div className="mb-4 mt-2">
+                {gameState.settings.timerEnabled && (
+                  <div className="mb-4">
+                    <Timer 
+                      durationMinutes={gameState.settings.timerDuration}
+                      onTimeUp={handleTimeUp}
+                      isActive={gameState.gameStatus === 'in-progress'}
+                      remainingSeconds={gameState.timerRemaining}
+                    />
+                  </div>
+                )}
+                
                 <div className="w-full">
                   <YearSlider 
                     value={gameState.currentGuess?.year || 1962}
@@ -308,11 +302,32 @@ const Index = () => {
                     maxYear={new Date().getFullYear()}
                   />
                 </div>
+              </div>
+              
+              <ViewToggle 
+                activeView={activeView}
+                onViewChange={handleViewChange}
+              />
+              
+              <div className="h-96 mb-6">
+                {activeView === 'photo' ? (
+                  <PhotoViewer src={currentEvent.imageUrl} alt={currentEvent.description} />
+                ) : (
+                  <GameMap 
+                    onLocationSelect={handleLocationSelect} 
+                    selectedLocation={gameState.currentGuess?.location}
+                  />
+                )}
+              </div>
+            </div>
+            
+            <div className="fixed bottom-0 left-0 right-0 z-10 bg-white shadow-md border-t border-gray-200">
+              <div className="container mx-auto p-4">
                 <Button 
                   size="lg"
                   onClick={submitGuess}
                   disabled={!gameState.currentGuess?.year}
-                  className="w-full md:w-auto"
+                  className="w-full"
                 >
                   Submit Guess
                 </Button>
