@@ -6,22 +6,7 @@ import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import UserProfile from "./pages/UserProfile";
 import { AuthProvider } from "./contexts/AuthContext";
-import { useAuth } from "@/contexts/AuthContext";
-
-// Admin guard component
-const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, profile, isLoading } = useAuth();
-  
-  if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  }
-  
-  if (!user || !profile || profile.role !== 'admin') {
-    return <Navigate to="/" replace />;
-  }
-  
-  return <>{children}</>;
-};
+import ProtectedRoutes from "./components/ProtectedRoutes";
 
 function App() {
   return (
@@ -35,9 +20,9 @@ function App() {
           <Route 
             path="/admin" 
             element={
-              <AdminRoute>
+              <ProtectedRoutes requiredRole="admin">
                 <Admin />
-              </AdminRoute>
+              </ProtectedRoutes>
             } 
           />
           <Route path="/profile/:userId" element={<UserProfile />} />
