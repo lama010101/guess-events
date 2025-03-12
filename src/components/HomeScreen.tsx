@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Map, Globe, Wand2, Trophy, RefreshCw } from 'lucide-react';
+import { Map, Globe, Wand2, Trophy, RefreshCw, Loader } from 'lucide-react';
 import { GameSettings } from '@/types/game';
 import { sampleEvents } from '@/data/sampleEvents';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,6 +28,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
   const [dailyCompleted, setDailyCompleted] = useState(false);
   const [dailyScore, setDailyScore] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [localLoading, setLocalLoading] = useState(false);
   const [settings, setSettings] = useState<GameSettings>({
     distanceUnit: 'km',
     timerEnabled: false,
@@ -66,10 +68,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
     }
     
     try {
+      setLocalLoading(true);
       await onStartGame(settings);
     } catch (error) {
       console.error("Error starting game:", error);
       toast.error("Could not start game. Please try again later.");
+    } finally {
+      setLocalLoading(false);
     }
   };
 
@@ -80,7 +85,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
     }));
   };
 
-  const buttonLoading = isLoading;
+  // Use local loading state instead of the prop
+  const buttonLoading = localLoading;
 
   return (
     <div className="container mx-auto p-4 min-h-screen flex flex-col justify-center items-center">
@@ -130,7 +136,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
                       >
                         {buttonLoading ? (
                           <>
-                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            <Loader className="mr-2 h-4 w-4 animate-spin" />
                             Loading...
                           </>
                         ) : (
@@ -164,7 +170,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
                       >
                         {buttonLoading ? (
                           <>
-                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            <Loader className="mr-2 h-4 w-4 animate-spin" />
                             Loading...
                           </>
                         ) : (
@@ -210,7 +216,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
                       >
                         {buttonLoading ? (
                           <>
-                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            <Loader className="mr-2 h-4 w-4 animate-spin" />
                             Loading...
                           </>
                         ) : (
