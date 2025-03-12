@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { signInWithEmail } from '@/integrations/supabase/auth';
 
 interface LoginFormProps {
   onSuccess: () => void;
@@ -22,13 +24,15 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     setIsLoading(true);
     
     try {
-      const { error } = await signIn(email, password);
+      // Use the signInWithEmail function from auth.ts for consistency
+      const { error } = await signInWithEmail(email, password);
       
       if (!error) {
         onSuccess();
       }
     } catch (error) {
       console.error('Login error:', error);
+      toast('Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }

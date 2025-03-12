@@ -7,8 +7,7 @@ import {
   DialogContent, 
   DialogDescription, 
   DialogHeader, 
-  DialogTitle, 
-  DialogTrigger
+  DialogTitle
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -24,7 +23,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import LoginForm from './LoginForm';
 import RegisterForm from './RegisterForm';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
 
 interface AuthButtonProps {
   topBar?: boolean;
@@ -45,10 +43,18 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     }
   };
   
+  // If the authentication data is loading, show a button with loading state
+  // but don't disable it to allow users to still open the auth dialog
   if (isLoading) {
     return (
-      <Button variant="ghost" size="sm" disabled>
-        Loading...
+      <Button 
+        variant={topBar ? "outline" : "default"} 
+        onClick={() => setOpen(true)}
+        size={topBar ? "sm" : "default"}
+        className={topBar ? "h-8" : ""}
+      >
+        <UserPlus className="mr-2 h-4 w-4" />
+        {!topBar && "Register / Sign In"}
       </Button>
     );
   }
