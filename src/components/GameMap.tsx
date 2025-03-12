@@ -115,7 +115,8 @@ const GameMap: React.FC<GameMapProps> = ({
 
         setMarker(newMarker);
         
-        // Don't reset the view when placing a pin - maintain current view
+        // IMPORTANT: Don't reset the view when placing a pin - maintain current view
+        // Previously the code might have called fitBounds or setView here which would change the view
       } catch (error) {
         console.error("Error adding marker:", error);
       }

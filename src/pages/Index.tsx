@@ -34,15 +34,20 @@ import {
   calculateRoundResult, 
   shuffleArray 
 } from '@/utils/gameUtils';
+import { useAuth } from '@/contexts/AuthContext';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const Index = () => {
   const { toast } = useToast();
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmHomeOpen, setConfirmHomeOpen] = useState(false);
   const [activeView, setActiveView] = useState<'photo' | 'map'>('photo');
   const [gameState, setGameState] = useState<GameState>({
     settings: {
-      distanceUnit: 'km',
+      distanceUnit: profile?.default_distance_unit || 'km',
       timerEnabled: false,
       timerDuration: 5,
       gameMode: 'daily'
@@ -55,11 +60,60 @@ const Index = () => {
     currentGuess: null
   });
 
+  // Update URL when round changes
+  useEffect(() => {
+    if (gameState.gameStatus === 'in-progress') {
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('round', gameState.currentRound.toString());
+      window.history.replaceState({}, '', currentUrl.toString());
+    }
+  }, [gameState.currentRound, gameState.gameStatus]);
+
+  // Check for round in URL when component mounts
+  useEffect(() => {
+    if (gameState.gameStatus === 'in-progress') {
+      const params = new URLSearchParams(location.search);
+      const roundParam = params.get('round');
+      if (roundParam) {
+        const round = parseInt(roundParam);
+        if (!isNaN(round) && round >= 1 && round <= gameState.totalRounds && round !== gameState.currentRound) {
+          setGameState(prev => ({
+            ...prev,
+            currentRound: round,
+            currentGuess: {
+              location: null,
+              year: 1962
+            },
+            timerStartTime: prev.settings.timerEnabled ? Date.now() : undefined,
+            timerRemaining: prev.settings.timerEnabled ? prev.settings.timerDuration * 60 : undefined
+          }));
+        }
+      }
+    }
+  }, [location.search]);
+
+  // Update settings when profile changes
+  useEffect(() => {
+    if (profile) {
+      setGameState(prev => ({
+        ...prev,
+        settings: {
+          ...prev.settings,
+          distanceUnit: profile.default_distance_unit || 'km'
+        },
+        userAvatar: profile.avatar_url
+      }));
+    }
+  }, [profile]);
+
   const startGame = (settings: GameSettings) => {
     const shuffledEvents = shuffleArray(sampleEvents).slice(0, 5);
     
     setGameState({
-      settings,
+      settings: {
+        ...settings,
+        distanceUnit: profile?.default_distance_unit || settings.distanceUnit
+      },
       events: shuffledEvents,
       currentRound: 1,
       totalRounds: 5,
@@ -70,8 +124,14 @@ const Index = () => {
         year: 1962 // Default year is 1962 as per requirements
       },
       timerStartTime: settings.timerEnabled ? Date.now() : undefined,
-      timerRemaining: settings.timerEnabled ? settings.timerDuration * 60 : undefined
+      timerRemaining: settings.timerEnabled ? settings.timerDuration * 60 : undefined,
+      userAvatar: profile?.avatar_url
     });
+
+    // Update URL with round parameter
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('round', '1');
+    window.history.replaceState({}, '', currentUrl.toString());
   };
 
   const handleLocationSelect = (lat: number, lng: number) => {
@@ -187,10 +247,15 @@ const Index = () => {
         ...prev,
         gameStatus: 'game-over'
       }));
+      // Clear round parameter from URL
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.delete('round');
+      window.history.replaceState({}, '', currentUrl.toString());
     } else {
+      const nextRound = gameState.currentRound + 1;
       setGameState(prev => ({
         ...prev,
-        currentRound: prev.currentRound + 1,
+        currentRound: nextRound,
         gameStatus: 'in-progress',
         currentGuess: {
           location: null,
@@ -199,6 +264,11 @@ const Index = () => {
         timerStartTime: prev.settings.timerEnabled ? Date.now() : undefined,
         timerRemaining: prev.settings.timerEnabled ? prev.settings.timerDuration * 60 : undefined
       }));
+      
+      // Update URL with new round parameter
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('round', nextRound.toString());
+      window.history.replaceState({}, '', currentUrl.toString());
     }
   };
 
@@ -212,6 +282,11 @@ const Index = () => {
       gameStatus: 'not-started'
     }));
     setConfirmHomeOpen(false);
+    
+    // Clear round parameter from URL
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.delete('round');
+    window.history.replaceState({}, '', currentUrl.toString());
   };
 
   const handleRestart = () => {
@@ -223,6 +298,11 @@ const Index = () => {
       ...prev,
       gameStatus: 'not-started'
     }));
+    
+    // Clear round parameter from URL
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.delete('round');
+    window.history.replaceState({}, '', currentUrl.toString());
   };
 
   const calculateCumulativeScore = () => {
@@ -232,7 +312,10 @@ const Index = () => {
   const handleSettingsChange = (newSettings: GameSettings) => {
     setGameState(prev => ({
       ...prev,
-      settings: newSettings,
+      settings: {
+        ...newSettings,
+        distanceUnit: profile?.default_distance_unit || newSettings.distanceUnit
+      },
       timerRemaining: newSettings.timerEnabled 
         ? newSettings.timerDuration * 60 
         : undefined
@@ -268,8 +351,8 @@ const Index = () => {
       case 'in-progress':
         const currentEvent = gameState.events[gameState.currentRound - 1];
         return (
-          <div className="container mx-auto p-4 min-h-screen bg-[#f3f3f3]">
-            <div className="fixed top-0 left-0 right-0 z-10 bg-white shadow-md">
+          <div className="container mx-auto min-h-screen bg-[#f3f3f3]">
+            <div className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
               <div className="container mx-auto p-4">
                 <GameHeader 
                   currentRound={gameState.currentRound} 
@@ -312,17 +395,18 @@ const Index = () => {
               
               <div className="h-96 mb-6">
                 {activeView === 'photo' ? (
-                  <PhotoViewer src={currentEvent.imageUrl} alt={currentEvent.description} />
+                  <PhotoViewer src={currentEvent.imageUrl} alt="" />
                 ) : (
                   <GameMap 
                     onLocationSelect={handleLocationSelect} 
                     selectedLocation={gameState.currentGuess?.location}
+                    userAvatar={gameState.userAvatar}
                   />
                 )}
               </div>
             </div>
             
-            <div className="fixed bottom-0 left-0 right-0 z-10 bg-white shadow-md border-t border-gray-200">
+            <div className="fixed bottom-0 left-0 right-0 z-50 bg-white shadow-md border-t border-gray-200">
               <div className="container mx-auto p-4">
                 <Button 
                   size="lg"
@@ -340,7 +424,7 @@ const Index = () => {
       case 'round-result':
         const lastResult = gameState.roundResults[gameState.roundResults.length - 1];
         return (
-          <div className="container mx-auto p-4 min-h-screen bg-[#f3f3f3]">
+          <div className="container mx-auto min-h-screen bg-[#f3f3f3]">
             <RoundResultComponent 
               result={lastResult} 
               onNextRound={handleNextRound} 
@@ -379,7 +463,7 @@ const Index = () => {
       />
 
       <AlertDialog open={confirmHomeOpen} onOpenChange={setConfirmHomeOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="z-50">
           <AlertDialogHeader>
             <AlertDialogTitle>Return to Home Screen?</AlertDialogTitle>
             <AlertDialogDescription>

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { UserPlus, LogIn, User } from 'lucide-react';
+import { UserPlus, LogIn, User, Trophy, Settings, Users } from 'lucide-react';
 import { 
   Dialog, 
   DialogContent, 
@@ -41,6 +41,10 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     if (user) {
       navigate(`/profile/${user.id}`);
     }
+  };
+  
+  const handleGoToLeaderboard = () => {
+    navigate('/leaderboard');
   };
   
   // If the authentication data is loading, show a button with loading state
@@ -84,13 +88,16 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </DropdownMenuItem>
-          <DropdownMenuItem>
-            <span>Game Stats</span>
+          <DropdownMenuItem onClick={handleGoToLeaderboard}>
+            <Trophy className="mr-2 h-4 w-4" />
+            <span>Leaderboard</span>
           </DropdownMenuItem>
           <DropdownMenuItem>
+            <Users className="mr-2 h-4 w-4" />
             <span>Friends</span>
           </DropdownMenuItem>
           <DropdownMenuItem>
+            <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </DropdownMenuItem>
           {profile.role === 'admin' && (
@@ -117,14 +124,14 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
         variant={topBar ? "outline" : "default"} 
         onClick={() => setOpen(true)}
         size={topBar ? "sm" : "default"}
-        className={topBar ? "h-8" : ""}
+        className={`${topBar ? "h-8" : ""} pointer-events-auto`}
       >
         <UserPlus className="mr-2 h-4 w-4" />
         {!topBar && "Register / Sign In"}
       </Button>
       
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] z-50">
           <DialogHeader>
             <DialogTitle>Account Access</DialogTitle>
             <DialogDescription>

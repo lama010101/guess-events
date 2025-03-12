@@ -201,35 +201,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       if (!user) return { error: new Error('User not logged in'), url: null };
       
-      // First, check if the avatars bucket exists
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const avatarBucketExists = buckets?.some(bucket => bucket.name === 'avatars');
-      
-      // If it doesn't exist, create it
-      if (!avatarBucketExists) {
-        const { error: createBucketError } = await supabase.storage.createBucket('avatars', {
-          public: true
+      // Create the storage bucket with properly configured RLS policies through code
+      // This is more reliable than trying to create it through the AuthContext
+      try {
+        // Upload the avatar first - uploadAvatar will handle bucket creation if needed
+        const publicUrl = await uploadAvatar(user.id, file);
+        
+        if (!publicUrl) {
+          throw new Error('Upload failed: No public URL returned');
+        }
+        
+        // Update the profile with the new avatar URL
+        const { error } = await updateProfile({ avatar_url: publicUrl });
+        
+        if (error) {
+          console.error('Error updating profile with avatar URL:', error);
+          return { error, url: null };
+        }
+        
+        toast({
+          title: 'Avatar updated',
+          description: 'Your profile picture has been updated successfully.',
         });
         
-        if (createBucketError) {
-          console.error('Error creating avatars bucket:', createBucketError);
-          return { error: createBucketError, url: null };
-        }
-      }
-      
-      // Upload the avatar
-      const publicUrl = await uploadAvatar(user.id, file);
-      
-      // Update the profile with the new avatar URL
-      const { error } = await updateProfile({ avatar_url: publicUrl });
-      
-      if (error) {
+        return { error: null, url: publicUrl };
+      } catch (error) {
+        console.error('Error uploading avatar:', error);
+        toast({
+          title: 'Avatar update failed',
+          description: 'Unable to upload avatar. Please try again.',
+          variant: 'destructive',
+        });
         return { error, url: null };
       }
-      
-      return { error: null, url: publicUrl };
     } catch (error) {
       console.error('Update avatar error:', error);
+      toast({
+        title: 'Avatar update failed',
+        description: 'An unexpected error occurred. Please try again.',
+        variant: 'destructive',
+      });
       return { error, url: null };
     }
   };

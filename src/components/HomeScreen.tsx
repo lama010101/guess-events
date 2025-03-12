@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [settings, setSettings] = useState<GameSettings>({
-    distanceUnit: 'km',
+    distanceUnit: profile?.default_distance_unit || 'km',
     timerEnabled: false,
     timerDuration: 5,
     gameMode: 'daily'
@@ -55,6 +56,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
       fetchFriends();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (profile) {
+      setSettings(prev => ({
+        ...prev,
+        distanceUnit: profile.default_distance_unit || 'km'
+      }));
+    }
+  }, [profile]);
 
   const checkDailyCompletion = async () => {
     if (!user) return;
@@ -120,6 +130,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
   );
 
   const handleStartGame = async (mode: 'daily' | 'friends' | 'single') => {
+    // Require authentication for daily mode
+    if (mode === 'daily' && !user) {
+      toast({
+        title: "Authentication Required",
+        description: "You need to sign in to play the Daily Competition.",
+        variant: "destructive"
+      });
+      setShowAuthPrompt(true);
+      return;
+    }
+    
     const newSettings = {
       ...settings,
       gameMode: mode
@@ -272,14 +293,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
-          <Button 
-            className="w-full" 
-            size="lg" 
-            onClick={() => handleStartGame('single')}
-          >
-            <User className="mr-2 h-4 w-4" /> Singleplayer
-          </Button>
-          
+          {/* Daily button first as requested */}
           {dailyCompleted ? (
             <Button 
               className="w-full" 
@@ -300,7 +314,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
           
           <Button 
             className="w-full" 
-            variant="outline" 
+            size="lg" 
+            onClick={() => handleStartGame('single')}
+          >
+            <User className="mr-2 h-4 w-4" /> Singleplayer
+          </Button>
+          
+          <Button 
+            className="w-full"
+            variant="default"
             size="lg" 
             onClick={() => handleStartGame('friends')}
           >
@@ -318,7 +340,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
       </Card>
       
       <Dialog open={showFriendsDialog} onOpenChange={setShowFriendsDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md z-50">
           <DialogHeader>
             <DialogTitle>Invite Friends to Play</DialogTitle>
             <DialogDescription>
@@ -404,29 +426,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
       </Dialog>
 
       <Dialog open={showAuthPrompt} onOpenChange={setShowAuthPrompt}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md z-50">
           <DialogHeader>
-            <DialogTitle>Game Link Copied!</DialogTitle>
+            <DialogTitle>Authentication Required</DialogTitle>
             <DialogDescription>
-              You can now share the game link that was copied to your clipboard. Register or sign in to invite your friends to play.
+              Please sign in or register to play the Daily Competition and track your progress.
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            <div className="flex items-center gap-2">
-              <Input 
-                value={gameSessionLink} 
-                readOnly 
-                className="flex-1"
-              />
-              <Button 
-                size="sm" 
-                onClick={handleCopyLink}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-            
             <div className="flex justify-center">
               <AuthButton />
             </div>
@@ -436,16 +444,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <Button 
-              variant="default" 
-              className="w-full sm:w-auto"
-              onClick={() => {
-                navigate(gameSessionLink);
-                setShowAuthPrompt(false);
-              }}
-            >
-              Start Game
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
