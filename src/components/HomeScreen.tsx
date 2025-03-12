@@ -40,6 +40,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
     gameMode: 'daily'
   });
   const [showFriendsDialog, setShowFriendsDialog] = useState(false);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [dailyCompleted, setDailyCompleted] = useState(false);
@@ -156,7 +157,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
             console.error('Failed to copy to clipboard:', err);
           }
           
-          setShowFriendsDialog(true);
+          // Show different dialog based on login status
+          if (user) {
+            setShowFriendsDialog(true);
+          } else {
+            setShowAuthPrompt(true);
+          }
         }
       } catch (error) {
         console.error('Error creating game session:', error);
@@ -316,6 +322,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
         </CardFooter>
       </Card>
       
+      {/* Dialog for registered users */}
       <Dialog open={showFriendsDialog} onOpenChange={setShowFriendsDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -397,6 +404,54 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
               onClick={handleStartFriendsGame}
             >
               Start Game {user && selectedFriends.length > 0 && `& Invite (${selectedFriends.length} selected)`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for guest users */}
+      <Dialog open={showAuthPrompt} onOpenChange={setShowAuthPrompt}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Game Link Copied!</DialogTitle>
+            <DialogDescription>
+              You can now share the game link that was copied to your clipboard. Register or sign in to invite your friends to play.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="flex items-center gap-2">
+              <Input 
+                value={gameSessionLink} 
+                readOnly 
+                className="flex-1"
+              />
+              <Button 
+                size="sm" 
+                onClick={handleCopyLink}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="flex justify-center">
+              <AuthButton />
+            </div>
+          </div>
+          
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button 
+              variant="default" 
+              className="w-full sm:w-auto"
+              onClick={() => {
+                navigate(gameSessionLink);
+                setShowAuthPrompt(false);
+              }}
+            >
+              Start Game
             </Button>
           </DialogFooter>
         </DialogContent>

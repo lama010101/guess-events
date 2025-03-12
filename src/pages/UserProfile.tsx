@@ -34,7 +34,7 @@ const UserProfile = () => {
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // This function now correctly handles the type for distanceUnit
+  // This function handles the distanceUnit change with type safety
   const handleDistanceUnitChange = (unit: 'km' | 'miles') => {
     setDistanceUnit(unit);
   };
@@ -46,7 +46,8 @@ const UserProfile = () => {
       
       if (isOwn && profile) {
         setUsername(profile.username);
-        setDistanceUnit(profile.default_distance_unit);
+        // Ensure the distance unit is valid
+        setDistanceUnit(profile.default_distance_unit === 'miles' ? 'miles' : 'km');
         loadStats(userId);
       } else {
         loadUserData(userId);
@@ -68,7 +69,8 @@ const UserProfile = () => {
       if (data) {
         setUserData(data);
         setUsername(data.username);
-        setDistanceUnit(data.default_distance_unit);
+        // Ensure the distance unit is valid
+        setDistanceUnit(data.default_distance_unit === 'miles' ? 'miles' : 'km');
         loadStats(id);
       }
     } catch (error) {
