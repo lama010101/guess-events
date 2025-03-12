@@ -10,15 +10,12 @@ export const ensureAvatarsBucketExists = async () => {
     
     // If it doesn't exist, create it
     if (!avatarBucketExists) {
-      // Most likely a row-level security error because we're using anon key
-      // We'll handle this gracefully and just log the error
       console.log("Attempting to create avatars bucket...");
       const { error } = await supabase.storage.createBucket('avatars', {
         public: true
       });
       
       if (error) {
-        // Don't throw the error since users can still use the app without avatar uploads
         console.error('Error creating avatars bucket:', error);
       }
     }
@@ -48,12 +45,7 @@ export const uploadAvatar = async (userId: string, file: File) => {
     console.log("Upload response:", { error: uploadError, data });
     
     if (uploadError) {
-      // Check if it's a storage permission error
-      if (uploadError.message?.includes('row-level security policy') || 
-          uploadError.message?.includes('bucket does not exist') ||
-          uploadError.message?.includes('access denied')) {
-        throw new Error('Permission denied: Unable to upload avatar. Please ensure storage policies are set correctly.');
-      }
+      console.error('Detailed upload error:', uploadError);
       throw uploadError;
     }
     

@@ -392,7 +392,7 @@ const Index = () => {
                 onViewChange={handleViewChange}
               />
               
-              <div className="h-96 mb-6">
+              <div className="h-96 mb-6 relative z-30">
                 {activeView === 'photo' ? (
                   <PhotoViewer src={currentEvent.imageUrl} alt="" />
                 ) : (
@@ -405,7 +405,7 @@ const Index = () => {
               </div>
             </div>
             
-            <div className="fixed bottom-0 left-0 right-0 z-[60] bg-white shadow-md border-t border-gray-200">
+            <div className="fixed bottom-0 left-0 right-0 z-60 bg-white shadow-md border-t border-gray-200">
               <div className="container mx-auto p-4">
                 <Button 
                   size="lg"
@@ -424,13 +424,28 @@ const Index = () => {
         const lastResult = gameState.roundResults[gameState.roundResults.length - 1];
         return (
           <div className="container mx-auto min-h-screen bg-[#f3f3f3]">
-            <RoundResultComponent 
-              result={lastResult} 
-              onNextRound={handleNextRound} 
-              distanceUnit={gameState.settings.distanceUnit}
-              isLastRound={gameState.currentRound === gameState.totalRounds}
-              userAvatar={gameState.userAvatar}
-            />
+            <div className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
+              <div className="container mx-auto p-4">
+                <GameHeader 
+                  currentRound={gameState.currentRound} 
+                  totalRounds={gameState.totalRounds}
+                  cumulativeScore={calculateCumulativeScore()}
+                  onShare={handleShare}
+                  onSettingsClick={() => setSettingsOpen(true)}
+                  onHomeClick={handleGoHome}
+                />
+              </div>
+            </div>
+            
+            <div className="pt-20 pb-24">
+              <RoundResultComponent 
+                result={lastResult} 
+                onNextRound={handleNextRound} 
+                distanceUnit={gameState.settings.distanceUnit}
+                isLastRound={gameState.currentRound === gameState.totalRounds}
+                userAvatar={gameState.userAvatar}
+              />
+            </div>
           </div>
         );
       

@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -109,6 +110,7 @@ const GameMap: React.FC<GameMapProps> = ({
           });
         }
 
+        // CRITICAL FIX: Add marker at location without changing view
         const newMarker = L.marker([selectedLocation.lat, selectedLocation.lng], { icon: markerIcon })
           .addTo(mapInstanceRef.current);
 

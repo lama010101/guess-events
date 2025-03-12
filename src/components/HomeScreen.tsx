@@ -246,7 +246,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-[#f3f3f3]">
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 z-50">
         <AuthButton />
       </div>
       
@@ -257,6 +257,26 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
+            {dailyCompleted ? (
+              <Button 
+                className="w-full" 
+                size="lg" 
+                variant="default"
+                disabled
+              >
+                <Trophy className="mr-2 h-4 w-4" /> Daily Competition Completed ({todayDate}): {dailyScore}
+              </Button>
+            ) : (
+              <Button 
+                className="w-full" 
+                size="lg" 
+                variant="default"
+                onClick={() => handleStartGame('daily')}
+              >
+                <Trophy className="mr-2 h-4 w-4" /> Daily Competition ({todayDate})
+              </Button>
+            )}
+            
             <div className="flex flex-col space-y-2">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -291,26 +311,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
-          {dailyCompleted ? (
-            <Button 
-              className="w-full" 
-              size="lg" 
-              variant="default"
-              disabled
-            >
-              <Trophy className="mr-2 h-4 w-4" /> Daily Competition Completed ({todayDate}): {dailyScore}
-            </Button>
-          ) : (
-            <Button 
-              className="w-full" 
-              size="lg" 
-              variant="default"
-              onClick={() => handleStartGame('daily')}
-            >
-              <Trophy className="mr-2 h-4 w-4" /> Daily Competition ({todayDate})
-            </Button>
-          )}
-          
           <Button 
             className="w-full" 
             size="lg" 
