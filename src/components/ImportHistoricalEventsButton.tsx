@@ -278,26 +278,24 @@ const ImportHistoricalEventsButton = () => {
           )}
         </Button>
         
-        {hasEvents && (
-          <Button 
-            onClick={runDailyUpdate}
-            disabled={isLoading || isDailyUpdateLoading}
-            variant="secondary"
-            className="w-full"
-          >
-            {isDailyUpdateLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Running Update...
-              </>
-            ) : (
-              <>
-                <CalendarClock className="mr-2 h-4 w-4" />
-                Run Daily Update Check
-              </>
-            )}
-          </Button>
-        )}
+        <Button 
+          onClick={runDailyUpdate}
+          disabled={isLoading || isDailyUpdateLoading}
+          variant="secondary"
+          className="w-full"
+        >
+          {isDailyUpdateLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Running Update...
+            </>
+          ) : (
+            <>
+              <CalendarClock className="mr-2 h-4 w-4" />
+              Run Daily Update Check
+            </>
+          )}
+        </Button>
       </CardFooter>
     </Card>
   );

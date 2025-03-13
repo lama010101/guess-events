@@ -65,7 +65,7 @@ serve(async (req) => {
       });
     }
     
-    // Verify that all events have images
+    // Verify that all events have images - always run this check
     const { data: eventsWithoutImages, error: imageCheckError } = await supabase
       .from('historical_events')
       .select('id, year, description')
@@ -75,33 +75,22 @@ serve(async (req) => {
       throw new Error(`Error checking events without images: ${imageCheckError.message}`);
     }
     
-    if (eventsWithoutImages && eventsWithoutImages.length > 0) {
-      console.log(`Found ${eventsWithoutImages.length} events without images, fixing...`);
-      
-      // Call import function to fix the images
-      const { data: fixData, error: fixError } = await supabase.functions.invoke('import-historical-events', {
-        method: 'POST',
-        body: { fixImages: true, forceRefresh: true }
-      });
-      
-      if (fixError) {
-        throw new Error(`Error fixing images: ${fixError.message}`);
-      }
-      
-      console.log("Image fix completed successfully:", fixData);
-      
-      return new Response(JSON.stringify({ 
-        success: true,
-        message: `Fixed images for ${fixData.results?.filter((r: any) => r.status === 'success').length || 0} historical events`,
-        results: fixData.results
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    // Always perform the image fix operation regardless of existing images
+    console.log(`Checking for events without images. Found ${eventsWithoutImages?.length || 0} events without images`);
+    
+    // Call import function to fix the images with force refresh
+    const { data: fixData, error: fixError } = await supabase.functions.invoke('import-historical-events', {
+      method: 'POST',
+      body: { fixImages: true, forceRefresh: true }
+    });
+    
+    if (fixError) {
+      throw new Error(`Error fixing images: ${fixError.message}`);
     }
     
-    // If we're here, it means we have events and they all have images
-    // Let's do a final check to make sure our count is correct (we should have all events in our predefined list)
+    console.log("Image check and fix completed successfully:", fixData);
+    
+    // Check if our expected count matches - we should have all events in our predefined list
     const expectedCount = 10; // Number of events in our predefined list
     
     if (count < expectedCount) {
@@ -110,7 +99,7 @@ serve(async (req) => {
       // Import all events with force refresh
       const { data: completeImportData, error: completeImportError } = await supabase.functions.invoke('import-historical-events', {
         method: 'POST',
-        body: { forceRefresh: false }
+        body: { forceRefresh: true }
       });
       
       if (completeImportError) {
@@ -129,10 +118,11 @@ serve(async (req) => {
       });
     }
     
+    // Return the results of the image check operation
     return new Response(JSON.stringify({ 
       success: true,
-      message: `All ${count} events have been verified and have images`,
-      eventsCount: count,
+      message: `Checked and fixed ${fixData.results?.filter((r: any) => r.status === 'success').length || 0} historical events`,
+      results: fixData.results
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
