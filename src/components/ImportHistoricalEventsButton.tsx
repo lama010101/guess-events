@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from "@/components/ui/progress";
-import { Loader2, AlertTriangle, CheckCircle, Download } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle, Download, ImageOff, Image } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { validateEventImage } from '@/integrations/supabase/events';
+import { hasHistoricalEvents } from '@/integrations/supabase/events';
 
 const ImportHistoricalEventsButton = ({ autoImport = false }) => {
   const { toast } = useToast();
@@ -14,12 +16,22 @@ const ImportHistoricalEventsButton = ({ autoImport = false }) => {
   const [results, setResults] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDailyUpdateLoading, setIsDailyUpdateLoading] = useState(false);
+  const [isValidatingImages, setIsValidatingImages] = useState(false);
+  const [validationProgress, setValidationProgress] = useState(0);
+  const [validationResults, setValidationResults] = useState<any[] | null>(null);
   
-  // Auto-import if requested
+  // Check if we need to auto-import on mount
   useEffect(() => {
-    if (autoImport) {
-      handleImport();
-    }
+    const checkAndImport = async () => {
+      if (autoImport) {
+        const hasEvents = await hasHistoricalEvents();
+        if (!hasEvents) {
+          handleImport();
+        }
+      }
+    };
+    
+    checkAndImport();
   }, [autoImport]);
   
   const handleImport = async () => {
@@ -100,6 +112,92 @@ const ImportHistoricalEventsButton = ({ autoImport = false }) => {
     }
   };
   
+  const handleValidateImages = async () => {
+    try {
+      setIsValidatingImages(true);
+      setValidationResults(null);
+      setValidationProgress(0);
+      
+      // Get all events
+      const { data: events, error } = await supabase
+        .from('historical_events')
+        .select('id, year, description, image_url');
+        
+      if (error) {
+        toast({
+          title: "Validation failed",
+          description: "Failed to fetch events for validation",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (!events || events.length === 0) {
+        toast({
+          title: "No events found",
+          description: "There are no events to validate",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const results: any[] = [];
+      
+      // Validate images one by one with progress tracking
+      for (let i = 0; i < events.length; i++) {
+        const event = events[i];
+        setValidationProgress(Math.round((i / events.length) * 100));
+        
+        // Skip events that already have valid images
+        if (event.image_url) {
+          const validationResult = await validateEventImage(event.id);
+          
+          results.push({
+            id: event.id,
+            year: event.year,
+            description: event.description.substring(0, 30) + "...",
+            originalUrl: event.image_url,
+            newUrl: validationResult.newImageUrl || event.image_url,
+            success: validationResult.success,
+            message: validationResult.message
+          });
+        } else {
+          // For events without images, try to find one
+          const validationResult = await validateEventImage(event.id);
+          
+          results.push({
+            id: event.id,
+            year: event.year,
+            description: event.description.substring(0, 30) + "...",
+            originalUrl: null,
+            newUrl: validationResult.newImageUrl,
+            success: validationResult.success,
+            message: validationResult.message
+          });
+        }
+      }
+      
+      setValidationProgress(100);
+      setValidationResults(results);
+      
+      const successCount = results.filter(r => r.success).length;
+      
+      toast({
+        title: "Image validation complete",
+        description: `Successfully validated/fixed ${successCount} out of ${events.length} images`
+      });
+      
+    } catch (err: any) {
+      toast({
+        title: "Validation failed",
+        description: "An error occurred during image validation",
+        variant: "destructive"
+      });
+    } finally {
+      setIsValidatingImages(false);
+    }
+  };
+  
   const handleExportCSV = () => {
     if (!results) return;
     
@@ -141,7 +239,7 @@ const ImportHistoricalEventsButton = ({ autoImport = false }) => {
       <CardContent>
         <p className="text-sm text-muted-foreground mb-4">
           Click the button below to import sample historical events from Wikimedia Commons into your database.
-          After importing, you can run the daily update check to verify all events have valid images.
+          After importing, you can validate images to ensure all events have valid, relevant images.
         </p>
         
         {isLoading && (
@@ -160,6 +258,16 @@ const ImportHistoricalEventsButton = ({ autoImport = false }) => {
               <Loader2 className="h-4 w-4 animate-spin" />
               <span>Running daily update check...</span>
             </div>
+          </div>
+        )}
+        
+        {isValidatingImages && (
+          <div className="space-y-2 mt-4">
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Validating images...</span>
+            </div>
+            <Progress value={validationProgress} className="h-2 w-full" />
           </div>
         )}
         
@@ -228,6 +336,45 @@ const ImportHistoricalEventsButton = ({ autoImport = false }) => {
             )}
           </div>
         )}
+        
+        {validationResults && (
+          <div className="mt-6 space-y-4">
+            <h3 className="font-medium text-lg">Image Validation Results</h3>
+            
+            <div className="max-h-60 overflow-y-auto border rounded-md">
+              <table className="min-w-full">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="text-xs font-medium text-left p-2">Year</th>
+                    <th className="text-xs font-medium text-left p-2">Description</th>
+                    <th className="text-xs font-medium text-right p-2">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {validationResults.map((result, index) => (
+                    <tr key={index} className={!result.success ? 'bg-destructive/10' : ''}>
+                      <td className="text-sm p-2">{result.year}</td>
+                      <td className="text-sm p-2">{result.description}</td>
+                      <td className="text-sm p-2 text-right">
+                        {result.success ? (
+                          <div className="flex items-center justify-end">
+                            <Image className="h-4 w-4 text-green-600 dark:text-green-400 mr-1" />
+                            <span>{result.newUrl !== result.originalUrl ? 'Fixed' : 'Valid'}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end">
+                            <ImageOff className="h-4 w-4 text-destructive mr-1" />
+                            <span>{result.message}</span>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="flex-col gap-3">
         <Button 
@@ -242,6 +389,22 @@ const ImportHistoricalEventsButton = ({ autoImport = false }) => {
             </>
           ) : (
             'Import Historical Events'
+          )}
+        </Button>
+        
+        <Button 
+          onClick={handleValidateImages} 
+          disabled={isValidatingImages}
+          variant="outline"
+          className="w-full"
+        >
+          {isValidatingImages ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Validating...
+            </>
+          ) : (
+            'Validate & Fix Images'
           )}
         </Button>
         

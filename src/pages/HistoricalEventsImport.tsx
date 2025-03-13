@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import ImportHistoricalEventsButton from '@/components/ImportHistoricalEventsButton';
-import { Home, FileText, Image, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
+import { Home, FileText, Image, RefreshCw, CheckCircle, XCircle, Users, Database } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,15 +20,39 @@ const HistoricalEventsImport = () => {
   const [isVerifyingImages, setIsVerifyingImages] = useState(false);
   const [verificationResults, setVerificationResults] = useState<any>(null);
   const [autoImport, setAutoImport] = useState(true); // Enable auto-import by default
+  const [userCount, setUserCount] = useState<number | null>(null);
+  const [isLoadingUserCount, setIsLoadingUserCount] = useState(false);
   
   useEffect(() => {
     checkForEvents();
     fetchEventStats();
+    fetchUserCount();
   }, []);
   
   const checkForEvents = async () => {
     const exists = await hasHistoricalEvents();
     setHasEvents(exists);
+  };
+  
+  const fetchUserCount = async () => {
+    try {
+      setIsLoadingUserCount(true);
+      const { count, error } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+        
+      if (error) throw error;
+      setUserCount(count);
+    } catch (error) {
+      console.error('Error fetching user count:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load user count',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoadingUserCount(false);
+    }
   };
   
   const fetchEventStats = async () => {
@@ -148,6 +172,28 @@ const HistoricalEventsImport = () => {
           Back to Home
         </Button>
         <h1 className="text-2xl font-bold">Historical Events Management</h1>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <Card className="p-4 bg-muted/30">
+          <div className="flex items-center gap-3">
+            <Database className="h-8 w-8 text-primary" />
+            <div>
+              <div className="text-2xl font-bold">{stats?.totalEvents || 0}</div>
+              <div className="text-sm text-muted-foreground">Total Events</div>
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="p-4 bg-muted/30">
+          <div className="flex items-center gap-3">
+            <Users className="h-8 w-8 text-primary" />
+            <div>
+              <div className="text-2xl font-bold">{isLoadingUserCount ? '...' : userCount || 0}</div>
+              <div className="text-sm text-muted-foreground">Registered Users</div>
+            </div>
+          </div>
+        </Card>
       </div>
       
       <Tabs defaultValue="import" className="w-full">
