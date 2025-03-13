@@ -92,73 +92,86 @@ const historicalEvents = [
   }
 ];
 
-// Enhanced function to fetch image information with multiple attempts and better search terms
+// Improved function to fetch image from Wikimedia using the Stack Overflow approach
 async function fetchWikimediaImage(title: string, year: number) {
-  const maxAttempts = 3;
-  const searchTerms = [
-    title,
-    `${title} ${year}`,
-    `${title} historical event`,
-    `${title.split(' ').slice(0, 2).join(' ')} ${year}`
-  ];
+  console.log(`Attempting to fetch image for "${title}" (${year}) using improved method`);
   
-  console.log(`Attempting to fetch image for "${title}" (${year})`);
-  
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      const searchTerm = searchTerms[attempt % searchTerms.length];
-      console.log(`- Attempt ${attempt + 1} using search term: "${searchTerm}"`);
-      
-      // First search for the image to get the exact file name
-      const searchUrl = `https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchTerm)}&srnamespace=6&format=json`;
-      console.log(`Searching with URL: ${searchUrl}`);
-      
-      const searchResponse = await fetch(searchUrl);
-      const searchData = await searchResponse.json();
-      
-      if (!searchData.query?.search?.length) {
-        console.log(`- No results found for search term: "${searchTerm}"`);
-        continue;
-      }
-      
-      console.log(`- Found ${searchData.query.search.length} possible matches`);
-      
-      // Get the first search result's title
-      const fileName = searchData.query.search[0].title.replace('File:', '');
-      console.log(`- Selected file: ${fileName}`);
-      
-      // Now get the image info with the URL
-      const infoUrl = `https://commons.wikimedia.org/w/api.php?action=query&titles=File:${encodeURIComponent(fileName)}&prop=imageinfo&iiprop=url|extmetadata&format=json`;
-      const infoResponse = await fetch(infoUrl);
-      const infoData = await infoResponse.json();
-      
-      const pages = infoData.query?.pages || {};
-      const pageId = Object.keys(pages)[0];
-      
-      if (!pageId || !pages[pageId]?.imageinfo?.length) {
-        console.log(`- No image info found for file: ${fileName}`);
-        continue;
-      }
-      
-      const imageInfo = pages[pageId].imageinfo[0];
-      const metadata = imageInfo.extmetadata || {};
-      
-      console.log(`- Successfully retrieved image: ${imageInfo.url}`);
-      
-      return {
-        url: imageInfo.url,
-        attribution: metadata.Artist?.value || 'Wikimedia Commons',
-        license: metadata.License?.value || 'Unknown',
-        title: fileName,
-        searchTerm: searchTerm
-      };
-    } catch (error) {
-      console.error(`- Error on attempt ${attempt + 1}:`, error);
+  try {
+    // Step 1: First search for relevant images in Wikimedia Commons
+    const searchTerm = encodeURIComponent(`${title} ${year}`);
+    const searchUrl = `https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=${searchTerm}&srnamespace=6&format=json`;
+    
+    console.log(`Searching Wikimedia Commons with URL: ${searchUrl}`);
+    const searchResponse = await fetch(searchUrl);
+    
+    if (!searchResponse.ok) {
+      throw new Error(`Search request failed with status ${searchResponse.status}`);
     }
+    
+    const searchData = await searchResponse.json();
+    
+    if (!searchData.query?.search || searchData.query.search.length === 0) {
+      console.log(`No search results found for "${title}". Trying alternative search...`);
+      
+      // Try an alternative search with just the title
+      const altSearchTerm = encodeURIComponent(title);
+      const altSearchUrl = `https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=${altSearchTerm}&srnamespace=6&format=json`;
+      
+      const altSearchResponse = await fetch(altSearchUrl);
+      if (!altSearchResponse.ok) {
+        throw new Error(`Alternative search request failed with status ${altSearchResponse.status}`);
+      }
+      
+      const altSearchData = await altSearchResponse.json();
+      
+      if (!altSearchData.query?.search || altSearchData.query.search.length === 0) {
+        console.log(`No results found in alternative search for "${title}"`);
+        return null;
+      }
+      
+      searchData.query = altSearchData.query;
+    }
+    
+    // Get the first search result (most relevant)
+    const firstResult = searchData.query.search[0];
+    const imageName = firstResult.title.replace('File:', '');
+    
+    console.log(`Found image: ${imageName}`);
+    
+    // Step 2: Get image info and URL
+    const imageInfoUrl = `https://commons.wikimedia.org/w/api.php?action=query&titles=File:${encodeURIComponent(imageName)}&prop=imageinfo&iiprop=url|extmetadata&format=json`;
+    
+    console.log(`Fetching image info with URL: ${imageInfoUrl}`);
+    const imageInfoResponse = await fetch(imageInfoUrl);
+    
+    if (!imageInfoResponse.ok) {
+      throw new Error(`Image info request failed with status ${imageInfoResponse.status}`);
+    }
+    
+    const imageInfoData = await imageInfoResponse.json();
+    const pages = imageInfoData.query?.pages || {};
+    const pageId = Object.keys(pages)[0];
+    
+    if (!pageId || !pages[pageId]?.imageinfo || pages[pageId].imageinfo.length === 0) {
+      console.log(`No image info found for ${imageName}`);
+      return null;
+    }
+    
+    const imageInfo = pages[pageId].imageinfo[0];
+    const metadata = imageInfo.extmetadata || {};
+    
+    console.log(`Successfully retrieved image URL: ${imageInfo.url}`);
+    
+    return {
+      url: imageInfo.url,
+      attribution: metadata.Artist?.value || 'Wikimedia Commons',
+      license: metadata.License?.value || 'Unknown',
+      title: imageName
+    };
+  } catch (error) {
+    console.error(`Error fetching Wikimedia image for "${title}":`, error);
+    return null;
   }
-  
-  console.error(`Failed to find image for "${title}" after ${maxAttempts} attempts`);
-  return null;
 }
 
 // Function to get existing event or create a new one
@@ -197,7 +210,7 @@ async function getOrCreateEvent(supabase: any, event: any, options: any = {}) {
       // If we need to fix the image or force refresh, proceed to update
       console.log(`Updating image for event from ${event.year} (ID: ${existingEvent.id})`);
       
-      // Fetch appropriate image from Wikimedia
+      // Fetch appropriate image from Wikimedia using improved method
       const imageInfo = await fetchWikimediaImage(event.image_title, event.year);
       
       if (!imageInfo) {
@@ -242,7 +255,7 @@ async function getOrCreateEvent(supabase: any, event: any, options: any = {}) {
     // Event doesn't exist, create it
     console.log(`Creating new event for ${event.year}`);
     
-    // Fetch appropriate image from Wikimedia
+    // Fetch appropriate image from Wikimedia using improved method
     const imageInfo = await fetchWikimediaImage(event.image_title, event.year);
     
     if (!imageInfo) {
@@ -339,7 +352,7 @@ async function fixEventsWithoutImages(supabase: any) {
         continue;
       }
       
-      // Fetch image
+      // Fetch image with improved method
       const imageInfo = await fetchWikimediaImage(originalEvent.image_title, event.year);
       
       if (!imageInfo) {

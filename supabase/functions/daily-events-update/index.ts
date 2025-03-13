@@ -21,6 +21,10 @@ serve(async (req) => {
     const supabaseAdminKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     
+    if (!supabaseAdminKey || !supabaseUrl) {
+      throw new Error('Missing Supabase credentials');
+    }
+    
     // Initialize Supabase client with admin privileges
     const supabase = createClient(supabaseUrl, supabaseAdminKey);
     
@@ -39,7 +43,7 @@ serve(async (req) => {
     if (count === 0) {
       console.log("No events found, calling import-historical-events function");
       
-      // Call the import function with force refresh to ensure all images are imported
+      // Force refresh to ensure all events are imported with images
       const { data: importData, error: importError } = await supabase.functions.invoke('import-historical-events', {
         method: 'POST',
         body: { forceRefresh: true }
@@ -90,6 +94,35 @@ serve(async (req) => {
         success: true,
         message: `Fixed images for ${fixData.results?.filter((r: any) => r.status === 'success').length || 0} historical events`,
         results: fixData.results
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // If we're here, it means we have events and they all have images
+    // Let's do a final check to make sure our count is correct (we should have all events in our predefined list)
+    const expectedCount = 10; // Number of events in our predefined list
+    
+    if (count < expectedCount) {
+      console.log(`Missing some events (have ${count}, expect ${expectedCount}), importing all...`);
+      
+      // Import all events with force refresh
+      const { data: completeImportData, error: completeImportError } = await supabase.functions.invoke('import-historical-events', {
+        method: 'POST',
+        body: { forceRefresh: false }
+      });
+      
+      if (completeImportError) {
+        throw new Error(`Error completing import: ${completeImportError.message}`);
+      }
+      
+      console.log("Complete import finished successfully:", completeImportData);
+      
+      return new Response(JSON.stringify({ 
+        success: true,
+        message: `Completed import of all events (${completeImportData.results?.filter((r: any) => r.status === 'success').length || 0} successful)`,
+        results: completeImportData.results
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

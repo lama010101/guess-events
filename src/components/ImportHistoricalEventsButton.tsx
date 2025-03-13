@@ -28,12 +28,15 @@ const ImportHistoricalEventsButton = () => {
   
   const checkExistingEvents = async () => {
     try {
+      console.log("Checking for existing events...");
       const eventsExist = await hasHistoricalEvents();
       setHasEvents(eventsExist);
+      console.log("Events exist:", eventsExist);
       
       if (eventsExist) {
         const status = await verifyHistoricalEventImages();
         setVerificationStatus(status);
+        console.log("Verification status:", status);
       }
     } catch (err) {
       console.error("Error checking events:", err);
@@ -49,7 +52,7 @@ const ImportHistoricalEventsButton = () => {
       
       console.log("Invoking import-historical-events function...");
       
-      // Invoke the edge function with verbose logging
+      // Invoke the edge function with force refresh
       const { data, error: functionError } = await supabase.functions.invoke('import-historical-events', {
         method: 'POST',
         body: { forceRefresh: true }
