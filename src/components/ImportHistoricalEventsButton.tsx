@@ -1,11 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from "@/components/ui/progress";
-import { Loader2, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { hasHistoricalEvents } from '@/integrations/supabase/events';
 
 const ImportHistoricalEventsButton = () => {
   const { toast } = useToast();
@@ -13,6 +14,16 @@ const ImportHistoricalEventsButton = () => {
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hasEvents, setHasEvents] = useState<boolean | null>(null);
+  
+  useEffect(() => {
+    checkExistingEvents();
+  }, []);
+  
+  const checkExistingEvents = async () => {
+    const eventsExist = await hasHistoricalEvents();
+    setHasEvents(eventsExist);
+  };
   
   const handleImport = async () => {
     try {
@@ -21,22 +32,41 @@ const ImportHistoricalEventsButton = () => {
       setResults(null);
       setProgress(25);
       
-      // Invoke the edge function
-      const { data, error } = await supabase.functions.invoke('import-historical-events');
+      console.log("Invoking import-historical-events function...");
+      
+      // Invoke the edge function with verbose logging
+      const { data, error: functionError } = await supabase.functions.invoke('import-historical-events', {
+        method: 'POST',
+        body: { forceRefresh: true }
+      });
+      
+      console.log("Function response:", data, "Error:", functionError);
       
       setProgress(100);
       
-      if (error) {
-        setError(error.message);
+      if (functionError) {
+        console.error("Function error:", functionError);
+        setError(functionError.message || "Function error");
         toast({
           title: "Import failed",
-          description: "Failed to import historical events",
+          description: "Failed to import historical events: " + functionError.message,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (!data) {
+        setError("No data returned from function");
+        toast({
+          title: "Import failed",
+          description: "No data returned from import function",
           variant: "destructive"
         });
         return;
       }
       
       setResults(data.results);
+      await checkExistingEvents();
       
       toast({
         title: "Import successful",
@@ -44,10 +74,11 @@ const ImportHistoricalEventsButton = () => {
       });
       
     } catch (err: any) {
+      console.error("Client-side error:", err);
       setError(err.message || "An unknown error occurred");
       toast({
         title: "Import failed",
-        description: "An error occurred while importing events",
+        description: "An error occurred while importing events: " + err.message,
         variant: "destructive"
       });
     } finally {
@@ -65,7 +96,9 @@ const ImportHistoricalEventsButton = () => {
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground mb-4">
-          Click the button below to import sample historical events from Wikimedia Commons into your database.
+          {hasEvents 
+            ? "Historical events are already imported. You can refresh the data if needed."
+            : "Click the button below to import sample historical events from Wikimedia Commons into your database."}
         </p>
         
         {isLoading && (
@@ -138,11 +171,17 @@ const ImportHistoricalEventsButton = () => {
           onClick={handleImport} 
           disabled={isLoading}
           className="w-full"
+          variant={hasEvents ? "outline" : "default"}
         >
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Importing...
+            </>
+          ) : hasEvents ? (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh Historical Events
             </>
           ) : (
             'Import Historical Events'

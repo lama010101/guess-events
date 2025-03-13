@@ -92,47 +92,301 @@ const historicalEvents = [
   }
 ];
 
-// Function to fetch image information from Wikimedia API
-async function fetchWikimediaImage(title: string) {
+// Enhanced function to fetch image information with multiple attempts and better search terms
+async function fetchWikimediaImage(title: string, year: number) {
+  const maxAttempts = 3;
+  const searchTerms = [
+    title,
+    `${title} ${year}`,
+    `${title} historical event`,
+    `${title.split(' ').slice(0, 2).join(' ')} ${year}`
+  ];
+  
+  console.log(`Attempting to fetch image for "${title}" (${year})`);
+  
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const searchTerm = searchTerms[attempt % searchTerms.length];
+      console.log(`- Attempt ${attempt + 1} using search term: "${searchTerm}"`);
+      
+      // First search for the image to get the exact file name
+      const searchUrl = `https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchTerm)}&srnamespace=6&format=json`;
+      console.log(`Searching with URL: ${searchUrl}`);
+      
+      const searchResponse = await fetch(searchUrl);
+      const searchData = await searchResponse.json();
+      
+      if (!searchData.query?.search?.length) {
+        console.log(`- No results found for search term: "${searchTerm}"`);
+        continue;
+      }
+      
+      console.log(`- Found ${searchData.query.search.length} possible matches`);
+      
+      // Get the first search result's title
+      const fileName = searchData.query.search[0].title.replace('File:', '');
+      console.log(`- Selected file: ${fileName}`);
+      
+      // Now get the image info with the URL
+      const infoUrl = `https://commons.wikimedia.org/w/api.php?action=query&titles=File:${encodeURIComponent(fileName)}&prop=imageinfo&iiprop=url|extmetadata&format=json`;
+      const infoResponse = await fetch(infoUrl);
+      const infoData = await infoResponse.json();
+      
+      const pages = infoData.query?.pages || {};
+      const pageId = Object.keys(pages)[0];
+      
+      if (!pageId || !pages[pageId]?.imageinfo?.length) {
+        console.log(`- No image info found for file: ${fileName}`);
+        continue;
+      }
+      
+      const imageInfo = pages[pageId].imageinfo[0];
+      const metadata = imageInfo.extmetadata || {};
+      
+      console.log(`- Successfully retrieved image: ${imageInfo.url}`);
+      
+      return {
+        url: imageInfo.url,
+        attribution: metadata.Artist?.value || 'Wikimedia Commons',
+        license: metadata.License?.value || 'Unknown',
+        title: fileName,
+        searchTerm: searchTerm
+      };
+    } catch (error) {
+      console.error(`- Error on attempt ${attempt + 1}:`, error);
+    }
+  }
+  
+  console.error(`Failed to find image for "${title}" after ${maxAttempts} attempts`);
+  return null;
+}
+
+// Function to get existing event or create a new one
+async function getOrCreateEvent(supabase: any, event: any, options: any = {}) {
+  const { fixImages = false, forceRefresh = false } = options;
+  
   try {
-    // First search for the image to get the exact file name
-    const searchUrl = `https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(title)}&srnamespace=6&format=json`;
-    const searchResponse = await fetch(searchUrl);
-    const searchData = await searchResponse.json();
+    // Check if event already exists
+    const { data: existingEvents, error: findError } = await supabase
+      .from('historical_events')
+      .select('*')
+      .eq('year', event.year)
+      .eq('description', event.description);
     
-    if (!searchData.query?.search?.length) {
-      console.error(`No images found for query: ${title}`);
-      return null;
+    if (findError) {
+      throw findError;
     }
     
-    // Get the first search result's title
-    const fileName = searchData.query.search[0].title.replace('File:', '');
+    const existingEvent = existingEvents && existingEvents.length > 0 ? existingEvents[0] : null;
     
-    // Now get the image info with the URL
-    const infoUrl = `https://commons.wikimedia.org/w/api.php?action=query&titles=File:${encodeURIComponent(fileName)}&prop=imageinfo&iiprop=url|extmetadata&format=json`;
-    const infoResponse = await fetch(infoUrl);
-    const infoData = await infoResponse.json();
-    
-    const pages = infoData.query?.pages || {};
-    const pageId = Object.keys(pages)[0];
-    
-    if (!pageId || !pages[pageId]?.imageinfo?.length) {
-      console.error(`No image info found for file: ${fileName}`);
-      return null;
+    // If event exists, check if it needs image fixing
+    if (existingEvent) {
+      console.log(`Event from ${event.year} already exists (ID: ${existingEvent.id})`);
+      
+      // If we don't need to fix images or force refresh, or the event already has an image, skip
+      if ((!fixImages && !forceRefresh) || (existingEvent.image_url && !forceRefresh)) {
+        return {
+          status: 'skipped',
+          id: existingEvent.id,
+          year: event.year,
+          description: event.description.substring(0, 30) + '...',
+          message: 'Event already exists'
+        };
+      }
+      
+      // If we need to fix the image or force refresh, proceed to update
+      console.log(`Updating image for event from ${event.year} (ID: ${existingEvent.id})`);
+      
+      // Fetch appropriate image from Wikimedia
+      const imageInfo = await fetchWikimediaImage(event.image_title, event.year);
+      
+      if (!imageInfo) {
+        return {
+          status: 'failed',
+          id: existingEvent.id,
+          year: event.year,
+          description: event.description.substring(0, 30) + '...',
+          error: 'Could not find suitable image'
+        };
+      }
+      
+      // Update the event with new image info
+      const { error: updateError } = await supabase
+        .from('historical_events')
+        .update({
+          image_url: imageInfo.url,
+          image_attribution: imageInfo.attribution,
+          image_license: imageInfo.license
+        })
+        .eq('id', existingEvent.id);
+      
+      if (updateError) {
+        return {
+          status: 'failed',
+          id: existingEvent.id,
+          year: event.year,
+          description: event.description.substring(0, 30) + '...',
+          error: updateError.message
+        };
+      }
+      
+      return {
+        status: 'success',
+        id: existingEvent.id,
+        year: event.year,
+        description: event.description.substring(0, 30) + '...',
+        message: 'Updated event image'
+      };
     }
     
-    const imageInfo = pages[pageId].imageinfo[0];
-    const metadata = imageInfo.extmetadata || {};
+    // Event doesn't exist, create it
+    console.log(`Creating new event for ${event.year}`);
+    
+    // Fetch appropriate image from Wikimedia
+    const imageInfo = await fetchWikimediaImage(event.image_title, event.year);
+    
+    if (!imageInfo) {
+      return {
+        status: 'failed',
+        year: event.year,
+        description: event.description.substring(0, 30) + '...',
+        error: 'Could not find suitable image'
+      };
+    }
+    
+    // Insert into Supabase database
+    const { data, error: insertError } = await supabase
+      .from('historical_events')
+      .insert({
+        year: event.year,
+        description: event.description,
+        location_name: event.location_name,
+        latitude: event.latitude,
+        longitude: event.longitude,
+        image_url: imageInfo.url,
+        image_attribution: imageInfo.attribution,
+        image_license: imageInfo.license
+      })
+      .select();
+    
+    if (insertError) {
+      return {
+        status: 'failed',
+        year: event.year,
+        description: event.description.substring(0, 30) + '...',
+        error: insertError.message
+      };
+    }
+    
+    const newEvent = data[0];
     
     return {
-      url: imageInfo.url,
-      attribution: metadata.Artist?.value || 'Wikimedia Commons',
-      license: metadata.License?.value || 'Unknown',
-      title: fileName
+      status: 'success',
+      id: newEvent.id,
+      year: event.year,
+      description: event.description.substring(0, 30) + '...',
+      message: 'Created new event'
     };
+    
   } catch (error) {
-    console.error(`Error fetching Wikimedia image for ${title}:`, error);
-    return null;
+    console.error(`Error processing event from ${event.year}:`, error);
+    
+    return {
+      status: 'failed',
+      year: event.year,
+      description: event.description.substring(0, 30) + '...',
+      error: error.message
+    };
+  }
+}
+
+// Function to check and fix events without images
+async function fixEventsWithoutImages(supabase: any) {
+  try {
+    // Find events without images
+    const { data: eventsWithoutImages, error: findError } = await supabase
+      .from('historical_events')
+      .select('*')
+      .is('image_url', null);
+    
+    if (findError) {
+      throw findError;
+    }
+    
+    console.log(`Found ${eventsWithoutImages.length} events without images`);
+    
+    if (!eventsWithoutImages || eventsWithoutImages.length === 0) {
+      return [];
+    }
+    
+    const results = [];
+    
+    // Fix each event
+    for (const event of eventsWithoutImages) {
+      // Find the original event with image_title
+      const originalEvent = historicalEvents.find(e => 
+        e.year === event.year && e.description === event.description
+      );
+      
+      if (!originalEvent) {
+        results.push({
+          status: 'failed',
+          id: event.id,
+          year: event.year,
+          description: event.description.substring(0, 30) + '...',
+          error: 'Could not find original event data'
+        });
+        continue;
+      }
+      
+      // Fetch image
+      const imageInfo = await fetchWikimediaImage(originalEvent.image_title, event.year);
+      
+      if (!imageInfo) {
+        results.push({
+          status: 'failed',
+          id: event.id,
+          year: event.year,
+          description: event.description.substring(0, 30) + '...',
+          error: 'Could not find suitable image'
+        });
+        continue;
+      }
+      
+      // Update the event
+      const { error: updateError } = await supabase
+        .from('historical_events')
+        .update({
+          image_url: imageInfo.url,
+          image_attribution: imageInfo.attribution,
+          image_license: imageInfo.license
+        })
+        .eq('id', event.id);
+      
+      if (updateError) {
+        results.push({
+          status: 'failed',
+          id: event.id,
+          year: event.year,
+          description: event.description.substring(0, 30) + '...',
+          error: updateError.message
+        });
+        continue;
+      }
+      
+      results.push({
+        status: 'success',
+        id: event.id,
+        year: event.year,
+        description: event.description.substring(0, 30) + '...',
+        message: 'Fixed missing image'
+      });
+    }
+    
+    return results;
+  } catch (error) {
+    console.error('Error fixing events without images:', error);
+    throw error;
   }
 }
 
@@ -142,77 +396,56 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Only POST method is allowed
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  }
-
   try {
+    // Get request body
+    let options = {};
+    if (req.method === 'POST') {
+      try {
+        options = await req.json();
+      } catch (e) {
+        options = {};
+      }
+    }
+    
+    console.log("Starting historical events import with options:", options);
+    
     // Get admin credentials from environment
     const supabaseAdminKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     
+    if (!supabaseAdminKey || !supabaseUrl) {
+      throw new Error('Missing Supabase credentials');
+    }
+    
     // Initialize Supabase client with admin privileges
     const supabase = createClient(supabaseUrl, supabaseAdminKey);
     
-    const importResults = [];
+    let results = [];
     
-    // Process each historical event
-    for (const event of historicalEvents) {
-      // Fetch appropriate image from Wikimedia
-      const imageInfo = await fetchWikimediaImage(event.image_title);
+    // Handle fixing events without images
+    if (options.fixImages) {
+      console.log("Fixing events without images");
+      results = await fixEventsWithoutImages(supabase);
+    } else {
+      // Process each historical event
+      console.log(`Processing ${historicalEvents.length} historical events`);
       
-      if (!imageInfo) {
-        importResults.push({
-          year: event.year,
-          description: event.description.substring(0, 30) + '...',
-          status: 'failed',
-          error: 'Could not find suitable image'
-        });
-        continue;
+      for (const event of historicalEvents) {
+        const result = await getOrCreateEvent(supabase, event, options);
+        results.push(result);
       }
-      
-      // Insert into Supabase database
-      const { data, error } = await supabase
-        .from('historical_events')
-        .insert({
-          year: event.year,
-          description: event.description,
-          location_name: event.location_name,
-          latitude: event.latitude,
-          longitude: event.longitude,
-          image_url: imageInfo.url,
-          image_attribution: imageInfo.attribution,
-          image_license: imageInfo.license
-        })
-        .select()
-        .single();
-      
-      if (error) {
-        importResults.push({
-          year: event.year,
-          description: event.description.substring(0, 30) + '...',
-          status: 'failed',
-          error: error.message
-        });
-        continue;
-      }
-      
-      importResults.push({
-        year: event.year,
-        description: event.description.substring(0, 30) + '...',
-        status: 'success',
-        id: data.id
-      });
     }
+    
+    const successCount = results.filter(r => r.status === 'success').length;
+    const failedCount = results.filter(r => r.status === 'failed').length;
+    const skippedCount = results.filter(r => r.status === 'skipped').length;
+    
+    console.log(`Import summary: ${successCount} successful, ${failedCount} failed, ${skippedCount} skipped`);
     
     return new Response(JSON.stringify({ 
       success: true,
-      message: `Imported ${importResults.filter(r => r.status === 'success').length} historical events successfully`,
-      results: importResults
+      message: `Processed ${results.length} historical events: ${successCount} successful, ${failedCount} failed, ${skippedCount} skipped`,
+      results: results
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
