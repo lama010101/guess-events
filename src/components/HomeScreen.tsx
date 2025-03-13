@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -84,11 +85,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
   const buttonLoading = isLoading;
 
   return (
-    <div className="container mx-auto p-4 min-h-screen flex flex-col justify-center items-center">
-      <HomeHeader onSettingsClick={() => setSettingsOpen(true)} />
-      
-      <div className="w-full max-w-4xl mx-auto pb-8 pt-20">
-        <Card className="w-full">
+    <div className="container mx-auto p-4 min-h-screen">
+      <div className="pt-20 pb-8"> {/* Add padding to account for fixed header */}
+        <Card className="w-full max-w-4xl mx-auto">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl">Time Trek</CardTitle>
           </CardHeader>
@@ -226,6 +225,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame, isLoading = false 
           </CardContent>
         </Card>
       </div>
+      
+      <HomeHeader onSettingsClick={() => setSettingsOpen(true)} />
       
       <AuthPromptDialog 
         open={showAuthPrompt} 

@@ -28,7 +28,6 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
       <Button 
         variant={topBar ? "outline" : "default"} 
         disabled
-        className="relative z-[60]"
       >
         <Loader className="h-4 w-4 animate-spin mr-2" />
         Loading...
@@ -36,7 +35,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     );
   }
 
-  // Only hide the button if user is logged in and we're not in loading state
+  // Only hide the button if user is logged in
   if (user) {
     return null;
   }
@@ -61,7 +60,6 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
       <Button 
         variant={topBar ? "outline" : "default"} 
         onClick={handleButtonClick}
-        className="relative z-[60]"
       >
         {topBar ? "Register" : "Register / Sign In"}
       </Button>
