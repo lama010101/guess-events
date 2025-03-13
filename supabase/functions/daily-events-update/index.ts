@@ -39,10 +39,10 @@ serve(async (req) => {
     if (count === 0) {
       console.log("No events found, calling import-historical-events function");
       
-      // Call the import function
+      // Call the import function with force refresh to ensure all images are imported
       const { data: importData, error: importError } = await supabase.functions.invoke('import-historical-events', {
         method: 'POST',
-        body: { automated: true }
+        body: { forceRefresh: true }
       });
       
       if (importError) {
@@ -77,7 +77,7 @@ serve(async (req) => {
       // Call import function to fix the images
       const { data: fixData, error: fixError } = await supabase.functions.invoke('import-historical-events', {
         method: 'POST',
-        body: { fixImages: true, automated: true }
+        body: { fixImages: true, forceRefresh: true }
       });
       
       if (fixError) {

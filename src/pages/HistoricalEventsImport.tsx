@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import ImportHistoricalEventsButton from '@/components/ImportHistoricalEventsButton';
-import { Home, Download } from 'lucide-react';
+import { Home, Download, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { fetchAllHistoricalEvents } from '@/integrations/supabase/events';
+import { fetchAllHistoricalEvents, verifyHistoricalEventImages } from '@/integrations/supabase/events';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { toast as sonnerToast } from 'sonner';
@@ -15,6 +15,12 @@ const HistoricalEventsImport = () => {
   const { toast } = useToast();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<{
+    valid: boolean;
+    eventsCount: number;
+    eventsWithoutImages: number;
+  } | null>(null);
   
   useEffect(() => {
     loadEvents();
@@ -25,6 +31,10 @@ const HistoricalEventsImport = () => {
     try {
       const eventData = await fetchAllHistoricalEvents();
       setEvents(eventData);
+      
+      // Check verification status
+      const status = await verifyHistoricalEventImages();
+      setVerificationStatus(status);
     } catch (error) {
       console.error("Error loading events:", error);
       toast({
@@ -34,6 +44,19 @@ const HistoricalEventsImport = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const refreshEvents = async () => {
+    setRefreshing(true);
+    try {
+      await loadEvents();
+      sonnerToast.success('Events refreshed successfully');
+    } catch (error) {
+      console.error("Error refreshing events:", error);
+      sonnerToast.error('Failed to refresh events');
+    } finally {
+      setRefreshing(false);
     }
   };
   
@@ -87,17 +110,46 @@ const HistoricalEventsImport = () => {
           Back to Home
         </Button>
         <h1 className="text-2xl font-bold">Historical Events Import</h1>
-        {events.length > 0 && (
-          <Button variant="outline" onClick={exportToCSV}>
-            <Download className="h-4 w-4 mr-2" />
-            Export to CSV
+        <div className="flex gap-2">
+          {events.length > 0 && (
+            <Button variant="outline" onClick={exportToCSV}>
+              <Download className="h-4 w-4 mr-2" />
+              Export to CSV
+            </Button>
+          )}
+          <Button 
+            variant="outline" 
+            onClick={refreshEvents} 
+            disabled={refreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
           </Button>
-        )}
+        </div>
       </div>
       
       <div className="max-w-xl mx-auto mb-8">
         <ImportHistoricalEventsButton />
       </div>
+      
+      {verificationStatus && !verificationStatus.valid && (
+        <Card className="mt-8 mb-4 border-yellow-500 dark:border-yellow-600">
+          <CardHeader className="bg-yellow-50 dark:bg-yellow-900/20">
+            <CardTitle className="text-yellow-700 dark:text-yellow-400 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              Image Verification Warning
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <p>
+              {verificationStatus.eventsWithoutImages} out of {verificationStatus.eventsCount} events are missing images. 
+              Use the "Run Daily Update Check" button above to fix this issue.
+            </p>
+          </CardContent>
+        </Card>
+      )}
       
       {events.length > 0 && (
         <Card className="mt-8">
