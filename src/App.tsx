@@ -5,6 +5,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import UserProfile from "./pages/UserProfile";
+import HistoricalEventsImport from "./pages/HistoricalEventsImport";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoutes from "./components/ProtectedRoutes";
 import { Toaster as SonnerToaster } from "sonner";
@@ -27,6 +28,7 @@ function App() {
               </ProtectedRoutes>
             } 
           />
+          <Route path="/import-events" element={<HistoricalEventsImport />} />
           <Route path="/profile/:userId" element={<UserProfile />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
