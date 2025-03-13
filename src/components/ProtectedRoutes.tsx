@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -12,6 +13,12 @@ interface ProtectedRoutesProps {
 
 const ProtectedRoutes = ({ children, requiredRole }: ProtectedRoutesProps) => {
   const { user, profile, isLoading } = useAuth();
+  const location = useLocation();
+  
+  // Special case for /adminlolo route
+  if (location.pathname === '/adminlolo') {
+    return <>{children}</>;
+  }
   
   if (isLoading) {
     return (
