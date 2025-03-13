@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LoginForm from "./LoginForm";
 import RegisterForm from "./RegisterForm";
 import { useAuth } from '@/contexts/AuthContext';
+import { Loader } from 'lucide-react';
 
 interface AuthButtonProps {
   topBar?: boolean;
@@ -19,9 +20,23 @@ interface AuthButtonProps {
 const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>(topBar ? "register" : "login");
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
 
-  // Only render the button if user is not logged in
+  // If still loading auth state, show a loading indicator
+  if (isLoading) {
+    return (
+      <Button 
+        variant={topBar ? "outline" : "default"} 
+        disabled
+        className="relative z-[60]"
+      >
+        <Loader className="h-4 w-4 animate-spin mr-2" />
+        Loading...
+      </Button>
+    );
+  }
+
+  // Only hide the button if user is logged in and we're not in loading state
   if (user) {
     return null;
   }

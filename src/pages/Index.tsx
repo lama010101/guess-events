@@ -110,7 +110,7 @@ const Index = () => {
           description: "Could not load historical events. Please try again later.",
           variant: "destructive"
         });
-        return;
+        return; // Early return but still inside try block so finally will execute
       }
       
       const eventsWithMode = events.map(event => ({
@@ -151,7 +151,7 @@ const Index = () => {
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // This will now ALWAYS execute, even after early returns
     }
   };
 

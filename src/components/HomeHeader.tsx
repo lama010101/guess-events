@@ -35,7 +35,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({ onSettingsClick }) => {
                       variant="outline" 
                       size="icon" 
                       onClick={onSettingsClick}
-                      className="h-8 w-8"
+                      className="h-8 w-8 relative z-[60]"
                     >
                       <Settings className="h-4 w-4" />
                     </Button>
