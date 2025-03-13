@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Trophy, ShieldAlert, RefreshCw } from 'lucide-react';
+import { Trophy, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface DailyCompetitionButtonProps {
@@ -9,15 +9,13 @@ interface DailyCompetitionButtonProps {
   dailyScore: number;
   user: any;
   onStartGame: () => void;
-  isLoading?: boolean;
 }
 
 const DailyCompetitionButton: React.FC<DailyCompetitionButtonProps> = ({
   dailyCompleted,
   dailyScore,
   user,
-  onStartGame,
-  isLoading = false
+  onStartGame
 }) => {
   const todayDate = format(new Date(), 'MMMM d, yyyy');
 
@@ -40,22 +38,12 @@ const DailyCompetitionButton: React.FC<DailyCompetitionButtonProps> = ({
       size="lg" 
       variant={user ? "default" : "outline"}
       onClick={onStartGame}
-      disabled={isLoading}
     >
-      {isLoading ? (
-        <>
-          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-          Loading...
-        </>
-      ) : (
-        <>
-          <Trophy className="mr-2 h-4 w-4" /> Daily Competition ({todayDate})
-          {!user && (
-            <span className="ml-1 flex items-center text-sm text-gray-500 dark:text-gray-400">
-              <ShieldAlert className="ml-1 h-3 w-3" /> Sign in required
-            </span>
-          )}
-        </>
+      <Trophy className="mr-2 h-4 w-4" /> Daily Competition ({todayDate})
+      {!user && (
+        <span className="ml-1 flex items-center text-sm text-gray-500 dark:text-gray-400">
+          <ShieldAlert className="ml-1 h-3 w-3" /> Sign in required
+        </span>
       )}
     </Button>
   );

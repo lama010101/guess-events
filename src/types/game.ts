@@ -9,17 +9,15 @@ export interface HistoricalEvent {
   };
   year: number;
   description: string;
-  gameMode?: 'daily' | 'friends' | 'single' | 'classic' | 'timed';
+  gameMode?: 'daily' | 'friends' | 'single';
 }
 
 export interface GameSettings {
   distanceUnit: 'km' | 'miles';
   timerEnabled: boolean;
   timerDuration: number; // in minutes
-  gameMode: 'daily' | 'friends' | 'single' | 'classic' | 'timed';
+  gameMode: 'daily' | 'friends' | 'single';
 }
-
-export type GameMode = 'daily' | 'friends' | 'classic' | 'timed';
 
 export interface PlayerGuess {
   location: {

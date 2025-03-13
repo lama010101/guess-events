@@ -1,17 +1,28 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+import { UserPlus, LogIn, User, Trophy, Settings, Users } from 'lucide-react';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogHeader, 
+  DialogTitle
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import LoginForm from "./LoginForm";
-import RegisterForm from "./RegisterForm";
+import { useNavigate } from "react-router-dom";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import LoginForm from './LoginForm';
+import RegisterForm from './RegisterForm';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader } from 'lucide-react';
 
 interface AuthButtonProps {
   topBar?: boolean;
@@ -19,69 +30,126 @@ interface AuthButtonProps {
 
 const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
   const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>(topBar ? "register" : "login");
-  const { user, isLoading } = useAuth();
-
-  // If still loading auth state, show a loading indicator
+  const navigate = useNavigate();
+  const { user, profile, signOut, isLoading } = useAuth();
+  
+  const handleSignOut = async () => {
+    await signOut();
+  };
+  
+  const handleViewProfile = () => {
+    if (user) {
+      navigate(`/profile/${user.id}`);
+    }
+  };
+  
+  const handleGoToLeaderboard = () => {
+    navigate('/leaderboard');
+  };
+  
+  // If the authentication data is loading, show a button with loading state
+  // but don't disable it to allow users to still open the auth dialog
   if (isLoading) {
     return (
       <Button 
         variant={topBar ? "outline" : "default"} 
-        disabled
+        onClick={() => setOpen(true)}
+        size={topBar ? "sm" : "default"}
+        className={`${topBar ? "h-8" : ""} pointer-events-auto`}
       >
-        <Loader className="h-4 w-4 animate-spin mr-2" />
-        Loading...
+        <UserPlus className="mr-2 h-4 w-4" />
+        {!topBar && "Register / Sign In"}
       </Button>
     );
   }
-
-  // Only hide the button if user is logged in
-  if (user) {
-    return null;
+  
+  if (user && profile) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="relative h-8 w-8 rounded-full pointer-events-auto">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={profile.avatar_url || ''} alt={profile.username} />
+              <AvatarFallback>{profile.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56 z-[9999]" align="end" forceMount>
+          <DropdownMenuLabel className="font-normal">
+            <div className="flex flex-col space-y-1">
+              <p className="text-sm font-medium leading-none">{profile.username}</p>
+              <p className="text-xs leading-none text-muted-foreground">
+                Account Settings
+              </p>
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleViewProfile} className="pointer-events-auto">
+            <User className="mr-2 h-4 w-4" />
+            <span>Profile</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleGoToLeaderboard} className="pointer-events-auto">
+            <Trophy className="mr-2 h-4 w-4" />
+            <span>Leaderboard</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem className="pointer-events-auto">
+            <Users className="mr-2 h-4 w-4" />
+            <span>Friends</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem className="pointer-events-auto">
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Settings</span>
+          </DropdownMenuItem>
+          {profile.role === 'admin' && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/admin')} className="pointer-events-auto">
+                <span>Admin Dashboard</span>
+              </DropdownMenuItem>
+            </>
+          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleSignOut} className="pointer-events-auto">
+            <LogIn className="mr-2 h-4 w-4" />
+            <span>Sign out</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
   }
-
-  const handleSuccess = () => {
-    setOpen(false);
-  };
-
-  const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
-  };
-
-  const handleButtonClick = () => {
-    if (topBar) {
-      setActiveTab("register");
-    }
-    setOpen(true);
-  };
-
+  
   return (
     <>
       <Button 
         variant={topBar ? "outline" : "default"} 
-        onClick={handleButtonClick}
+        onClick={() => setOpen(true)}
+        size={topBar ? "sm" : "default"}
+        className={`${topBar ? "h-8" : ""} pointer-events-auto`}
       >
-        {topBar ? "Register" : "Register / Sign In"}
+        <UserPlus className="mr-2 h-4 w-4" />
+        {!topBar && "Register / Sign In"}
       </Button>
       
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[9999] sm:max-w-[425px]">
+      {/* Fixed a key issue by removing Date.now() which was causing re-renders */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[425px] z-[9999]">
           <DialogHeader>
-            <DialogTitle>Welcome to Time Trek</DialogTitle>
+            <DialogTitle>Account Access</DialogTitle>
+            <DialogDescription>
+              Create an account or sign in to save your progress and compete with friends.
+            </DialogDescription>
           </DialogHeader>
           
-          <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab}>
+          <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="login">Sign In</TabsTrigger>
               <TabsTrigger value="register">Register</TabsTrigger>
             </TabsList>
-            
-            <TabsContent value="login" className="mt-4">
-              <LoginForm onSuccess={handleSuccess} />
+            <TabsContent value="login">
+              <LoginForm onSuccess={() => setOpen(false)} />
             </TabsContent>
-            
-            <TabsContent value="register" className="mt-4">
-              <RegisterForm onSuccess={handleSuccess} />
+            <TabsContent value="register">
+              <RegisterForm onSuccess={() => setOpen(false)} />
             </TabsContent>
           </Tabs>
         </DialogContent>

@@ -27,20 +27,17 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     setError(null);
     
     try {
-      // Use the direct signIn method from auth context
-      const { error } = await signIn(email, password);
+      // Use the signInWithEmail function from auth.ts for consistency
+      const { error } = await signInWithEmail(email, password);
       
       if (error) {
         setError(error.message);
-        toast.error('Login failed. Please check your credentials.');
       } else {
-        toast.success('Successfully signed in!');
         onSuccess();
       }
     } catch (error: any) {
       console.error('Login error:', error);
       setError('Login failed. Please try again.');
-      toast.error('Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
