@@ -22,6 +22,12 @@ export {
   ensureAvatarsBucketExists
 } from './storage';
 
+// Re-export historical events helpers
+export {
+  fetchAllHistoricalEvents,
+  fetchRandomHistoricalEvents
+} from './events';
+
 // Initialize buckets on app start
 import { ensureAvatarsBucketExists } from './storage';
 ensureAvatarsBucketExists();
