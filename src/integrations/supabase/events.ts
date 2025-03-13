@@ -53,30 +53,6 @@ export const fetchRandomHistoricalEvents = async (limit: number = 5): Promise<Hi
       return [];
     }
     
-    // If we have less events than the limit, just return all events in random order
-    if (count <= limit) {
-      const { data, error } = await supabase
-        .from('historical_events')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      if (!data) return [];
-
-      return data.map(event => ({
-        id: event.id,
-        year: event.year,
-        description: event.description,
-        imageUrl: event.image_url,
-        location: {
-          name: event.location_name,
-          lat: Number(event.latitude),
-          lng: Number(event.longitude)
-        }
-      }));
-    }
-    
-    // If we have more events than the limit, select random events
     const { data, error } = await supabase
       .from('historical_events')
       .select('*')
@@ -84,6 +60,7 @@ export const fetchRandomHistoricalEvents = async (limit: number = 5): Promise<Hi
       .limit(limit);
 
     if (error) throw error;
+
     if (!data) return [];
 
     // Convert database format to application format
@@ -120,45 +97,5 @@ export const hasHistoricalEvents = async (): Promise<boolean> => {
   } catch (error) {
     console.error('Error checking for historical events:', error);
     return false;
-  }
-};
-
-/**
- * Verifies that all historical events have images
- * @returns Object containing verification results
- */
-export const verifyHistoricalEventImages = async (): Promise<{
-  valid: boolean;
-  eventsCount: number;
-  eventsWithoutImages: number;
-}> => {
-  try {
-    // Get total count
-    const { count, error: countError } = await supabase
-      .from('historical_events')
-      .select('*', { count: 'exact', head: true });
-    
-    if (countError) throw countError;
-    
-    if (count === 0) {
-      return { valid: false, eventsCount: 0, eventsWithoutImages: 0 };
-    }
-    
-    // Count events without images
-    const { count: missingImagesCount, error: missingImagesError } = await supabase
-      .from('historical_events')
-      .select('*', { count: 'exact', head: true })
-      .is('image_url', null);
-    
-    if (missingImagesError) throw missingImagesError;
-    
-    return {
-      valid: missingImagesCount === 0,
-      eventsCount: count ?? 0,
-      eventsWithoutImages: missingImagesCount ?? 0
-    };
-  } catch (error) {
-    console.error('Error verifying historical event images:', error);
-    return { valid: false, eventsCount: 0, eventsWithoutImages: 0 };
   }
 };
