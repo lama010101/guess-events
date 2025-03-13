@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -7,13 +7,20 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2, AlertTriangle, CheckCircle, Download } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
-const ImportHistoricalEventsButton = () => {
+const ImportHistoricalEventsButton = ({ autoImport = false }) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDailyUpdateLoading, setIsDailyUpdateLoading] = useState(false);
+  
+  // Auto-import if requested
+  useEffect(() => {
+    if (autoImport) {
+      handleImport();
+    }
+  }, [autoImport]);
   
   const handleImport = async () => {
     try {
@@ -43,6 +50,9 @@ const ImportHistoricalEventsButton = () => {
         title: "Import successful",
         description: `Imported ${data.results.filter((r: any) => r.status === 'success').length} historical events`
       });
+      
+      // Automatically run daily update after import
+      handleDailyUpdate();
       
     } catch (err: any) {
       setError(err.message || "An unknown error occurred");

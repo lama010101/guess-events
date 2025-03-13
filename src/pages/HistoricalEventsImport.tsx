@@ -19,6 +19,7 @@ const HistoricalEventsImport = () => {
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [isVerifyingImages, setIsVerifyingImages] = useState(false);
   const [verificationResults, setVerificationResults] = useState<any>(null);
+  const [autoImport, setAutoImport] = useState(true); // Enable auto-import by default
   
   useEffect(() => {
     checkForEvents();
@@ -167,7 +168,7 @@ const HistoricalEventsImport = () => {
         
         <TabsContent value="import">
           <div className="max-w-xl mx-auto">
-            <ImportHistoricalEventsButton />
+            <ImportHistoricalEventsButton autoImport={autoImport} />
           </div>
         </TabsContent>
         

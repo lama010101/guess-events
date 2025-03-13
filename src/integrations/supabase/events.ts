@@ -12,7 +12,10 @@ export const fetchAllHistoricalEvents = async (): Promise<HistoricalEvent[]> => 
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching historical events:', error);
+      throw error;
+    }
 
     if (!data) return [];
 
@@ -45,11 +48,48 @@ export const fetchRandomHistoricalEvents = async (limit: number = 5): Promise<Hi
       .from('historical_events')
       .select('*', { count: 'exact', head: true });
     
-    if (countError) throw countError;
+    if (countError) {
+      console.error('Error counting historical events:', countError);
+      throw countError;
+    }
     
     // If we don't have any events, return empty array
     if (count === 0) {
       console.log('No historical events found in database. Please import some events first.');
+      
+      // Attempt to auto-import events
+      try {
+        console.log('Attempting to auto-import events...');
+        const { error: importError } = await supabase.functions.invoke('import-historical-events');
+        if (importError) {
+          console.error('Auto-import failed:', importError);
+        } else {
+          console.log('Auto-import successful, retrying fetch');
+          // Retry the fetch after import
+          const { data: freshData } = await supabase
+            .from('historical_events')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(limit);
+            
+          if (freshData && freshData.length > 0) {
+            return freshData.map(event => ({
+              id: event.id,
+              year: event.year,
+              description: event.description,
+              imageUrl: event.image_url,
+              location: {
+                name: event.location_name,
+                lat: Number(event.latitude),
+                lng: Number(event.longitude)
+              }
+            }));
+          }
+        }
+      } catch (autoImportError) {
+        console.error('Error during auto-import:', autoImportError);
+      }
+      
       return [];
     }
     
@@ -59,7 +99,10 @@ export const fetchRandomHistoricalEvents = async (limit: number = 5): Promise<Hi
       .order('created_at', { ascending: false })
       .limit(limit);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching random historical events:', error);
+      throw error;
+    }
 
     if (!data) return [];
 
@@ -91,7 +134,10 @@ export const hasHistoricalEvents = async (): Promise<boolean> => {
       .from('historical_events')
       .select('*', { count: 'exact', head: true });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error checking for historical events:', error);
+      throw error;
+    }
     
     return count !== null && count > 0;
   } catch (error) {
