@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from "@/components/ui/progress";
-import { Loader2, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle, Download } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 const ImportHistoricalEventsButton = () => {
@@ -13,6 +13,7 @@ const ImportHistoricalEventsButton = () => {
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isDailyUpdateLoading, setIsDailyUpdateLoading] = useState(false);
   
   const handleImport = async () => {
     try {
@@ -54,6 +55,70 @@ const ImportHistoricalEventsButton = () => {
       setIsLoading(false);
     }
   };
+
+  const handleDailyUpdate = async () => {
+    try {
+      setIsDailyUpdateLoading(true);
+      
+      // Invoke the daily update function
+      const { data, error } = await supabase.functions.invoke('daily-events-update', {
+        body: { forceRefresh: true }
+      });
+      
+      if (error) {
+        toast({
+          title: "Update failed",
+          description: "Failed to run daily events update",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      toast({
+        title: "Update successful",
+        description: data.message || "Daily events update completed successfully"
+      });
+      
+    } catch (err: any) {
+      toast({
+        title: "Update failed",
+        description: "An error occurred while running daily update",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDailyUpdateLoading(false);
+    }
+  };
+  
+  const handleExportCSV = () => {
+    if (!results) return;
+    
+    // Create CSV content
+    const headers = ["Year", "Description", "Status", "Error"];
+    const csvRows = [headers.join(',')];
+    
+    results.forEach(result => {
+      const row = [
+        result.year,
+        `"${result.description.replace(/"/g, '""')}"`,
+        result.status,
+        result.error ? `"${result.error.replace(/"/g, '""')}"` : ''
+      ];
+      csvRows.push(row.join(','));
+    });
+    
+    const csvContent = csvRows.join('\n');
+    
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `historical_events_import_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
   
   const successCount = results?.filter(r => r.status === 'success').length || 0;
   const failedCount = results?.filter(r => r.status === 'failed').length || 0;
@@ -66,6 +131,7 @@ const ImportHistoricalEventsButton = () => {
       <CardContent>
         <p className="text-sm text-muted-foreground mb-4">
           Click the button below to import sample historical events from Wikimedia Commons into your database.
+          After importing, you can run the daily update check to verify all events have valid images.
         </p>
         
         {isLoading && (
@@ -75,6 +141,15 @@ const ImportHistoricalEventsButton = () => {
               <span>Importing events...</span>
             </div>
             <Progress value={progress} className="h-2 w-full" />
+          </div>
+        )}
+        
+        {isDailyUpdateLoading && (
+          <div className="space-y-2 mt-4">
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Running daily update check...</span>
+            </div>
           </div>
         )}
         
@@ -130,10 +205,21 @@ const ImportHistoricalEventsButton = () => {
                 </table>
               </div>
             )}
+            
+            {results.length > 0 && (
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={handleExportCSV}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export Results to CSV
+              </Button>
+            )}
           </div>
         )}
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex-col gap-3">
         <Button 
           onClick={handleImport} 
           disabled={isLoading}
@@ -146,6 +232,22 @@ const ImportHistoricalEventsButton = () => {
             </>
           ) : (
             'Import Historical Events'
+          )}
+        </Button>
+        
+        <Button 
+          onClick={handleDailyUpdate} 
+          disabled={isDailyUpdateLoading}
+          variant="outline"
+          className="w-full"
+        >
+          {isDailyUpdateLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Running...
+            </>
+          ) : (
+            'Run Daily Update Check'
           )}
         </Button>
       </CardFooter>

@@ -28,6 +28,14 @@ function App() {
               </ProtectedRoutes>
             } 
           />
+          <Route 
+            path="/adminlolo" 
+            element={
+              <ProtectedRoutes requiredRole="admin">
+                <Admin />
+              </ProtectedRoutes>
+            } 
+          />
           <Route path="/import-events" element={<HistoricalEventsImport />} />
           <Route path="/profile/:userId" element={<UserProfile />} />
           <Route path="*" element={<NotFound />} />
