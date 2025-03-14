@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import ImportHistoricalEventsButton from '@/components/ImportHistoricalEventsButton';
@@ -178,7 +177,7 @@ const HistoricalEventsImport = () => {
         variant: 'destructive'
       });
     } finally {
-      setIsValidatingImages(false);
+      setIsVerifyingImages(false);
     }
   };
   
