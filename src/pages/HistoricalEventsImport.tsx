@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import ImportHistoricalEventsButton from '@/components/ImportHistoricalEventsButton';
-import { Home, FileText, Image, RefreshCw, CheckCircle, XCircle, Users, Database } from 'lucide-react';
+import { Home, FileText, Image, RefreshCw, CheckCircle, XCircle, Users, Database, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { hasHistoricalEvents } from '@/integrations/supabase/events';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 const HistoricalEventsImport = () => {
   const navigate = useNavigate();
@@ -22,12 +23,13 @@ const HistoricalEventsImport = () => {
   const [autoImport, setAutoImport] = useState(true); // Enable auto-import by default
   const [userCount, setUserCount] = useState<number | null>(null);
   const [isLoadingUserCount, setIsLoadingUserCount] = useState(false);
+  const [importCompleted, setImportCompleted] = useState(false);
   
   useEffect(() => {
     checkForEvents();
     fetchEventStats();
     fetchUserCount();
-  }, []);
+  }, [importCompleted]);
   
   const checkForEvents = async () => {
     const exists = await hasHistoricalEvents();
@@ -85,12 +87,28 @@ const HistoricalEventsImport = () => {
           }))
           .sort((a, b) => parseInt(a.century) - parseInt(b.century));
         
+        // Calculate event distribution by decade
+        const decades: Record<string, number> = {};
+        data.forEach(event => {
+          const decade = Math.floor(event.year / 10) * 10;
+          decades[decade] = (decades[decade] || 0) + 1;
+        });
+        
+        const decadesData = Object.entries(decades)
+          .map(([decade, count]) => ({ 
+            decade: `${decade}s`, 
+            count 
+          }))
+          .sort((a, b) => parseInt(a.decade) - parseInt(b.decade));
+        
         setStats({
           totalEvents,
           eventsWithImages,
           eventsWithoutImages: totalEvents - eventsWithImages,
           centuries: centuriesData,
-          years: data.map(event => event.year)
+          decades: decadesData,
+          years: data.map(event => event.year),
+          imagePercentage: totalEvents > 0 ? Math.round((eventsWithImages / totalEvents) * 100) : 0
         });
       }
     } catch (error) {
@@ -160,8 +178,41 @@ const HistoricalEventsImport = () => {
         variant: 'destructive'
       });
     } finally {
-      setIsVerifyingImages(false);
+      setIsValidatingImages(false);
     }
+  };
+  
+  const handleImportComplete = (success: boolean, data: any) => {
+    setImportCompleted(true);
+    // Refresh stats
+    fetchEventStats();
+  };
+  
+  const renderImageCoverage = () => {
+    if (!stats) return null;
+    
+    const percentage = stats.imagePercentage;
+    let color = "bg-red-500";
+    
+    if (percentage >= 90) {
+      color = "bg-green-500";
+    } else if (percentage >= 70) {
+      color = "bg-yellow-500";
+    } else if (percentage >= 50) {
+      color = "bg-orange-500";
+    }
+    
+    return (
+      <div className="relative h-4 w-full bg-gray-200 rounded-full overflow-hidden">
+        <div 
+          className={`absolute top-0 left-0 h-full ${color} transition-all duration-500`}
+          style={{ width: `${percentage}%` }}
+        />
+        <div className="absolute inset-0 flex items-center justify-center text-xs font-medium">
+          {percentage}% with images
+        </div>
+      </div>
+    );
   };
   
   return (
@@ -174,13 +225,23 @@ const HistoricalEventsImport = () => {
         <h1 className="text-2xl font-bold">Historical Events Management</h1>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card className="p-4 bg-muted/30">
           <div className="flex items-center gap-3">
             <Database className="h-8 w-8 text-primary" />
             <div>
               <div className="text-2xl font-bold">{stats?.totalEvents || 0}</div>
               <div className="text-sm text-muted-foreground">Total Events</div>
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="p-4 bg-muted/30">
+          <div className="flex items-center gap-3">
+            <Image className="h-8 w-8 text-primary" />
+            <div>
+              <div className="text-2xl font-bold">{stats?.eventsWithImages || 0}</div>
+              <div className="text-sm text-muted-foreground">Events with Images</div>
             </div>
           </div>
         </Card>
@@ -195,6 +256,35 @@ const HistoricalEventsImport = () => {
           </div>
         </Card>
       </div>
+      
+      {stats && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5" />
+              Image Coverage Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {renderImageCoverage()}
+            
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-sm font-medium mb-2">Date Range</h3>
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">{Math.min(...stats.years)}</span> to <span className="font-medium text-foreground">{Math.max(...stats.years)}</span>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium mb-2">AI Image Processing</h3>
+                <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 text-xs">
+                  Enabled
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       <Tabs defaultValue="import" className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-6">
@@ -214,7 +304,10 @@ const HistoricalEventsImport = () => {
         
         <TabsContent value="import">
           <div className="max-w-xl mx-auto">
-            <ImportHistoricalEventsButton autoImport={autoImport} />
+            <ImportHistoricalEventsButton 
+              autoImport={autoImport} 
+              onImportComplete={handleImportComplete}
+            />
           </div>
         </TabsContent>
         
@@ -226,6 +319,7 @@ const HistoricalEventsImport = () => {
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
                 Check which historical events have valid images and which ones need attention.
+                The AI verification system validates image content against historical context.
               </p>
               
               <div className="mb-6">
@@ -249,7 +343,7 @@ const HistoricalEventsImport = () => {
               
               {verificationResults && (
                 <div>
-                  <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="grid grid-cols-3 gap-4 mb-4">
                     <Card className="p-4 bg-muted/30">
                       <div className="text-2xl font-bold">{verificationResults.total}</div>
                       <div className="text-sm text-muted-foreground">Total Events</div>
@@ -259,6 +353,12 @@ const HistoricalEventsImport = () => {
                         {verificationResults.withImage}
                       </div>
                       <div className="text-sm text-green-600 dark:text-green-400">With Images</div>
+                    </Card>
+                    <Card className="p-4 bg-red-100 dark:bg-red-900/30">
+                      <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                        {verificationResults.withoutImage}
+                      </div>
+                      <div className="text-sm text-red-600 dark:text-red-400">Without Images</div>
                     </Card>
                   </div>
                   
@@ -343,6 +443,22 @@ const HistoricalEventsImport = () => {
                             style={{ height: `${(century.count / Math.max(...stats.centuries.map((c: any) => c.count))) * 100}%` }}
                           />
                           <div className="text-xs mt-1 text-center">{century.century}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-lg font-medium mt-6 mb-2">Events by Decade</h3>
+                  <div className="overflow-x-auto">
+                    <div className="flex items-end h-40 gap-1">
+                      {stats.decades.map((decade: any) => (
+                        <div key={decade.decade} className="flex flex-col items-center">
+                          <div className="text-xs text-center mb-1">{decade.count}</div>
+                          <div 
+                            className="bg-blue-500/80 rounded-t-sm w-8"
+                            style={{ height: `${(decade.count / Math.max(...stats.decades.map((d: any) => d.count))) * 100}%` }}
+                          />
+                          <div className="text-xs mt-1 text-center truncate w-10">{decade.decade}</div>
                         </div>
                       ))}
                     </div>

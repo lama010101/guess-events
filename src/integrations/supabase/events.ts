@@ -23,7 +23,15 @@ export const fetchAllHistoricalEvents = async (): Promise<HistoricalEvent[]> => 
     if (!data || data.length === 0) {
       console.log('No historical events found, attempting auto-import...');
       try {
-        const { error: importError } = await supabase.functions.invoke('import-historical-events');
+        // Call the advanced import function with batch settings
+        const { error: importError } = await supabase.functions.invoke('import-historical-events', {
+          body: { 
+            batchSize: 100,
+            validateImages: true,
+            confidenceThreshold: 0.85
+          }
+        });
+        
         if (importError) {
           console.error('Auto-import failed:', importError);
         } else {
@@ -77,10 +85,17 @@ export const fetchRandomHistoricalEvents = async (limit: number = 5): Promise<Hi
     if (count === 0) {
       console.log('No historical events found in database. Auto-importing events...');
       
-      // Attempt to auto-import events
+      // Attempt to auto-import events with enhanced validation
       try {
-        console.log('Attempting to auto-import events...');
-        const { error: importError } = await supabase.functions.invoke('import-historical-events');
+        console.log('Attempting to auto-import events with AI validation...');
+        const { error: importError } = await supabase.functions.invoke('import-historical-events', {
+          body: { 
+            batchSize: 100,
+            validateImages: true,
+            confidenceThreshold: 0.85
+          }
+        });
+        
         if (importError) {
           console.error('Auto-import failed:', importError);
         } else {
@@ -164,12 +179,27 @@ export const hasHistoricalEvents = async (): Promise<boolean> => {
 };
 
 /**
- * Validates an event's image using the image validation edge function
+ * Validates an event's image using the enhanced AI-powered image validation edge function
  */
-export const validateEventImage = async (eventId: string): Promise<{success: boolean, message: string, newImageUrl?: string}> => {
+export const validateEventImage = async (eventId: string): Promise<{
+  success: boolean, 
+  message: string, 
+  newImageUrl?: string,
+  metadata?: {
+    confidence: number,
+    historicalContext?: string,
+    keywords?: string[],
+    temporalConsistency?: boolean
+  }
+}> => {
   try {
     const { data, error } = await supabase.functions.invoke('validate-event-image', {
-      body: { eventId }
+      body: { 
+        eventId,
+        validateContent: true,
+        useFallbackSources: true,
+        confidenceThreshold: 0.85
+      }
     });
     
     if (error) {
@@ -181,5 +211,53 @@ export const validateEventImage = async (eventId: string): Promise<{success: boo
   } catch (error: any) {
     console.error('Error validating event image:', error);
     return { success: false, message: `Exception: ${error.message}` };
+  }
+};
+
+/**
+ * Batch imports and validates events with images
+ * @param options Import options
+ */
+export const batchImportEvents = async (options: {
+  batchSize?: number,
+  validateImages?: boolean,
+  confidenceThreshold?: number,
+  source?: string
+} = {}): Promise<{
+  success: boolean,
+  message: string,
+  imported: number,
+  failed: number,
+  results?: any[]
+}> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('import-historical-events', {
+      body: { 
+        batchSize: options.batchSize || 100,
+        validateImages: options.validateImages !== false,
+        confidenceThreshold: options.confidenceThreshold || 0.85,
+        source: options.source || 'wikimedia'
+      }
+    });
+    
+    if (error) {
+      console.error('Error in batch import:', error);
+      return { 
+        success: false, 
+        message: `Error during batch import: ${error.message}`,
+        imported: 0,
+        failed: 0
+      };
+    }
+    
+    return data;
+  } catch (error: any) {
+    console.error('Exception in batch import:', error);
+    return { 
+      success: false, 
+      message: `Exception during batch import: ${error.message}`,
+      imported: 0,
+      failed: 0
+    };
   }
 };
