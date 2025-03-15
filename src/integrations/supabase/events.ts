@@ -88,3 +88,18 @@ export const runWebScraper = async (sourceNames?: string[]) => {
     throw error;
   }
 };
+
+/**
+ * Imports the initial set of historical events with images
+ */
+export const importHistoricalEvents = async () => {
+  try {
+    const { data, error } = await supabase.functions.invoke('import-historical-events');
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error importing historical events:', error);
+    throw error;
+  }
+};
