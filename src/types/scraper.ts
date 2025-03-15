@@ -30,15 +30,19 @@ export interface ScraperSettings {
 
 export interface HistoricalEventDB {
   id: string;
-  title: string;
   description: string;
   image_url: string | null;
-  event_date: string;
-  source_name: string;
-  source_url: string;
-  latitude: number | null;
-  longitude: number | null;
+  image_attribution: string | null;
+  image_license: string | null;
+  latitude: number;
+  longitude: number;
+  location_name: string;
+  year: number;
   created_at: string;
-  deleted: boolean;
-  location_name?: string;
+  deleted?: boolean;
+  // Add compatibility fields to match the expected structure in the admin panel
+  title?: string; 
+  event_date?: string;
+  source_name?: string;
+  source_url?: string;
 }

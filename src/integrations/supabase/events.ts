@@ -1,6 +1,7 @@
 
 import { supabase } from './client';
 import type { HistoricalEvent } from '@/types/game';
+import { HistoricalEventDB } from '@/types/scraper';
 
 /**
  * Fetches all historical events from the database
@@ -20,7 +21,7 @@ export const fetchAllHistoricalEvents = async (): Promise<HistoricalEvent[]> => 
     // Convert database format to application format
     return data.map(event => ({
       id: event.id,
-      year: event.year || new Date(event.created_at).getFullYear(),
+      year: event.year,
       description: event.description,
       imageUrl: event.image_url,
       location: {
@@ -55,7 +56,7 @@ export const fetchRandomHistoricalEvents = async (limit: number = 5): Promise<Hi
     // Convert database format to application format
     return data.map(event => ({
       id: event.id,
-      year: event.year || new Date(event.created_at).getFullYear(),
+      year: event.year,
       description: event.description,
       imageUrl: event.image_url,
       location: {

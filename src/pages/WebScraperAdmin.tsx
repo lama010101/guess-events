@@ -99,13 +99,22 @@ const WebScraperAdmin = () => {
           query = query.eq('deleted', false);
         }
         
-        // Order by year
-        query = query.order('year', { ascending: false });
+        // Order by created_at
+        query = query.order('created_at', { ascending: false });
         
         const { data, error } = await query;
         
         if (error) throw error;
-        return data as HistoricalEventDB[];
+        
+        // Add missing fields expected by the component
+        return (data as any[]).map(event => ({
+          ...event,
+          title: event.location_name,
+          event_date: event.year?.toString(),
+          source_name: "Historical Database",
+          source_url: "",
+          deleted: event.deleted || false
+        })) as HistoricalEventDB[];
       } catch (error) {
         console.error('Error fetching events:', error);
         return [];
@@ -945,160 +954,4 @@ const WebScraperAdmin = () => {
                                         <div className="text-sm text-muted-foreground">
                                           Sources Processed
                                         </div>
-                                        <div className="text-2xl font-bold">
-                                          {log.sources_processed}
-                                        </div>
-                                      </div>
-                                      <div className="bg-muted p-4 rounded">
-                                        <div className="text-sm text-muted-foreground">
-                                          Total Events Found
-                                        </div>
-                                        <div className="text-2xl font-bold">
-                                          {log.total_events_found}
-                                        </div>
-                                      </div>
-                                      <div className="bg-muted p-4 rounded">
-                                        <div className="text-sm text-muted-foreground">
-                                          New Events Added
-                                        </div>
-                                        <div className="text-2xl font-bold text-green-600">
-                                          {log.new_events_added}
-                                        </div>
-                                      </div>
-                                      <div className="bg-muted p-4 rounded">
-                                        <div className="text-sm text-muted-foreground">
-                                          Failures
-                                        </div>
-                                        <div className="text-2xl font-bold text-red-500">
-                                          {log.failures}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    
-                                    {log.details && log.details.length > 0 && (
-                                      <div className="space-y-4">
-                                        <h3 className="text-lg font-medium">Source Details</h3>
-                                        <div className="divide-y">
-                                          {log.details.map((detail: any, index: number) => (
-                                            <div key={index} className="py-4">
-                                              <div className="flex justify-between items-center">
-                                                <h4 className="font-medium">{detail.sourceName}</h4>
-                                                {detail.status === 'success' ? (
-                                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                                    Success
-                                                  </Badge>
-                                                ) : (
-                                                  <Badge variant="destructive">
-                                                    Failed
-                                                  </Badge>
-                                                )}
-                                              </div>
-                                              
-                                              <div className="grid grid-cols-3 gap-2 mt-2">
-                                                <div className="text-sm">
-                                                  <span className="text-muted-foreground">Events Found:</span>
-                                                  <span className="ml-1 font-medium">{detail.eventsFound}</span>
-                                                </div>
-                                                <div className="text-sm">
-                                                  <span className="text-muted-foreground">New Events:</span>
-                                                  <span className="ml-1 font-medium text-green-600">{detail.newEvents}</span>
-                                                </div>
-                                                <div className="text-sm">
-                                                  <span className="text-muted-foreground">Duplicates:</span>
-                                                  <span className="ml-1 font-medium">{detail.existingEvents}</span>
-                                                </div>
-                                              </div>
-                                              
-                                              {detail.error && (
-                                                <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/10 rounded text-sm text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800">
-                                                  <AlertTriangle className="h-4 w-4 inline-block mr-1" />
-                                                  {detail.error}
-                                                </div>
-                                              )}
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          {/* Settings Tab */}
-          <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle>Admin Settings</CardTitle>
-                <CardDescription>
-                  Configure database and application settings
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Database Statistics</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <Card>
-                        <CardContent className="pt-6">
-                          <div className="text-center">
-                            <Database className="h-8 w-8 mx-auto mb-2 text-primary" />
-                            <div className="text-3xl font-bold">
-                              {events.length}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              Historical Events
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      
-                      <Card>
-                        <CardContent className="pt-6">
-                          <div className="text-center">
-                            <Image className="h-8 w-8 mx-auto mb-2 text-primary" />
-                            <div className="text-3xl font-bold">
-                              {events.filter(event => event.image_url).length}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              Events with Images
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      
-                      <Card>
-                        <CardContent className="pt-6">
-                          <div className="text-center">
-                            <Map className="h-8 w-8 mx-auto mb-2 text-primary" />
-                            <div className="text-3xl font-bold">
-                              {events.filter(event => event.latitude && event.longitude).length}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              Events with Locations
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
-  );
-};
-
-export default WebScraperAdmin;
+                                        <div className="text-2xl
