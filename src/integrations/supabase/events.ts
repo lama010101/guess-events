@@ -10,6 +10,7 @@ export const fetchAllHistoricalEvents = async (): Promise<HistoricalEvent[]> => 
     const { data, error } = await supabase
       .from('historical_events')
       .select('*')
+      .eq('deleted', false)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -19,11 +20,11 @@ export const fetchAllHistoricalEvents = async (): Promise<HistoricalEvent[]> => 
     // Convert database format to application format
     return data.map(event => ({
       id: event.id,
-      year: event.year,
+      year: new Date(event.event_date).getFullYear(),
       description: event.description,
       imageUrl: event.image_url,
       location: {
-        name: event.location_name,
+        name: event.location_name || event.title,
         lat: Number(event.latitude),
         lng: Number(event.longitude)
       }
@@ -43,6 +44,7 @@ export const fetchRandomHistoricalEvents = async (limit: number = 5): Promise<Hi
     const { data, error } = await supabase
       .from('historical_events')
       .select('*')
+      .eq('deleted', false)
       .order('created_at', { ascending: false })
       .limit(limit);
 
@@ -53,11 +55,11 @@ export const fetchRandomHistoricalEvents = async (limit: number = 5): Promise<Hi
     // Convert database format to application format
     return data.map(event => ({
       id: event.id,
-      year: event.year,
+      year: new Date(event.event_date).getFullYear(),
       description: event.description,
       imageUrl: event.image_url,
       location: {
-        name: event.location_name,
+        name: event.location_name || event.title,
         lat: Number(event.latitude),
         lng: Number(event.longitude)
       }
@@ -65,5 +67,23 @@ export const fetchRandomHistoricalEvents = async (limit: number = 5): Promise<Hi
   } catch (error) {
     console.error('Error fetching random historical events:', error);
     return [];
+  }
+};
+
+/**
+ * Runs the web scraper to collect historical events
+ * @param sourceNames - Optional list of source names to scrape
+ */
+export const runWebScraper = async (sourceNames?: string[]) => {
+  try {
+    const { data, error } = await supabase.functions.invoke('scrape-historical-events', {
+      body: { sourcesToScrape: sourceNames }
+    });
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error running web scraper:', error);
+    throw error;
   }
 };

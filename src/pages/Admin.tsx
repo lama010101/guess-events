@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash, Image, Plus, X, Ban, User, Users, Home, Search, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { Trash, Image, Plus, X, Ban, User, Users, Home, Search, ChevronLeft, ChevronRight, Check, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { HistoricalEvent } from '@/types/game';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -35,14 +34,12 @@ const Admin = () => {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
 
-  // Check if user is admin
   useEffect(() => {
     if (profile && profile.role !== 'admin') {
       navigate('/');
     }
   }, [profile, navigate]);
 
-  // Load events from Supabase
   useEffect(() => {
     fetchEvents();
     fetchUsers();
@@ -52,7 +49,6 @@ const Admin = () => {
     try {
       setIsLoading(true);
       
-      // Calculate pagination
       const from = (currentPage - 1) * itemsPerPage;
       const to = from + itemsPerPage - 1;
       
@@ -60,7 +56,6 @@ const Admin = () => {
         .from('historical_events')
         .select('*', { count: 'exact' });
       
-      // Add search filter if search term exists
       if (eventsSearchTerm) {
         query = query.or(
           `year.ilike.%${eventsSearchTerm}%,` +
@@ -69,7 +64,6 @@ const Admin = () => {
         );
       }
       
-      // Add pagination
       const { data, error, count } = await query
         .order('created_at', { ascending: false })
         .range(from, to);
@@ -91,7 +85,6 @@ const Admin = () => {
         
         setEvents(formattedEvents);
         
-        // Update total pages
         if (count !== null) {
           setTotalPages(Math.ceil(count / itemsPerPage));
         }
@@ -258,7 +251,6 @@ const Admin = () => {
         
       if (error) throw error;
       
-      // Update local state
       setUsers(users.map(user => 
         user.id === userId ? { ...user, status: newRole } : user
       ));
@@ -296,6 +288,12 @@ const Admin = () => {
             Back to Game
           </Button>
           <h1 className="text-2xl font-bold">Admin Panel</h1>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate('/admin/scraper')}>
+            <Globe className="h-4 w-4 mr-2" />
+            Web Scraper Admin
+          </Button>
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import UserProfile from "./pages/UserProfile";
+import WebScraperAdmin from "./pages/WebScraperAdmin";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoutes from "./components/ProtectedRoutes";
 import { Toaster as SonnerToaster } from "sonner";
@@ -24,6 +25,14 @@ function App() {
             element={
               <ProtectedRoutes requiredRole="admin">
                 <Admin />
+              </ProtectedRoutes>
+            } 
+          />
+          <Route 
+            path="/admin/scraper" 
+            element={
+              <ProtectedRoutes requiredRole="admin">
+                <WebScraperAdmin />
               </ProtectedRoutes>
             } 
           />
