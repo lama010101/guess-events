@@ -6,7 +6,7 @@ import { Database, Clock, Settings } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { HistoricalEventDB, ScraperLog, ScraperSettings } from '@/types/scraper';
+import { HistoricalEventDB, ScraperLog, ScraperSettings, ScraperSourceDetail } from '@/types/scraper';
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -96,24 +96,24 @@ const WebScraperAdmin = () => {
         
         // Parse the JSONB array result and properly transform to ScraperLog type
         if (Array.isArray(data)) {
-          return data.map(item => {
+          return data.map((item: any) => {
             // Ensure the item has all required properties of ScraperLog
             return {
-              id: item.id || '',
-              created_at: item.created_at || '',
-              sources_processed: item.sources_processed || 0,
-              total_events_found: item.total_events_found || 0,
-              new_events_added: item.new_events_added || 0,
-              failures: item.failures || 0,
-              details: Array.isArray(item.details) 
+              id: item?.id || '',
+              created_at: item?.created_at || '',
+              sources_processed: item?.sources_processed || 0,
+              total_events_found: item?.total_events_found || 0,
+              new_events_added: item?.new_events_added || 0,
+              failures: item?.failures || 0,
+              details: Array.isArray(item?.details) 
                 ? item.details.map((detail: any) => ({
-                    sourceName: detail.sourceName || '',
-                    eventsFound: detail.eventsFound || 0,
-                    newEvents: detail.newEvents || 0,
-                    existingEvents: detail.existingEvents || 0,
-                    status: detail.status || '',
-                    error: detail.error
-                  }))
+                    sourceName: detail?.sourceName || '',
+                    eventsFound: detail?.eventsFound || 0,
+                    newEvents: detail?.newEvents || 0,
+                    existingEvents: detail?.existingEvents || 0,
+                    status: detail?.status || '',
+                    error: detail?.error || null
+                  }) as ScraperSourceDetail)
                 : []
             } as ScraperLog;
           });
@@ -144,17 +144,17 @@ const WebScraperAdmin = () => {
         
         // Parse the JSONB array result
         if (Array.isArray(data) && data.length > 0) {
-          const settings = data[0];
+          const settings = data[0] as any;
           return {
-            id: settings.id || 'default',
-            auto_run_interval: settings.auto_run_interval || 24,
-            last_run_at: settings.last_run_at || null,
-            is_running: settings.is_running || false,
-            enabled_sources: Array.isArray(settings.enabled_sources) 
+            id: settings?.id || 'default',
+            auto_run_interval: settings?.auto_run_interval || 24,
+            last_run_at: settings?.last_run_at || null,
+            is_running: settings?.is_running || false,
+            enabled_sources: Array.isArray(settings?.enabled_sources) 
               ? settings.enabled_sources 
               : DEFAULT_SCRAPER_SETTINGS.enabled_sources || [],
-            created_at: settings.created_at || new Date().toISOString(),
-            updated_at: settings.updated_at || new Date().toISOString()
+            created_at: settings?.created_at || new Date().toISOString(),
+            updated_at: settings?.updated_at || new Date().toISOString()
           } as ScraperSettings;
         }
         
@@ -205,16 +205,17 @@ const WebScraperAdmin = () => {
       
       // Parse the JSONB result
       if (data) {
+        const result = data as any;
         return {
-          id: data.id || 'default',
-          auto_run_interval: data.auto_run_interval || 24,
-          last_run_at: data.last_run_at || null,
-          is_running: data.is_running || false,
-          enabled_sources: Array.isArray(data.enabled_sources) 
-            ? data.enabled_sources 
+          id: result?.id || 'default',
+          auto_run_interval: result?.auto_run_interval || 24,
+          last_run_at: result?.last_run_at || null,
+          is_running: result?.is_running || false,
+          enabled_sources: Array.isArray(result?.enabled_sources) 
+            ? result.enabled_sources 
             : DEFAULT_SCRAPER_SETTINGS.enabled_sources || [],
-          created_at: data.created_at || new Date().toISOString(),
-          updated_at: data.updated_at || new Date().toISOString()
+          created_at: result?.created_at || new Date().toISOString(),
+          updated_at: result?.updated_at || new Date().toISOString()
         } as ScraperSettings;
       }
       
