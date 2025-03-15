@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,8 +11,8 @@ interface ProtectedRoutesProps {
   requiredRole?: UserRole;
 }
 
-const ProtectedRoutes = ({ children, requiredRole }: ProtectedRoutesProps) => {
-  const { user, profile, isLoading } = useAuth();
+const ProtectedRoutes = ({ children }: ProtectedRoutesProps) => {
+  const { user, isLoading } = useAuth();
   
   if (isLoading) {
     return (
@@ -26,12 +27,7 @@ const ProtectedRoutes = ({ children, requiredRole }: ProtectedRoutesProps) => {
     return <Navigate to="/" replace />;
   }
   
-  // If a specific role is required
-  if (requiredRole && (!profile || profile.role !== requiredRole)) {
-    return <Navigate to="/" replace />;
-  }
-  
-  // Otherwise, render the children
+  // Allow all users to access any routes (removed role check)
   return <>{children}</>;
 };
 

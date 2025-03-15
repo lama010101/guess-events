@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Shield, Users, User } from "lucide-react";
+import { Shield, Users, User, Database } from "lucide-react";
 import { GameSettings } from '@/types/game';
 import { useToast } from "@/hooks/use-toast";
 import AuthButton from './AuthButton';
@@ -308,13 +307,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
             <Users className="mr-2 h-4 w-4" /> Play with Friends
           </Button>
           
-          {profile?.role === 'admin' && (
-            <div className="flex w-full justify-center">
-              <Link to="/admin" className="text-sm text-muted-foreground hover:text-primary flex items-center">
-                <Shield className="mr-1 h-3 w-3" /> Admin Panel
-              </Link>
-            </div>
-          )}
+          <div className="flex w-full justify-center gap-4">
+            <Link to="/admin" className="text-sm text-muted-foreground hover:text-primary flex items-center">
+              <Shield className="mr-1 h-3 w-3" /> Admin Panel
+            </Link>
+            <Link to="/admin/scraper" className="text-sm text-muted-foreground hover:text-primary flex items-center">
+              <Database className="mr-1 h-3 w-3" /> Scraper Dashboard
+            </Link>
+          </div>
         </CardFooter>
       </Card>
       

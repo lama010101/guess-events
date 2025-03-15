@@ -46,6 +46,14 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
   const handleGoToLeaderboard = () => {
     navigate('/leaderboard');
   };
+
+  const handleGoToAdmin = () => {
+    navigate('/admin');
+  };
+  
+  const handleGoToScraper = () => {
+    navigate('/admin/scraper');
+  };
   
   // If the authentication data is loading, show a button with loading state
   // but don't disable it to allow users to still open the auth dialog
@@ -100,14 +108,13 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </DropdownMenuItem>
-          {profile.role === 'admin' && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/admin')} className="pointer-events-auto">
-                <span>Admin Dashboard</span>
-              </DropdownMenuItem>
-            </>
-          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleGoToAdmin} className="pointer-events-auto">
+            <span>Admin Dashboard</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleGoToScraper} className="pointer-events-auto">
+            <span>Scraper Dashboard</span>
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSignOut} className="pointer-events-auto">
             <LogIn className="mr-2 h-4 w-4" />
@@ -130,7 +137,6 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
         {!topBar && "Register / Sign In"}
       </Button>
       
-      {/* Fixed a key issue by removing Date.now() which was causing re-renders */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[425px] z-[9999]">
           <DialogHeader>
