@@ -25,8 +25,7 @@ export {
 // Re-export historical events helpers
 export {
   fetchAllHistoricalEvents,
-  fetchRandomHistoricalEvents,
-  hasHistoricalEvents
+  fetchRandomHistoricalEvents
 } from './events';
 
 // Initialize buckets on app start
