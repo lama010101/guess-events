@@ -134,7 +134,7 @@ const WebScraperAdmin = () => {
         const { data, error } = await supabase.rpc('get_scraper_logs');
         
         if (error) throw error;
-        return (data || []) as unknown as ScraperLog[];
+        return (data || []) as ScraperLog[];
       } catch (error) {
         console.error('Error fetching scraper logs:', error);
         return [];
@@ -158,7 +158,11 @@ const WebScraperAdmin = () => {
           return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
         }
         
-        return data?.[0] as unknown as ScraperSettings;
+        if (!data || data.length === 0) {
+          return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
+        }
+        
+        return data[0] as ScraperSettings;
       } catch (error) {
         console.error('Error fetching scraper settings:', error);
         return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
@@ -211,7 +215,10 @@ const WebScraperAdmin = () => {
       });
       
       if (error) throw error;
-      return data?.[0] as unknown as ScraperSettings;
+      if (!data || data.length === 0) {
+        return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
+      }
+      return data[0] as ScraperSettings;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scraper-settings'] });
