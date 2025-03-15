@@ -70,7 +70,7 @@ export const useScraperAdmin = () => {
         // Handle both JSON array and single object responses
         const logsArray = Array.isArray(data) ? data : [data];
         
-        // Transform to ScraperLog type with explicit casting
+        // Transform to ScraperLog type with explicit type assertion
         return logsArray.map((item: any) => {
           // Ensure we have all required fields with defaults
           const log: ScraperLog = {
@@ -131,17 +131,17 @@ export const useScraperAdmin = () => {
           ? data[0] 
           : data;
         
-        // Convert to proper type with safety checks
+        // Convert to proper type with safety checks and type assertion
         const settings: ScraperSettings = {
-          id: settingsData?.id || 'default',
-          auto_run_interval: parseInt(String(settingsData?.auto_run_interval || 24)),
-          last_run_at: settingsData?.last_run_at || null,
-          is_running: Boolean(settingsData?.is_running),
-          enabled_sources: Array.isArray(settingsData?.enabled_sources) 
-            ? settingsData.enabled_sources 
+          id: (settingsData as any)?.id || 'default',
+          auto_run_interval: parseInt(String((settingsData as any)?.auto_run_interval || 24)),
+          last_run_at: (settingsData as any)?.last_run_at || null,
+          is_running: Boolean((settingsData as any)?.is_running),
+          enabled_sources: Array.isArray((settingsData as any)?.enabled_sources) 
+            ? (settingsData as any).enabled_sources 
             : DEFAULT_SCRAPER_SETTINGS.enabled_sources || [],
-          created_at: settingsData?.created_at || new Date().toISOString(),
-          updated_at: settingsData?.updated_at || new Date().toISOString()
+          created_at: (settingsData as any)?.created_at || new Date().toISOString(),
+          updated_at: (settingsData as any)?.updated_at || new Date().toISOString()
         };
         
         return settings;
@@ -189,17 +189,17 @@ export const useScraperAdmin = () => {
       
       if (error) throw error;
       
-      // Return with safe defaults
+      // Return with safe defaults and type assertion
       return {
-        id: data?.id || 'default',
-        auto_run_interval: data?.auto_run_interval || 24,
-        last_run_at: data?.last_run_at || null,
-        is_running: Boolean(data?.is_running),
-        enabled_sources: Array.isArray(data?.enabled_sources) 
-          ? data.enabled_sources 
+        id: (data as any)?.id || 'default',
+        auto_run_interval: (data as any)?.auto_run_interval || 24,
+        last_run_at: (data as any)?.last_run_at || null,
+        is_running: Boolean((data as any)?.is_running),
+        enabled_sources: Array.isArray((data as any)?.enabled_sources) 
+          ? (data as any).enabled_sources 
           : DEFAULT_SCRAPER_SETTINGS.enabled_sources || [],
-        created_at: data?.created_at || new Date().toISOString(),
-        updated_at: data?.updated_at || new Date().toISOString()
+        created_at: (data as any)?.created_at || new Date().toISOString(),
+        updated_at: (data as any)?.updated_at || new Date().toISOString()
       } as ScraperSettings;
     },
     onSuccess: () => {

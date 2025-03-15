@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { format } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
@@ -40,13 +39,11 @@ const ScraperControls: React.FC<ScraperControlsProps> = ({
     stopScraper
   } = useScraperProgress(scraperSettings);
   
-  const updateSettings = async (settings: Partial<ScraperSettings>) => {
+  const updateSettings = async (settings: Partial<ScraperSettings>): Promise<void> => {
     try {
       await updateSettingsMutation.mutateAsync(settings);
-      return true;
     } catch (error) {
       console.error('Error updating settings:', error);
-      return false;
     }
   };
   
