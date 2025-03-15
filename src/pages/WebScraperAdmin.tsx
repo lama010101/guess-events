@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -93,8 +94,31 @@ const WebScraperAdmin = () => {
         
         if (error) throw error;
         
-        // Parse the JSONB array result
-        return (Array.isArray(data) ? data : []) as ScraperLog[];
+        // Parse the JSONB array result and properly transform to ScraperLog type
+        if (Array.isArray(data)) {
+          return data.map(item => {
+            // Ensure the item has all required properties of ScraperLog
+            return {
+              id: item.id || '',
+              created_at: item.created_at || '',
+              sources_processed: item.sources_processed || 0,
+              total_events_found: item.total_events_found || 0,
+              new_events_added: item.new_events_added || 0,
+              failures: item.failures || 0,
+              details: Array.isArray(item.details) 
+                ? item.details.map((detail: any) => ({
+                    sourceName: detail.sourceName || '',
+                    eventsFound: detail.eventsFound || 0,
+                    newEvents: detail.newEvents || 0,
+                    existingEvents: detail.existingEvents || 0,
+                    status: detail.status || '',
+                    error: detail.error
+                  }))
+                : []
+            } as ScraperLog;
+          });
+        }
+        return [] as ScraperLog[];
       } catch (error) {
         console.error('Error fetching scraper logs:', error);
         return [] as ScraperLog[];
@@ -119,11 +143,22 @@ const WebScraperAdmin = () => {
         }
         
         // Parse the JSONB array result
-        const settings = Array.isArray(data) && data.length > 0 
-          ? data[0] 
-          : DEFAULT_SCRAPER_SETTINGS;
+        if (Array.isArray(data) && data.length > 0) {
+          const settings = data[0];
+          return {
+            id: settings.id || 'default',
+            auto_run_interval: settings.auto_run_interval || 24,
+            last_run_at: settings.last_run_at || null,
+            is_running: settings.is_running || false,
+            enabled_sources: Array.isArray(settings.enabled_sources) 
+              ? settings.enabled_sources 
+              : DEFAULT_SCRAPER_SETTINGS.enabled_sources || [],
+            created_at: settings.created_at || new Date().toISOString(),
+            updated_at: settings.updated_at || new Date().toISOString()
+          } as ScraperSettings;
+        }
         
-        return settings as ScraperSettings;
+        return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
       } catch (error) {
         console.error('Error fetching scraper settings:', error);
         return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
@@ -169,7 +204,21 @@ const WebScraperAdmin = () => {
       if (error) throw error;
       
       // Parse the JSONB result
-      return (data || DEFAULT_SCRAPER_SETTINGS) as ScraperSettings;
+      if (data) {
+        return {
+          id: data.id || 'default',
+          auto_run_interval: data.auto_run_interval || 24,
+          last_run_at: data.last_run_at || null,
+          is_running: data.is_running || false,
+          enabled_sources: Array.isArray(data.enabled_sources) 
+            ? data.enabled_sources 
+            : DEFAULT_SCRAPER_SETTINGS.enabled_sources || [],
+          created_at: data.created_at || new Date().toISOString(),
+          updated_at: data.updated_at || new Date().toISOString()
+        } as ScraperSettings;
+      }
+      
+      return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scraper-settings'] });
