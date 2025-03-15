@@ -18,7 +18,7 @@ export const fetchAllHistoricalEvents = async (): Promise<HistoricalEvent[]> => 
 
     if (!data) return [];
 
-    // Convert database format to application format
+    // Convert database format to application format - avoid explicit type annotation
     return data.map(event => ({
       id: event.id,
       year: event.year,
@@ -53,7 +53,7 @@ export const fetchRandomHistoricalEvents = async (limit: number = 5): Promise<Hi
 
     if (!data) return [];
 
-    // Convert database format to application format
+    // Convert database format to application format - avoid explicit type annotation
     return data.map(event => ({
       id: event.id,
       year: event.year,

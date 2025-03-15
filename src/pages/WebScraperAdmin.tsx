@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -94,7 +93,8 @@ const WebScraperAdmin = () => {
         
         if (error) throw error;
         
-        return (data || []) as ScraperLog[];
+        // Parse the JSONB array result
+        return (Array.isArray(data) ? data : []) as ScraperLog[];
       } catch (error) {
         console.error('Error fetching scraper logs:', error);
         return [] as ScraperLog[];
@@ -118,12 +118,12 @@ const WebScraperAdmin = () => {
           return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
         }
         
-        // Use default settings if no data returned
-        if (!data || data.length === 0) {
-          return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
-        }
+        // Parse the JSONB array result
+        const settings = Array.isArray(data) && data.length > 0 
+          ? data[0] 
+          : DEFAULT_SCRAPER_SETTINGS;
         
-        return data[0] as ScraperSettings;
+        return settings as ScraperSettings;
       } catch (error) {
         console.error('Error fetching scraper settings:', error);
         return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
@@ -168,12 +168,8 @@ const WebScraperAdmin = () => {
       
       if (error) throw error;
       
-      // Use default settings if no data returned
-      if (!data || data.length === 0) {
-        return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
-      }
-      
-      return data[0] as ScraperSettings;
+      // Parse the JSONB result
+      return (data || DEFAULT_SCRAPER_SETTINGS) as ScraperSettings;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scraper-settings'] });

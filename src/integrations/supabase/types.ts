@@ -134,6 +134,7 @@ export type Database = {
       historical_events: {
         Row: {
           created_at: string
+          deleted: boolean
           description: string
           id: string
           image_attribution: string | null
@@ -146,6 +147,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted?: boolean
           description: string
           id?: string
           image_attribution?: string | null
@@ -158,6 +160,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted?: boolean
           description?: string
           id?: string
           image_attribution?: string | null
@@ -205,7 +208,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_scraper_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_scraper_settings: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      update_scraper_settings: {
+        Args: {
+          settings_json: Json
+        }
+        Returns: Json
+      }
     }
     Enums: {
       user_role: "user" | "admin"
