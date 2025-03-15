@@ -64,31 +64,39 @@ export const useScraperAdmin = () => {
         
         if (error) throw error;
         
-        // Parse the JSONB array result and properly transform to ScraperLog type
-        if (Array.isArray(data)) {
-          return data.map((item: any) => {
-            // Ensure the item has all required properties of ScraperLog
-            return {
-              id: item?.id || '',
-              created_at: item?.created_at || '',
-              sources_processed: item?.sources_processed || 0,
-              total_events_found: item?.total_events_found || 0,
-              new_events_added: item?.new_events_added || 0,
-              failures: item?.failures || 0,
-              details: Array.isArray(item?.details) 
-                ? item.details.map((detail: any) => ({
-                    sourceName: detail?.sourceName || '',
-                    eventsFound: detail?.eventsFound || 0,
-                    newEvents: detail?.newEvents || 0,
-                    existingEvents: detail?.existingEvents || 0,
-                    status: detail?.status || '',
-                    error: detail?.error || null
-                  }))
-                : []
-            } as ScraperLog;
-          });
-        }
-        return [] as ScraperLog[];
+        // Ensure data is an array
+        if (!data) return [];
+        
+        // Handle both JSON array and single object responses
+        const logsArray = Array.isArray(data) ? data : [data];
+        
+        // Transform to ScraperLog type with explicit casting
+        return logsArray.map((item: any) => {
+          // Ensure we have all required fields with defaults
+          const log: ScraperLog = {
+            id: item?.id || '',
+            created_at: item?.created_at || new Date().toISOString(),
+            sources_processed: item?.sources_processed || 0,
+            total_events_found: item?.total_events_found || 0,
+            new_events_added: item?.new_events_added || 0,
+            failures: item?.failures || 0,
+            details: []
+          };
+          
+          // Process details array if it exists
+          if (Array.isArray(item?.details)) {
+            log.details = item.details.map((detail: any) => ({
+              sourceName: detail?.sourceName || '',
+              eventsFound: detail?.eventsFound || 0,
+              newEvents: detail?.newEvents || 0,
+              existingEvents: detail?.existingEvents || 0,
+              status: detail?.status || '',
+              error: detail?.error || null
+            }));
+          }
+          
+          return log;
+        });
       } catch (error) {
         console.error('Error fetching scraper logs:', error);
         return [] as ScraperLog[];
@@ -108,27 +116,35 @@ export const useScraperAdmin = () => {
         const { data, error } = await supabase.rpc('get_scraper_settings');
         
         if (error) {
+          console.warn('Could not fetch scraper settings:', error);
           // If no settings found, return default
           return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
         }
         
-        // Parse the JSONB array result
-        if (Array.isArray(data) && data.length > 0) {
-          const settings = data[0] as any;
-          return {
-            id: settings?.id || 'default',
-            auto_run_interval: settings?.auto_run_interval || 24,
-            last_run_at: settings?.last_run_at || null,
-            is_running: settings?.is_running || false,
-            enabled_sources: Array.isArray(settings?.enabled_sources) 
-              ? settings.enabled_sources 
-              : DEFAULT_SCRAPER_SETTINGS.enabled_sources || [],
-            created_at: settings?.created_at || new Date().toISOString(),
-            updated_at: settings?.updated_at || new Date().toISOString()
-          } as ScraperSettings;
+        // No data returned
+        if (!data) {
+          return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
         }
         
-        return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
+        // Parse the response which could be an array or a single object
+        const settingsData = Array.isArray(data) && data.length > 0 
+          ? data[0] 
+          : data;
+        
+        // Convert to proper type with safety checks
+        const settings: ScraperSettings = {
+          id: settingsData?.id || 'default',
+          auto_run_interval: parseInt(String(settingsData?.auto_run_interval || 24)),
+          last_run_at: settingsData?.last_run_at || null,
+          is_running: Boolean(settingsData?.is_running),
+          enabled_sources: Array.isArray(settingsData?.enabled_sources) 
+            ? settingsData.enabled_sources 
+            : DEFAULT_SCRAPER_SETTINGS.enabled_sources || [],
+          created_at: settingsData?.created_at || new Date().toISOString(),
+          updated_at: settingsData?.updated_at || new Date().toISOString()
+        };
+        
+        return settings;
       } catch (error) {
         console.error('Error fetching scraper settings:', error);
         return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
@@ -173,23 +189,18 @@ export const useScraperAdmin = () => {
       
       if (error) throw error;
       
-      // Parse the JSONB result
-      if (data) {
-        const result = data as any;
-        return {
-          id: result?.id || 'default',
-          auto_run_interval: result?.auto_run_interval || 24,
-          last_run_at: result?.last_run_at || null,
-          is_running: result?.is_running || false,
-          enabled_sources: Array.isArray(result?.enabled_sources) 
-            ? result.enabled_sources 
-            : DEFAULT_SCRAPER_SETTINGS.enabled_sources || [],
-          created_at: result?.created_at || new Date().toISOString(),
-          updated_at: result?.updated_at || new Date().toISOString()
-        } as ScraperSettings;
-      }
-      
-      return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
+      // Return with safe defaults
+      return {
+        id: data?.id || 'default',
+        auto_run_interval: data?.auto_run_interval || 24,
+        last_run_at: data?.last_run_at || null,
+        is_running: Boolean(data?.is_running),
+        enabled_sources: Array.isArray(data?.enabled_sources) 
+          ? data.enabled_sources 
+          : DEFAULT_SCRAPER_SETTINGS.enabled_sources || [],
+        created_at: data?.created_at || new Date().toISOString(),
+        updated_at: data?.updated_at || new Date().toISOString()
+      } as ScraperSettings;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scraper-settings'] });

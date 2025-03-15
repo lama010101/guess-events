@@ -2,11 +2,13 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
+import { importHistoricalEvents } from '@/integrations/supabase/events';
 
 export const useAutoImport = () => {
   const { toast } = useToast();
   const [isAutoImportComplete, setIsAutoImportComplete] = useState(false);
   const [isAutoImportRunning, setIsAutoImportRunning] = useState(false);
+  const [importedEvents, setImportedEvents] = useState<any[]>([]);
 
   useEffect(() => {
     const checkIfEventsExist = async () => {
@@ -40,11 +42,22 @@ export const useAutoImport = () => {
         description: "Automatically importing initial historical events...",
       });
 
-      const { data, error } = await supabase.functions.invoke('import-historical-events');
+      const result = await importHistoricalEvents();
       
-      if (error) throw error;
+      if (!result) throw new Error("Import failed");
       
-      const successCount = data.results.filter((r: any) => r.status === 'success').length;
+      const successCount = result.results?.filter((r: any) => r.status === 'success').length || 0;
+      
+      // Get the imported events to display them
+      const { data: eventsData } = await supabase
+        .from('historical_events')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+        
+      if (eventsData) {
+        setImportedEvents(eventsData);
+      }
       
       toast({
         title: "Auto-import Completed",
@@ -66,6 +79,7 @@ export const useAutoImport = () => {
 
   return {
     isAutoImportComplete,
-    isAutoImportRunning
+    isAutoImportRunning,
+    importedEvents
   };
 };

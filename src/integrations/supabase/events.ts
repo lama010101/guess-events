@@ -94,9 +94,15 @@ export const runWebScraper = async (sourceNames?: string[]) => {
  */
 export const importHistoricalEvents = async () => {
   try {
+    console.log('Attempting to import historical events...');
     const { data, error } = await supabase.functions.invoke('import-historical-events');
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error from import-historical-events function:', error);
+      throw error;
+    }
+    
+    console.log('Historical events imported successfully:', data);
     return data;
   } catch (error) {
     console.error('Error importing historical events:', error);
