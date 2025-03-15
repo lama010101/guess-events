@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -122,7 +123,7 @@ const WebScraperAdmin = () => {
     }
   });
 
-  // Fetch scraper logs using direct SQL query
+  // Fetch scraper logs using stored procedure
   const { 
     data: scraperLogs = [], 
     isLoading: isLoadingLogs,
@@ -142,7 +143,7 @@ const WebScraperAdmin = () => {
     }
   });
 
-  // Fetch scraper settings using direct SQL query
+  // Fetch scraper settings using stored procedure
   const { 
     data: scraperSettings,
     isLoading: isLoadingSettings,
@@ -954,4 +955,216 @@ const WebScraperAdmin = () => {
                                         <div className="text-sm text-muted-foreground">
                                           Sources Processed
                                         </div>
-                                        <div className="text-2xl
+                                        <div className="text-2xl font-bold">
+                                          {log.sources_processed}
+                                        </div>
+                                      </div>
+                                      <div className="bg-muted p-4 rounded">
+                                        <div className="text-sm text-muted-foreground">
+                                          Events Found
+                                        </div>
+                                        <div className="text-2xl font-bold">
+                                          {log.total_events_found}
+                                        </div>
+                                      </div>
+                                      <div className="bg-muted p-4 rounded">
+                                        <div className="text-sm text-muted-foreground">
+                                          New Events Added
+                                        </div>
+                                        <div className="text-2xl font-bold text-green-600">
+                                          {log.new_events_added}
+                                        </div>
+                                      </div>
+                                      <div className="bg-muted p-4 rounded">
+                                        <div className="text-sm text-muted-foreground">
+                                          Failures
+                                        </div>
+                                        <div className="text-2xl font-bold text-red-500">
+                                          {log.failures}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    <Separator />
+                                    
+                                    <div>
+                                      <h4 className="text-sm font-medium mb-2">Source Details</h4>
+                                      <div className="space-y-3">
+                                        {log.details.map((detail, index) => (
+                                          <div key={index} className="border rounded-md p-3">
+                                            <div className="flex items-center justify-between mb-2">
+                                              <div className="font-medium">{detail.sourceName}</div>
+                                              <Badge 
+                                                variant={detail.status === 'success' ? 'default' : 'destructive'}
+                                              >
+                                                {detail.status}
+                                              </Badge>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-2 text-sm">
+                                              <div>
+                                                <div className="text-muted-foreground">Events Found</div>
+                                                <div>{detail.eventsFound}</div>
+                                              </div>
+                                              <div>
+                                                <div className="text-muted-foreground">New Events</div>
+                                                <div className="text-green-600">{detail.newEvents}</div>
+                                              </div>
+                                              <div>
+                                                <div className="text-muted-foreground">Duplicates</div>
+                                                <div>{detail.existingEvents}</div>
+                                              </div>
+                                            </div>
+                                            {detail.error && (
+                                              <div className="mt-2 text-xs text-red-500">
+                                                Error: {detail.error}
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Settings Tab */}
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle>Admin Settings</CardTitle>
+                <CardDescription>
+                  Configure the historical events admin panel
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="border rounded-md p-4 space-y-4">
+                    <h3 className="text-lg font-medium">Scraper Configuration</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Configure how the historical events scraper operates.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Auto-run Interval</Label>
+                        <div className="text-sm">
+                          The scraper will automatically run every {scraperSettings?.auto_run_interval || 24} hours.
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Current Status</Label>
+                        <div className="flex items-center gap-2">
+                          {isScraperRunning ? (
+                            <Badge variant="default" className="gap-1 flex items-center">
+                              <RefreshCw className="h-3 w-3 animate-spin" />
+                              Running
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="gap-1 flex items-center">
+                              <Pause className="h-3 w-3" />
+                              Idle
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="space-y-2">
+                      <Label>Enabled Sources</Label>
+                      <div className="text-sm space-y-2">
+                        {scraperSettings?.enabled_sources?.map((source, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            {source}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setActiveTab('logs');
+                        }}
+                        className="gap-2"
+                      >
+                        <Clock className="h-4 w-4" />
+                        View Scraper Logs
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="border rounded-md p-4 space-y-4">
+                    <h3 className="text-lg font-medium">Data Management</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Manage database and historical events data.
+                    </p>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <Label>Historical Events</Label>
+                          <div className="text-sm text-muted-foreground">
+                            Total events in database: {events.length}
+                          </div>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          className="gap-2"
+                          onClick={() => { setActiveTab('events'); }}
+                        >
+                          <Database className="h-4 w-4" />
+                          Manage Events
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="space-y-2">
+                      <Label>Database Export</Label>
+                      <div className="text-sm text-muted-foreground">
+                        Export historical events data for backup or analysis.
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        className="gap-2"
+                        onClick={() => {
+                          toast({
+                            title: "Feature not implemented",
+                            description: "Data export feature is not yet implemented.",
+                            variant: "destructive"
+                          });
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                        Export Data
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+};
+
+export default WebScraperAdmin;
+
