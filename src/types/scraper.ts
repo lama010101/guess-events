@@ -39,7 +39,7 @@ export interface HistoricalEventDB {
   location_name: string;
   year: number;
   created_at: string;
-  deleted?: boolean;
+  deleted: boolean;
   // Compatibility fields for the admin panel
   title?: string; 
   event_date?: string;
