@@ -20,11 +20,11 @@ export const fetchAllHistoricalEvents = async (): Promise<HistoricalEvent[]> => 
     // Convert database format to application format
     return data.map(event => ({
       id: event.id,
-      year: new Date(event.event_date).getFullYear(),
+      year: event.year || new Date(event.created_at).getFullYear(),
       description: event.description,
       imageUrl: event.image_url,
       location: {
-        name: event.location_name || event.title,
+        name: event.location_name,
         lat: Number(event.latitude),
         lng: Number(event.longitude)
       }
@@ -55,11 +55,11 @@ export const fetchRandomHistoricalEvents = async (limit: number = 5): Promise<Hi
     // Convert database format to application format
     return data.map(event => ({
       id: event.id,
-      year: new Date(event.event_date).getFullYear(),
+      year: event.year || new Date(event.created_at).getFullYear(),
       description: event.description,
       imageUrl: event.image_url,
       location: {
-        name: event.location_name || event.title,
+        name: event.location_name,
         lat: Number(event.latitude),
         lng: Number(event.longitude)
       }

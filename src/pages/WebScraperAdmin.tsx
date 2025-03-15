@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -11,6 +10,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { HistoricalEventDB, ScraperLog, ScraperSettings, ScraperSourceDetail } from '@/types/scraper';
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -28,47 +28,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-
-interface HistoricalEvent {
-  id: string;
-  title: string;
-  description: string;
-  image_url: string;
-  event_date: string;
-  source_name: string;
-  source_url: string;
-  latitude: number | null;
-  longitude: number | null;
-  created_at: string;
-  deleted: boolean;
-}
-
-interface ScraperLog {
-  id: string;
-  created_at: string;
-  sources_processed: number;
-  total_events_found: number;
-  new_events_added: number;
-  failures: number;
-  details: Array<{
-    sourceName: string;
-    eventsFound: number;
-    newEvents: number;
-    existingEvents: number;
-    status: string;
-    error?: string;
-  }>;
-}
-
-interface ScraperSettings {
-  id: string;
-  auto_run_interval: number;
-  last_run_at: string | null;
-  is_running: boolean;
-  enabled_sources: string[];
-  created_at: string;
-  updated_at: string;
-}
 
 const DEFAULT_SCRAPER_SETTINGS: Partial<ScraperSettings> = {
   auto_run_interval: 24, // 24 hours
@@ -130,9 +89,8 @@ const WebScraperAdmin = () => {
         // Filter by search term if provided
         if (searchTerm) {
           query = query.or(
-            `title.ilike.%${searchTerm}%,` +
             `description.ilike.%${searchTerm}%,` +
-            `source_name.ilike.%${searchTerm}%`
+            `location_name.ilike.%${searchTerm}%`
           );
         }
         
@@ -141,13 +99,13 @@ const WebScraperAdmin = () => {
           query = query.eq('deleted', false);
         }
         
-        // Order by event date
-        query = query.order('event_date', { ascending: false });
+        // Order by year
+        query = query.order('year', { ascending: false });
         
         const { data, error } = await query;
         
         if (error) throw error;
-        return data as HistoricalEvent[];
+        return data as HistoricalEventDB[];
       } catch (error) {
         console.error('Error fetching events:', error);
         return [];
@@ -155,7 +113,7 @@ const WebScraperAdmin = () => {
     }
   });
 
-  // Fetch scraper logs
+  // Fetch scraper logs using direct SQL query
   const { 
     data: scraperLogs = [], 
     isLoading: isLoadingLogs,
@@ -164,10 +122,7 @@ const WebScraperAdmin = () => {
     queryKey: ['scraper-logs'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase
-          .from('scraper_logs')
-          .select('*')
-          .order('created_at', { ascending: false });
+        const { data, error } = await supabase.rpc('get_scraper_logs');
         
         if (error) throw error;
         return data as ScraperLog[];
@@ -178,7 +133,7 @@ const WebScraperAdmin = () => {
     }
   });
 
-  // Fetch scraper settings
+  // Fetch scraper settings using direct SQL query
   const { 
     data: scraperSettings,
     isLoading: isLoadingSettings,
@@ -187,25 +142,11 @@ const WebScraperAdmin = () => {
     queryKey: ['scraper-settings'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase
-          .from('scraper_settings')
-          .select('*')
-          .limit(1)
-          .single();
+        const { data, error } = await supabase.rpc('get_scraper_settings');
         
         if (error) {
-          if (error.code === 'PGRST116') {
-            // No settings found, create default
-            const { data: newData, error: insertError } = await supabase
-              .from('scraper_settings')
-              .insert([DEFAULT_SCRAPER_SETTINGS])
-              .select()
-              .single();
-            
-            if (insertError) throw insertError;
-            return newData as ScraperSettings;
-          }
-          throw error;
+          // If no settings found, return default
+          return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
         }
         
         return data as ScraperSettings;
@@ -213,12 +154,16 @@ const WebScraperAdmin = () => {
         console.error('Error fetching scraper settings:', error);
         return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
       }
-    },
-    onSuccess: (data) => {
-      setNewSettings(data || DEFAULT_SCRAPER_SETTINGS);
-      setIsScraperRunning(data?.is_running || false);
     }
   });
+
+  // Set state when scraper settings are loaded
+  useEffect(() => {
+    if (scraperSettings) {
+      setNewSettings(scraperSettings);
+      setIsScraperRunning(scraperSettings.is_running || false);
+    }
+  }, [scraperSettings]);
 
   // Mutation to bulk delete/restore events
   const bulkUpdateEventsMutation = useMutation({
@@ -249,29 +194,15 @@ const WebScraperAdmin = () => {
     }
   });
 
-  // Mutation to update scraper settings
+  // Mutation to update scraper settings using stored procedure
   const updateSettingsMutation = useMutation({
     mutationFn: async (settings: Partial<ScraperSettings>) => {
-      if (scraperSettings?.id) {
-        const { data, error } = await supabase
-          .from('scraper_settings')
-          .update(settings)
-          .eq('id', scraperSettings.id)
-          .select()
-          .single();
-        
-        if (error) throw error;
-        return data;
-      } else {
-        const { data, error } = await supabase
-          .from('scraper_settings')
-          .insert([settings])
-          .select()
-          .single();
-        
-        if (error) throw error;
-        return data;
-      }
+      const { data, error } = await supabase.rpc('update_scraper_settings', {
+        settings_json: settings
+      });
+      
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scraper-settings'] });
@@ -360,7 +291,7 @@ const WebScraperAdmin = () => {
       // Call the edge function
       const { data, error } = await supabase.functions.invoke('scrape-historical-events', {
         body: { 
-          sourcesToScrape: scraperSettings?.enabled_sources || DEFAULT_SCRAPER_SETTINGS.enabled_sources 
+          sourcesToScrape: newSettings?.enabled_sources || DEFAULT_SCRAPER_SETTINGS.enabled_sources 
         }
       });
       
@@ -386,7 +317,7 @@ const WebScraperAdmin = () => {
         description: `Added ${data.newEvents} new events from ${data.sourcesProcessed} sources.`,
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error running scraper:', error);
       toast({
         title: "Error",
@@ -417,7 +348,7 @@ const WebScraperAdmin = () => {
         description: "The scraper has been stopped.",
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error stopping scraper:', error);
       toast({
         title: "Error",
@@ -433,17 +364,17 @@ const WebScraperAdmin = () => {
   };
 
   // Render event details popover
-  const renderEventDetails = (event: HistoricalEvent) => (
+  const renderEventDetails = (event: HistoricalEventDB) => (
     <PopoverContent className="w-96">
       <div className="space-y-2">
-        <h4 className="font-medium">{event.title}</h4>
+        <h4 className="font-medium">{event.location_name || 'Historical Event'}</h4>
         <p className="text-sm text-muted-foreground">{event.description}</p>
         
         {event.image_url && (
           <div className="mt-2 rounded overflow-hidden">
             <img 
               src={event.image_url} 
-              alt={event.title}
+              alt={event.location_name || 'Historical Event'}
               className="w-full h-auto object-cover max-h-48" 
             />
           </div>
@@ -453,7 +384,7 @@ const WebScraperAdmin = () => {
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <span>
-              {event.event_date ? format(new Date(event.event_date), 'MMMM d, yyyy') : 'Unknown date'}
+              Year: {event.year || 'Unknown'}
             </span>
           </div>
           
@@ -465,18 +396,6 @@ const WebScraperAdmin = () => {
               </span>
             </div>
           )}
-          
-          <div className="flex items-center gap-2">
-            <Link className="h-4 w-4 text-muted-foreground" />
-            <a 
-              href={event.source_url} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-500 hover:underline truncate"
-            >
-              {event.source_name}
-            </a>
-          </div>
         </div>
       </div>
     </PopoverContent>
@@ -848,7 +767,7 @@ const WebScraperAdmin = () => {
                               <Checkbox 
                                 checked={selectedEvents.includes(event.id)}
                                 onCheckedChange={(checked) => toggleEventSelection(event.id, !!checked)}
-                                aria-label={`Select event ${event.title}`}
+                                aria-label={`Select event ${event.location_name}`}
                               />
                             </TableCell>
                             <TableCell>
@@ -856,7 +775,7 @@ const WebScraperAdmin = () => {
                                 {event.image_url ? (
                                   <img 
                                     src={event.image_url} 
-                                    alt={event.title}
+                                    alt={event.location_name}
                                     className="w-full h-full object-cover" 
                                   />
                                 ) : (
@@ -868,26 +787,21 @@ const WebScraperAdmin = () => {
                               <Popover>
                                 <PopoverTrigger asChild>
                                   <Button variant="link" className="p-0 h-auto text-left justify-start font-normal">
-                                    <span className="line-clamp-2">{event.title}</span>
+                                    <span className="line-clamp-2">{event.location_name}</span>
                                   </Button>
                                 </PopoverTrigger>
                                 {renderEventDetails(event)}
                               </Popover>
                             </TableCell>
                             <TableCell>
-                              {event.event_date 
-                                ? format(new Date(event.event_date), 'MMM d, yyyy')
+                              {event.year 
+                                ? event.year
                                 : 'Unknown'}
                             </TableCell>
                             <TableCell>
-                              <a 
-                                href={event.source_url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-blue-500 hover:underline line-clamp-1"
-                              >
-                                {event.source_name}
-                              </a>
+                              <span className="line-clamp-1">
+                                {event.location_name}
+                              </span>
                             </TableCell>
                             <TableCell>
                               {event.deleted ? (
