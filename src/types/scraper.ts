@@ -40,7 +40,7 @@ export interface HistoricalEventDB {
   year: number;
   created_at: string;
   deleted?: boolean;
-  // Add compatibility fields to match the expected structure in the admin panel
+  // Compatibility fields for the admin panel
   title?: string; 
   event_date?: string;
   source_name?: string;

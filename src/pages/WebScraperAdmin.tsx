@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -108,7 +107,7 @@ const WebScraperAdmin = () => {
         if (error) throw error;
         
         // Add missing fields expected by the component
-        return (data as any[]).map(event => ({
+        return (data || []).map(event => ({
           ...event,
           title: event.location_name,
           event_date: event.year?.toString(),
@@ -195,7 +194,7 @@ const WebScraperAdmin = () => {
         description: `Events ${selectedEvents.length > 0 ? 'updated' : 'updated'} successfully.`,
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: `Failed to update events: ${error.message}`,
@@ -222,7 +221,7 @@ const WebScraperAdmin = () => {
         description: "Scraper settings have been updated successfully.",
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: `Failed to update settings: ${error.message}`,
@@ -1167,4 +1166,3 @@ const WebScraperAdmin = () => {
 };
 
 export default WebScraperAdmin;
-
