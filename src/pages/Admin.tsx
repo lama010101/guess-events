@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash, Image, Plus, X, Ban, User, Users, Home, Search, ChevronLeft, ChevronRight, Check, RefreshCw } from "lucide-react";
+import { Trash, Image, Plus, X, Ban, User, Users, Home, Search, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { HistoricalEvent } from '@/types/game';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,7 +18,6 @@ import PhotoViewer from '@/components/PhotoViewer';
 import AdminEventForm from '@/components/AdminEventForm';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast as sonnerToast } from 'sonner';
 
 const Admin = () => {
   const { toast } = useToast();
@@ -34,48 +34,15 @@ const Admin = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
-  const [isImporting, setIsImporting] = useState(false);
 
+  // Check if user is admin
   useEffect(() => {
-    const autoImportEvents = async () => {
-      try {
-        if (events.length === 0) {
-          setIsImporting(true);
-          sonnerToast.info('Auto-importing and validating events...');
-          
-          const { data: importData, error: importError } = await supabase.functions.invoke('import-historical-events');
-          
-          if (importError) {
-            throw importError;
-          }
-          
-          sonnerToast.success(`Imported ${importData.results.filter((r: any) => r.status === 'success').length} historical events`);
-          
-          const { data: validateData, error: validateError } = await supabase.functions.invoke('daily-events-update', {
-            body: { forceRefresh: true }
-          });
-          
-          if (validateError) {
-            throw validateError;
-          }
-          
-          sonnerToast.success('Events validated and images fixed');
-          
-          fetchEvents();
-        }
-      } catch (error) {
-        console.error('Auto-import error:', error);
-        sonnerToast.error('Failed to auto-import events');
-      } finally {
-        setIsImporting(false);
-      }
-    };
-    
-    if (window.location.pathname === '/adminlolo' || window.location.pathname === '/admin') {
-      autoImportEvents();
+    if (profile && profile.role !== 'admin') {
+      navigate('/');
     }
-  }, []);
+  }, [profile, navigate]);
 
+  // Load events from Supabase
   useEffect(() => {
     fetchEvents();
     fetchUsers();
@@ -85,6 +52,7 @@ const Admin = () => {
     try {
       setIsLoading(true);
       
+      // Calculate pagination
       const from = (currentPage - 1) * itemsPerPage;
       const to = from + itemsPerPage - 1;
       
@@ -92,6 +60,7 @@ const Admin = () => {
         .from('historical_events')
         .select('*', { count: 'exact' });
       
+      // Add search filter if search term exists
       if (eventsSearchTerm) {
         query = query.or(
           `year.ilike.%${eventsSearchTerm}%,` +
@@ -100,14 +69,12 @@ const Admin = () => {
         );
       }
       
+      // Add pagination
       const { data, error, count } = await query
         .order('created_at', { ascending: false })
         .range(from, to);
       
-      if (error) {
-        console.error('Error fetching events:', error);
-        throw error;
-      }
+      if (error) throw error;
       
       if (data) {
         const formattedEvents = data.map(event => ({
@@ -124,6 +91,7 @@ const Admin = () => {
         
         setEvents(formattedEvents);
         
+        // Update total pages
         if (count !== null) {
           setTotalPages(Math.ceil(count / itemsPerPage));
         }
@@ -152,21 +120,13 @@ const Admin = () => {
       
       const { data, error } = await query;
       
-      if (error) {
-        console.error('Error fetching users:', error);
-        throw error;
-      }
+      if (error) throw error;
       
       if (data) {
         setUsers(data);
       }
     } catch (error) {
       console.error('Error fetching users:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load users',
-        variant: 'destructive'
-      });
     }
   };
 
@@ -298,6 +258,7 @@ const Admin = () => {
         
       if (error) throw error;
       
+      // Update local state
       setUsers(users.map(user => 
         user.id === userId ? { ...user, status: newRole } : user
       ));
@@ -336,11 +297,6 @@ const Admin = () => {
           </Button>
           <h1 className="text-2xl font-bold">Admin Panel</h1>
         </div>
-        {isImporting && (
-          <div className="text-sm text-primary">
-            Auto-importing and validating events...
-          </div>
-        )}
       </div>
 
       <Tabs defaultValue="events" className="w-full">
@@ -383,20 +339,10 @@ const Admin = () => {
                     View, edit, and delete events used in the game
                   </CardDescription>
                 </div>
-                <div className="flex gap-2">
-                  <Button onClick={() => setIsAdding(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add New Event
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={fetchEvents} 
-                    className="flex items-center gap-2"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    Refresh
-                  </Button>
-                </div>
+                <Button onClick={() => setIsAdding(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add New Event
+                </Button>
               </CardHeader>
               <CardContent>
                 <div className="mb-4">
@@ -436,18 +382,14 @@ const Admin = () => {
                               <TableCell>{event.location.name}</TableCell>
                               <TableCell className="line-clamp-2">{event.description}</TableCell>
                               <TableCell>
-                                {event.imageUrl ? (
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    onClick={() => handlePreview(event.imageUrl)}
-                                  >
-                                    <Image className="h-4 w-4 mr-2" />
-                                    Preview
-                                  </Button>
-                                ) : (
-                                  <span className="text-destructive text-sm">No image</span>
-                                )}
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => handlePreview(event.imageUrl)}
+                                >
+                                  <Image className="h-4 w-4 mr-2" />
+                                  Preview
+                                </Button>
                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-2">
@@ -511,21 +453,11 @@ const Admin = () => {
 
         <TabsContent value="users">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Manage Users</CardTitle>
-                <CardDescription>
-                  View user information and manage account status
-                </CardDescription>
-              </div>
-              <Button 
-                variant="outline" 
-                onClick={fetchUsers} 
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Refresh
-              </Button>
+            <CardHeader>
+              <CardTitle>Manage Users</CardTitle>
+              <CardDescription>
+                View user information and manage account status
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="mb-4">

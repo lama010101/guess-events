@@ -28,7 +28,6 @@ function App() {
               </ProtectedRoutes>
             } 
           />
-          <Route path="/adminlolo" element={<Admin />} />
           <Route path="/import-events" element={<HistoricalEventsImport />} />
           <Route path="/profile/:userId" element={<UserProfile />} />
           <Route path="*" element={<NotFound />} />
