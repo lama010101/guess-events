@@ -107,7 +107,7 @@ const WebScraperAdmin = () => {
         if (error) throw error;
         
         // Add missing fields expected by the component
-        return (data || []).map((event: any) => ({
+        return (data || []).map((event) => ({
           ...event,
           title: event.location_name,
           event_date: event.year?.toString(),
@@ -134,6 +134,8 @@ const WebScraperAdmin = () => {
         const { data, error } = await supabase.rpc('get_scraper_logs');
         
         if (error) throw error;
+        
+        // Type assertion for jsonb array from RPC
         return (data || []) as ScraperLog[];
       } catch (error) {
         console.error('Error fetching scraper logs:', error);
@@ -158,6 +160,7 @@ const WebScraperAdmin = () => {
           return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
         }
         
+        // Use default settings if no data returned
         if (!data || data.length === 0) {
           return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
         }
@@ -215,9 +218,12 @@ const WebScraperAdmin = () => {
       });
       
       if (error) throw error;
+      
+      // Use default settings if no data returned
       if (!data || data.length === 0) {
         return DEFAULT_SCRAPER_SETTINGS as ScraperSettings;
       }
+      
       return data[0] as ScraperSettings;
     },
     onSuccess: () => {
