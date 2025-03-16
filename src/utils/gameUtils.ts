@@ -1,4 +1,4 @@
-import { Event, RoundResult, PlayerGuess, HistoricalEvent } from '@/types/game';
+import { HistoricalEvent, PlayerGuess, RoundResult } from '@/types/game';
 
 // Function to calculate the distance between two coordinates using Haversine formula
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -34,47 +34,19 @@ export function shuffleArray<T>(array: T[]): T[] {
   return newArray;
 }
 
-export function calculateRoundResult(event: Event | HistoricalEvent, guess: PlayerGuess): RoundResult {
-  const eventLoc = 'location' in event ? event.location : 
-    { lat: event.lat, lng: event.lng, name: event.name || '' };
-  const eventYear = 'year' in event ? event.year : (event as any).year;
-  const eventDesc = 'description' in event ? event.description : (event as any).description;
-  const eventImage = 'image_url' in event ? event.image_url : 
-    ('imageUrl' in event ? (event as any).imageUrl : '');
-  const eventId = 'id' in event ? event.id : (event as any).id;
-  
-  // Create a properly formatted Event object
-  const formattedEvent: Event = {
-    id: eventId,
-    year: eventYear,
-    description: eventDesc,
-    image_url: eventImage,
-    location: {
-      lat: eventLoc.lat,
-      lng: eventLoc.lng,
-      name: eventLoc.name
-    }
-  };
-  
+export function calculateRoundResult(event: HistoricalEvent, guess: PlayerGuess): RoundResult {
   if (!guess.location) {
-    const yearError = Math.abs(eventYear - guess.year);
-    const yearScore = Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearError, 0.9))));
+    const yearError = Math.abs(event.year - guess.year);
+    const timeScore = Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearError, 0.9))));
     
     return {
-      event: formattedEvent,
-      selectedLocation: { lat: 0, lng: 0 }, // Default values
-      selectedYear: guess.year,
-      distanceKm: Infinity,
-      yearDifference: yearError,
+      event,
+      guess,
+      distanceError: Infinity,
+      yearError,
       locationScore: 0,
-      yearScore: yearScore,
-      timeScore: yearScore, // For backward compatibility
-      totalScore: yearScore,
-      hintsUsed: {
-        time: false,
-        location: false
-      },
-      guess: guess,
+      timeScore,
+      totalScore: timeScore,
       achievements: {
         perfectTime: yearError === 0
       }
@@ -85,12 +57,12 @@ export function calculateRoundResult(event: Event | HistoricalEvent, guess: Play
   const distanceError = getDistance(
     guess.location.lat,
     guess.location.lng,
-    eventLoc.lat,
-    eventLoc.lng
+    event.location.lat,
+    event.location.lng
   );
 
   // Calculate year error
-  const yearError = Math.abs(eventYear - guess.year);
+  const yearError = Math.abs(event.year - guess.year);
 
   // Calculate location score (out of 5000)
   // Max distance error we consider is 10000 km
@@ -99,31 +71,24 @@ export function calculateRoundResult(event: Event | HistoricalEvent, guess: Play
 
   // Calculate time score (out of 5000)
   // Score decreases more rapidly for recent years vs ancient years
-  const yearScore = Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearError, 0.9))));
+  const timeScore = Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearError, 0.9))));
 
   // Calculate total score
-  const totalScore = locationScore + yearScore;
+  const totalScore = locationScore + timeScore;
 
   // Determine if any achievements were earned
-  const isPerfectLocation = distanceError < 10; // Less than 10 kilometers
+  const isPerfectLocation = distanceError < 0.05; // Less than 50 meters
   const isPerfectTime = yearError === 0;
   const isPerfect = isPerfectLocation && isPerfectTime;
 
   return {
-    event: formattedEvent,
-    selectedLocation: guess.location,
-    selectedYear: guess.year,
-    distanceKm: distanceError,
-    yearDifference: yearError,
-    locationScore,
-    yearScore,
-    timeScore: yearScore, // For backward compatibility
-    totalScore,
-    hintsUsed: {
-      time: false,
-      location: false
-    },
+    event,
     guess,
+    distanceError,
+    yearError,
+    locationScore,
+    timeScore,
+    totalScore,
     achievements: {
       perfectLocation: isPerfectLocation,
       perfectTime: isPerfectTime,

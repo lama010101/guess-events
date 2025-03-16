@@ -1,204 +1,240 @@
 
-import React, { useRef, useEffect, useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Maximize, Minimize } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-export interface GameMapProps {
-  onLocationSelect?: (lat: number, lng: number) => void;
-  selectedLocation?: { lat: number; lng: number } | null;
-  actualLocation?: { lat: number; lng: number } | null;
-  regionHint?: string;
-  isFullscreen?: boolean;
-  onToggleFullscreen?: () => void;
-  showUserAvatar?: boolean;
+interface GameMapProps {
+  onLocationSelect: (lat: number, lng: number) => void;
+  selectedLocation: { lat: number; lng: number } | null;
+  correctLocation?: { lat: number; lng: number; name: string };
+  showCorrectPin?: boolean;
+  isDisabled?: boolean;
   userAvatar?: string | null;
-  isStatic?: boolean;
+  locationHint?: { lat: number; lng: number; radiusKm: number } | undefined;
+  disableScroll?: boolean;
 }
 
-const GameMap: React.FC<GameMapProps> = ({
-  onLocationSelect,
-  selectedLocation,
-  actualLocation,
-  regionHint,
-  isFullscreen,
-  onToggleFullscreen,
-  showUserAvatar = false,
-  userAvatar = null,
-  isStatic = false
-}) => {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const leafletMapRef = useRef<L.Map | null>(null);
-  const userMarkerRef = useRef<L.Marker | null>(null);
-  const actualMarkerRef = useRef<L.Marker | null>(null);
-  const [mapHeight, setMapHeight] = useState('40vh');
-  
-  // Initialize map on component mount
-  useEffect(() => {
-    if (!mapRef.current || leafletMapRef.current) return;
-    
-    // Create map
-    const map = L.map(mapRef.current, {
-      center: [20, 0],
-      zoom: 2,
-      scrollWheelZoom: !isStatic,
-      dragging: !isStatic,
-      touchZoom: !isStatic,
-      doubleClickZoom: !isStatic,
-      boxZoom: !isStatic,
-      keyboard: !isStatic,
-      zoomControl: !isStatic
-    });
-    
-    // Add tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-    
-    // Adjust map height based on fullscreen status
-    if (isFullscreen) {
-      setMapHeight('calc(100vh - 200px)');
+// Fix the missing icon issue
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+});
+
+// Custom avatar marker
+const createAvatarIcon = (avatarUrl: string | null) => {
+  return L.divIcon({
+    className: 'custom-avatar-marker',
+    html: `<div class="avatar-container">
+      <img src="${avatarUrl || 'https://ui-avatars.com/api/?name=User&background=random'}" 
+      alt="User" class="avatar-image" />
+    </div>`,
+    iconSize: [38, 38],
+    iconAnchor: [19, 38],
+  });
+};
+
+// Style the avatar marker via CSS
+const createMapStyles = () => {
+  const style = document.createElement('style');
+  style.textContent = `
+    .custom-avatar-marker {
+      background: none;
+      border: none;
     }
     
-    leafletMapRef.current = map;
+    .avatar-container {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
     
-    // Add click handler if not in static mode
-    if (!isStatic && onLocationSelect) {
-      map.on('click', (e) => {
-        if (onLocationSelect) {
-          onLocationSelect(e.latlng.lat, e.latlng.lng);
-        }
+    .avatar-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .correct-marker-icon {
+      background-color: #10b981;
+      border: 2px solid white;
+      width: 20px !important;
+      height: 20px !important;
+      border-radius: 50%;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+    
+    .hint-circle {
+      stroke-dasharray: 5, 5;
+      stroke: #f59e0b;
+      fill: #f59e0b;
+      fill-opacity: 0.1;
+    }
+  `;
+  document.head.appendChild(style);
+};
+
+const GameMap: React.FC<GameMapProps> = ({ 
+  onLocationSelect, 
+  selectedLocation, 
+  correctLocation,
+  showCorrectPin = false,
+  isDisabled = false,
+  userAvatar = null,
+  locationHint,
+  disableScroll = false
+}) => {
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+  const correctMarkerRef = useRef<L.Marker | null>(null);
+  const hintCircleRef = useRef<L.Circle | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    createMapStyles();
+    
+    if (mapContainerRef.current && !mapRef.current) {
+      // Initialize map
+      const map = L.map(mapContainerRef.current, {
+        center: [20, 0],
+        zoom: 2,
+        scrollWheelZoom: !disableScroll,
+        dragging: !disableScroll || !isDisabled
       });
+      
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+      
+      mapRef.current = map;
+      
+      // Add click event if not disabled
+      if (!isDisabled) {
+        map.on('click', (e: L.LeafletMouseEvent) => {
+          const { lat, lng } = e.latlng;
+          onLocationSelect(lat, lng);
+        });
+      }
     }
     
     return () => {
-      if (leafletMapRef.current) {
-        leafletMapRef.current.remove();
-        leafletMapRef.current = null;
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
       }
     };
-  }, [isFullscreen, onLocationSelect, isStatic]);
+  }, [onLocationSelect, isDisabled, disableScroll]);
   
-  // Update marker when selected location changes
+  // Update marker when selectedLocation changes
   useEffect(() => {
-    if (!leafletMapRef.current) return;
+    if (!mapRef.current) return;
     
     // Remove existing marker
-    if (userMarkerRef.current) {
-      userMarkerRef.current.remove();
-      userMarkerRef.current = null;
+    if (markerRef.current) {
+      markerRef.current.remove();
+      markerRef.current = null;
     }
     
+    // Add new marker if location is selected
     if (selectedLocation) {
-      // Create custom icon if avatar is available
-      let icon: L.Icon | L.DivIcon;
+      const icon = createAvatarIcon(userAvatar);
+      const marker = L.marker([selectedLocation.lat, selectedLocation.lng], { icon }).addTo(mapRef.current);
+      markerRef.current = marker;
       
-      if (showUserAvatar && userAvatar) {
-        icon = L.divIcon({
-          html: `<div style="background-image: url('${userAvatar}'); width: 36px; height: 36px; border-radius: 50%; background-size: cover; border: 3px solid #3b82f6;"></div>`,
-          className: 'custom-div-icon',
-          iconSize: [36, 36],
-          iconAnchor: [18, 18]
-        });
+      // Center map on the marker
+      if (!showCorrectPin) {
+        mapRef.current.setView([selectedLocation.lat, selectedLocation.lng], mapRef.current.getZoom());
+      }
+    }
+  }, [selectedLocation, userAvatar, showCorrectPin]);
+  
+  // Show correct pin when requested
+  useEffect(() => {
+    if (!mapRef.current || !correctLocation) return;
+    
+    // Remove existing correct marker
+    if (correctMarkerRef.current) {
+      correctMarkerRef.current.remove();
+      correctMarkerRef.current = null;
+    }
+    
+    if (showCorrectPin) {
+      // Create a custom icon for the correct location
+      const correctIcon = L.divIcon({
+        className: 'correct-marker-icon',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+      
+      const correctMarker = L.marker([correctLocation.lat, correctLocation.lng], { 
+        icon: correctIcon,
+        zIndexOffset: 1000 // Ensure it's on top
+      })
+        .addTo(mapRef.current)
+        .bindTooltip(correctLocation.name);
+      
+      correctMarkerRef.current = correctMarker;
+      
+      // If both markers exist, set bounds to show both
+      if (markerRef.current) {
+        const bounds = L.latLngBounds(
+          [correctLocation.lat, correctLocation.lng],
+          [selectedLocation!.lat, selectedLocation!.lng]
+        );
+        mapRef.current.fitBounds(bounds, { padding: [50, 50] });
       } else {
-        icon = new L.Icon({
-          iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-          shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-          iconSize: [25, 41],
-          iconAnchor: [12, 41]
-        });
-      }
-      
-      // Add new marker
-      userMarkerRef.current = L.marker([selectedLocation.lat, selectedLocation.lng], { icon })
-        .addTo(leafletMapRef.current);
-      
-      // Pan to marker if not in static mode
-      if (!isStatic) {
-        leafletMapRef.current.panTo([selectedLocation.lat, selectedLocation.lng]);
+        // If only correct marker exists, center on it
+        mapRef.current.setView([correctLocation.lat, correctLocation.lng], 5);
       }
     }
-  }, [selectedLocation, showUserAvatar, userAvatar, isStatic]);
+  }, [correctLocation, showCorrectPin, selectedLocation]);
   
-  // Add actual location marker when revealed
+  // Handle location hint
   useEffect(() => {
-    if (!leafletMapRef.current || !actualLocation) return;
+    if (!mapRef.current) return;
     
-    // Remove existing actual location marker
-    if (actualMarkerRef.current) {
-      actualMarkerRef.current.remove();
-      actualMarkerRef.current = null;
+    // Remove existing hint circle
+    if (hintCircleRef.current) {
+      hintCircleRef.current.remove();
+      hintCircleRef.current = null;
     }
     
-    // Create custom icon for actual location
-    const actualIcon = L.divIcon({
-      html: '<div style="background-color: #ef4444; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white;"></div>',
-      className: 'custom-div-icon',
-      iconSize: [16, 16],
-      iconAnchor: [8, 8]
-    });
-    
-    // Add marker for actual location
-    actualMarkerRef.current = L.marker([actualLocation.lat, actualLocation.lng], { icon: actualIcon })
-      .addTo(leafletMapRef.current);
-    
-    // If both markers exist, create a line between them
-    if (selectedLocation && actualLocation) {
-      const latlngs = [
-        [selectedLocation.lat, selectedLocation.lng],
-        [actualLocation.lat, actualLocation.lng]
-      ];
+    if (locationHint) {
+      const circle = L.circle([locationHint.lat, locationHint.lng], {
+        radius: locationHint.radiusKm * 1000, // Convert km to meters
+        className: 'hint-circle'
+      }).addTo(mapRef.current);
       
-      L.polyline(latlngs as L.LatLngExpression[], { color: '#3b82f6', dashArray: '5, 5' })
-        .addTo(leafletMapRef.current);
+      hintCircleRef.current = circle;
       
-      // Fit bounds to show both markers
-      const bounds = L.latLngBounds([
-        [selectedLocation.lat, selectedLocation.lng],
-        [actualLocation.lat, actualLocation.lng]
-      ]);
-      
-      leafletMapRef.current.fitBounds(bounds, { padding: [50, 50] });
+      // Zoom to show the circle
+      mapRef.current.fitBounds(circle.getBounds(), { padding: [50, 50] });
     }
-  }, [actualLocation, selectedLocation, isStatic]);
+  }, [locationHint]);
   
-  // Add region hint if provided
+  // Update scroll wheel when disableScroll changes
   useEffect(() => {
-    if (!leafletMapRef.current || !regionHint) return;
+    if (!mapRef.current) return;
     
-    // Add a circle or highlight for the region hint
-    // Implementation depends on what kind of hint you want to show
-    const popup = L.popup()
-      .setLatLng([0, 0])
-      .setContent(`<p>Region Hint: ${regionHint}</p>`)
-      .openOn(leafletMapRef.current);
-      
-    return () => {
-      if (leafletMapRef.current) {
-        leafletMapRef.current.closePopup(popup);
+    if (disableScroll) {
+      mapRef.current.scrollWheelZoom.disable();
+      if (isDisabled) {
+        mapRef.current.dragging.disable();
       }
-    };
-  }, [regionHint]);
-  
+    } else {
+      mapRef.current.scrollWheelZoom.enable();
+      mapRef.current.dragging.enable();
+    }
+  }, [disableScroll, isDisabled]);
+
   return (
-    <div className="relative w-full h-full">
-      {onToggleFullscreen && (
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="absolute top-2 right-2 z-[400]"
-          onClick={onToggleFullscreen}
-        >
-          {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-        </Button>
-      )}
-      <div 
-        ref={mapRef} 
-        style={{ height: mapHeight, width: '100%' }}
-        className="z-0"
-      />
-    </div>
+    <div ref={mapContainerRef} className="h-full w-full rounded-md overflow-hidden"></div>
   );
 };
 

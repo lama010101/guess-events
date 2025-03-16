@@ -1,41 +1,54 @@
 
-import React from 'react';
-import { Card } from "@/components/ui/card";
+import React, { useState, useEffect } from 'react';
+import { Maximize, Minimize, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-export interface PhotoViewerProps {
-  image: string;
-  src?: string; // Alternative prop name
-  description?: string;
-  hint?: string;
+interface PhotoViewerProps {
+  src: string;
+  alt?: string;
 }
 
-const PhotoViewer: React.FC<PhotoViewerProps> = ({ 
-  image, 
-  src, 
-  description,
-  hint
-}) => {
-  // Use either image or src prop
-  const imageSrc = image || src;
+const PhotoViewer: React.FC<PhotoViewerProps> = ({ src, alt = "Historical photograph" }) => {
+  const [zoomed, setZoomed] = useState(false);
+  const [imageOrientation, setImageOrientation] = useState<'portrait' | 'landscape'>('landscape');
+  
+  useEffect(() => {
+    // Check image dimensions when loaded
+    const img = new Image();
+    img.onload = () => {
+      setImageOrientation(img.width > img.height ? 'landscape' : 'portrait');
+    };
+    img.src = src;
+  }, [src]);
   
   return (
-    <div className="relative w-full h-full min-h-[40vh]">
+    <div className={`relative rounded-lg overflow-hidden shadow-md ${zoomed ? 'fixed inset-0 z-50 bg-black flex items-center justify-center' : 'w-full h-full'}`}>
       <img 
-        src={imageSrc} 
-        alt={description || "Historical photo"} 
-        className="w-full h-full object-cover" 
+        src={src} 
+        alt={alt} 
+        className={`
+          ${zoomed ? 'object-contain w-full h-full' : 'w-full h-full object-cover'} 
+        `}
       />
       
-      {hint && (
-        <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm">
-          {hint}
-        </div>
-      )}
-      
-      {description && (
-        <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white p-3 text-sm">
-          {description}
-        </div>
+      <Button 
+        variant="outline" 
+        size="icon" 
+        className="absolute bottom-4 right-4 bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm hover:bg-white/90 dark:hover:bg-gray-800/90 z-10"
+        onClick={() => setZoomed(!zoomed)}
+      >
+        {zoomed ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+      </Button>
+
+      {zoomed && (
+        <Button
+          variant="outline"
+          size="icon"
+          className="absolute top-4 right-4 bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm hover:bg-white/90 dark:hover:bg-gray-800/90 z-10"
+          onClick={() => setZoomed(false)}
+        >
+          <X className="h-4 w-4" />
+        </Button>
       )}
     </div>
   );

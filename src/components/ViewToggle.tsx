@@ -1,32 +1,35 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Image, Map } from 'lucide-react';
+import { Image, MapPin } from 'lucide-react';
 
-export interface ViewToggleProps {
-  view: 'photo' | 'map';
-  onChange: (view: 'photo' | 'map') => void;
+interface ViewToggleProps {
+  activeView: 'photo' | 'map';
+  onViewChange: (view: 'photo' | 'map') => void;
 }
 
-const ViewToggle: React.FC<ViewToggleProps> = ({ view, onChange }) => {
+const ViewToggle: React.FC<ViewToggleProps> = ({ 
+  activeView, 
+  onViewChange 
+}) => {
   return (
-    <div className="flex space-x-2">
+    <div className="flex space-x-2 justify-center mb-4 z-[100] relative">
       <Button
-        variant="ghost"
+        variant={activeView === 'photo' ? 'default' : 'outline'}
         size="sm"
-        onClick={() => onChange('photo')}
-        className={`${view === 'photo' ? 'bg-primary/10' : ''}`}
+        onClick={() => onViewChange('photo')}
+        className="flex-1 max-w-32 pointer-events-auto"
       >
-        <Image className="h-4 w-4 mr-2" />
+        <Image className="mr-2 h-4 w-4" />
         Photo
       </Button>
       <Button
-        variant="ghost"
+        variant={activeView === 'map' ? 'default' : 'outline'}
         size="sm"
-        onClick={() => onChange('map')}
-        className={`${view === 'map' ? 'bg-primary/10' : ''}`}
+        onClick={() => onViewChange('map')}
+        className="flex-1 max-w-32 pointer-events-auto"
       >
-        <Map className="h-4 w-4 mr-2" />
+        <MapPin className="mr-2 h-4 w-4" />
         Map
       </Button>
     </div>
