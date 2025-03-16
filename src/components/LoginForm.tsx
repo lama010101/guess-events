@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { signInWithEmail } from '@/integrations/supabase/auth';
 import { AlertCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LoginFormProps {
   onSuccess: () => void;
@@ -27,7 +27,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     setError(null);
     
     try {
-      // Use the signInWithEmail function from auth.ts for consistency
       const { error } = await signInWithEmail(email, password);
       
       if (error) {
@@ -45,7 +44,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     }
   };
   
-  // Handle forgot password functionality
   const handleForgotPassword = async (e: React.MouseEvent) => {
     e.preventDefault();
     
