@@ -1,75 +1,52 @@
 
 import React, { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
-import { Progress } from "@/components/ui/progress";
 
-interface TimerProps {
-  durationMinutes: number;
+export interface TimerProps {
+  duration: number; // in seconds
   onTimeUp: () => void;
-  isActive: boolean;
-  remainingSeconds?: number;
+  round: number; // to reset timer when round changes
 }
 
-const Timer: React.FC<TimerProps> = ({ durationMinutes, onTimeUp, isActive, remainingSeconds }) => {
-  const [timeLeft, setTimeLeft] = useState(remainingSeconds || durationMinutes * 60);
-  const totalSeconds = durationMinutes * 60;
-  const progress = (timeLeft / totalSeconds) * 100;
+const Timer: React.FC<TimerProps> = ({ duration, onTimeUp, round }) => {
+  const [timeLeft, setTimeLeft] = useState(duration);
+  
+  useEffect(() => {
+    // Reset timer when round changes
+    setTimeLeft(duration);
+  }, [round, duration]);
+  
+  useEffect(() => {
+    if (timeLeft <= 0) {
+      onTimeUp();
+      return;
+    }
+    
+    const timer = setInterval(() => {
+      setTimeLeft(prevTime => prevTime - 1);
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [timeLeft, onTimeUp]);
   
   // Format time as MM:SS
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    
-    if (isActive && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => {
-          const newTime = prev - 1;
-          if (newTime <= 0) {
-            if (interval) clearInterval(interval);
-            onTimeUp();
-            return 0;
-          }
-          return newTime;
-        });
-      }, 1000);
-    } else if (!isActive && interval) {
-      clearInterval(interval);
-    }
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isActive, timeLeft, onTimeUp]);
-
-  // Update timeLeft when remainingSeconds changes
-  useEffect(() => {
-    if (remainingSeconds !== undefined) {
-      setTimeLeft(remainingSeconds);
-    }
-  }, [remainingSeconds]);
-
-  // Color changes based on time remaining
-  const getColorClass = () => {
-    if (progress > 50) return "bg-green-500";
-    if (progress > 25) return "bg-yellow-500";
-    return "bg-red-500";
-  };
-
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
+  const formattedTime = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  
+  // Calculate percentage for visual indicator
+  const percentageLeft = (timeLeft / duration) * 100;
+  
   return (
-    <div className="flex flex-col space-y-1">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Clock className="h-4 w-4 text-gray-500" />
-          <span className="text-sm font-medium">{formatTime(timeLeft)}</span>
-        </div>
-        <span className="text-xs text-gray-500">{durationMinutes} min</span>
+    <div className="flex items-center bg-gray-100 rounded-full px-2 py-1">
+      <Clock className="h-4 w-4 mr-1 text-gray-500" />
+      <div className="relative w-16 text-center text-sm font-medium">
+        <div 
+          className="absolute left-0 top-0 bottom-0 bg-blue-100 rounded-full z-0"
+          style={{ width: `${percentageLeft}%` }}
+        />
+        <span className="relative z-10">{formattedTime}</span>
       </div>
-      <Progress value={progress} className={getColorClass()} />
     </div>
   );
 };
