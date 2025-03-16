@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -69,7 +68,14 @@ export const useGameState = () => {
               year: 1962
             },
             timerStartTime: prev.settings.timerEnabled ? Date.now() : undefined,
-            timerRemaining: prev.settings.timerEnabled ? prev.settings.timerDuration * 60 : undefined
+            timerRemaining: prev.settings.timerEnabled ? prev.settings.timerDuration * 60 : undefined,
+            hints: {
+              available: prev.settings.maxHints,
+              timeHintUsed: false,
+              locationHintUsed: false,
+              timeHintRange: undefined,
+              locationHintRegion: undefined
+            }
           }));
         }
       }
@@ -277,7 +283,7 @@ export const useGameState = () => {
         timerStartTime: prev.settings.timerEnabled ? Date.now() : undefined,
         timerRemaining: prev.settings.timerEnabled ? prev.settings.timerDuration * 60 : undefined,
         hints: {
-          available: prev.hints.available,
+          available: prev.settings.maxHints,
           timeHintUsed: false,
           locationHintUsed: false
         }
