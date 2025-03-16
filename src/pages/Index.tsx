@@ -109,7 +109,7 @@ const Index = () => {
         ...prev,
         settings: {
           ...prev.settings,
-          distanceUnit: profile.default_distance_unit || settings.distanceUnit
+          distanceUnit: profile.default_distance_unit || prev.settings.distanceUnit
         },
         userAvatar: profile.avatar_url
       }));
@@ -485,7 +485,7 @@ const Index = () => {
                     onLocationSelect={handleLocationSelect} 
                     selectedLocation={gameState.currentGuess?.location}
                     userAvatar={gameState.userAvatar}
-                    hintRegion={gameState.hints.locationHintRegion}
+                    locationHint={gameState.hints.locationHintRegion}
                   />
                 )}
               </div>
