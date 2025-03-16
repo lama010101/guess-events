@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -118,10 +117,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
     }
   };
 
-  const filteredFriends = friendsList.filter(friend => 
-    friend.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   const handleStartGame = async (mode: 'daily' | 'friends' | 'single') => {
     if (mode === 'daily' && !user) {
       toast({
@@ -141,22 +136,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
     };
     
     if (mode === 'friends') {
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "You need to sign in to play with friends.",
+          variant: "destructive"
+        });
+        setShowAuthPrompt(true);
+        return;
+      }
+      
       try {
-        // For non-authenticated users, simply start a single player game instead
-        if (!user) {
-          toast({
-            title: "Starting Solo Game",
-            description: "Sign in to play with friends and track your progress!",
-          });
-          onStartGame({
-            ...settings,
-            gameMode: 'single',
-            hintsEnabled: true,
-            maxHints: 2
-          });
-          return;
-        }
-        
         const creatorId = user.id;
         
         const { data, error } = await supabase
@@ -312,7 +302,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
               <Users className="mr-2 h-4 w-4" /> Play with Friends
             </Button>
             
-            {/* Moved Timer controls below Play with Friends button */}
             <div className="flex flex-col space-y-2">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -348,31 +337,37 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="flex w-full justify-center gap-4">
-            <Link to="/admin" className="text-sm text-muted-foreground hover:text-primary flex items-center">
-              <Shield className="mr-1 h-3 w-3" /> Admin Panel
-            </Link>
-            <Link to="/admin/scraper" className="text-sm text-muted-foreground hover:text-primary flex items-center">
-              <Database className="mr-1 h-3 w-3" /> Scraper Dashboard
-            </Link>
+            {profile?.role === 'admin' && (
+              <>
+                <Link to="/admin" className="text-sm text-muted-foreground hover:text-primary flex items-center">
+                  <Shield className="mr-1 h-3 w-3" /> Admin Panel
+                </Link>
+                <Link to="/admin/scraper" className="text-sm text-muted-foreground hover:text-primary flex items-center">
+                  <Database className="mr-1 h-3 w-3" /> Scraper Dashboard
+                </Link>
+              </>
+            )}
           </div>
         </CardFooter>
       </Card>
       
-      <FriendsDialog 
-        open={showFriendsDialog}
-        onOpenChange={setShowFriendsDialog}
-        gameSessionLink={gameSessionLink}
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        filteredFriends={friendsList.filter(friend => 
-          friend.name.toLowerCase().includes(searchTerm.toLowerCase())
-        )}
-        selectedFriends={selectedFriends}
-        onToggleFriend={toggleFriendSelection}
-        onCopyLink={handleCopyLink}
-        onStartGame={handleStartFriendsGame}
-        user={user}
-      />
+      {user && (
+        <FriendsDialog 
+          open={showFriendsDialog}
+          onOpenChange={setShowFriendsDialog}
+          gameSessionLink={gameSessionLink}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          filteredFriends={friendsList.filter(friend => 
+            friend.name.toLowerCase().includes(searchTerm.toLowerCase())
+          )}
+          selectedFriends={selectedFriends}
+          onToggleFriend={toggleFriendSelection}
+          onCopyLink={handleCopyLink}
+          onStartGame={handleStartFriendsGame}
+          user={user}
+        />
+      )}
 
       <AuthPromptDialog 
         open={showAuthPrompt}

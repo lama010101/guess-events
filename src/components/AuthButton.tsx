@@ -60,23 +60,23 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     setOpen(false);
   };
   
-  // If the authentication data is loading, show a button with loading state
-  // but don't disable it to allow users to still open the auth dialog
+  // If the authentication data is loading, show a loading state
   if (isLoading) {
     return (
       <Button 
         variant={topBar ? "outline" : "default"} 
-        onClick={() => setOpen(true)}
         size={topBar ? "sm" : "default"}
         className={`${topBar ? "h-8" : ""} pointer-events-auto z-50`}
+        disabled
       >
-        <UserPlus className="mr-2 h-4 w-4" />
-        {!topBar && "Register / Sign In"}
+        <span className="animate-pulse">Loading...</span>
       </Button>
     );
   }
   
+  // If the user is authenticated, show the user avatar
   if (user && profile) {
+    console.log("Rendering authenticated state with profile:", profile);
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -113,13 +113,17 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleGoToAdmin} className="cursor-pointer">
-            <span>Admin Dashboard</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleGoToScraper} className="cursor-pointer">
-            <span>Scraper Dashboard</span>
-          </DropdownMenuItem>
+          {profile.role === 'admin' && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleGoToAdmin} className="cursor-pointer">
+                <span>Admin Dashboard</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleGoToScraper} className="cursor-pointer">
+                <span>Scraper Dashboard</span>
+              </DropdownMenuItem>
+            </>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
             <LogIn className="mr-2 h-4 w-4" />
@@ -130,7 +134,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     );
   }
   
-  // Enhanced responsiveness for auth button
+  // Enhanced responsiveness for auth button when user is not authenticated
   return (
     <>
       <Button 

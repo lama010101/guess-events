@@ -10,6 +10,8 @@ export interface HistoricalEvent {
   year: number;
   description: string;
   gameMode?: 'daily' | 'friends' | 'single';
+  image_attribution?: string;
+  image_license?: string;
 }
 
 export interface GameSettings {
