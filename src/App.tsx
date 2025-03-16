@@ -8,6 +8,7 @@ import UserProfile from "./pages/UserProfile";
 import WebScraperAdmin from "./pages/WebScraperAdmin";
 import { AuthProvider } from "./contexts/AuthContext";
 import { Toaster as SonnerToaster } from "sonner";
+import ProtectedRoutes from "./components/ProtectedRoutes";
 
 function App() {
   return (
@@ -19,9 +20,33 @@ function App() {
           <Route path="/game/:sessionId" element={<Index />} />
           <Route path="/game/:sessionId/round/:roundId" element={<Index />} />
           <Route path="/leaderboard" element={<Index />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/admin/scraper" element={<WebScraperAdmin />} />
-          <Route path="/adminlolo" element={<Admin />} />
+          
+          {/* Admin routes protected by role */}
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoutes requiredRole="admin">
+                <Admin />
+              </ProtectedRoutes>
+            } 
+          />
+          <Route 
+            path="/admin/scraper" 
+            element={
+              <ProtectedRoutes requiredRole="admin">
+                <WebScraperAdmin />
+              </ProtectedRoutes>
+            } 
+          />
+          <Route 
+            path="/adminlolo" 
+            element={
+              <ProtectedRoutes requiredRole="admin">
+                <Admin />
+              </ProtectedRoutes>
+            } 
+          />
+          
           <Route path="/profile/:userId" element={<UserProfile />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
