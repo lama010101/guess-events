@@ -85,7 +85,7 @@ const Index = () => {
   };
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       {renderGameView()}
       
       <SettingsDialog 
@@ -112,7 +112,7 @@ const Index = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 };
 
