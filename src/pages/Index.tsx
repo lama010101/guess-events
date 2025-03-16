@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import HomeScreen from '@/components/HomeScreen';
 import RoundResultComponent from '@/components/RoundResult';
@@ -8,6 +9,7 @@ import GameView from '@/components/GameView';
 import { useGameState } from '@/hooks/useGameState';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
+import { GameSettings } from '@/types/game';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,13 +32,13 @@ const Index = () => {
   const gameState = {
     gameStatus: 'not-started',
     settings: {
-      distanceUnit: 'km',
+      distanceUnit: 'km' as 'km' | 'miles',
       timerEnabled: true,
       timerDuration: 5,
-      gameMode: 'single',
+      gameMode: 'single' as 'daily' | 'friends' | 'single',
       hintsEnabled: true,
       maxHints: 2
-    },
+    } as GameSettings,
     currentRound: 1,
     totalRounds: 5
   };

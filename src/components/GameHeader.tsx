@@ -19,6 +19,23 @@ interface GameHeaderProps {
   onShare?: () => void;
   onSettingsClick?: () => void;
   onHomeClick?: () => void;
+  // Optional props for the GameView component
+  gameMode?: string;
+  onSelectYear?: (year: number | null) => void;
+  year?: number;
+  timerEnabled?: boolean;
+  timerDuration?: number;
+  onTimerEnd?: () => void;
+  isTimerRunning?: boolean;
+  hints?: {
+    available: number;
+    timeHintUsed?: boolean;
+    locationHintUsed?: boolean;
+    yearHintUsed?: boolean;
+    used?: string[];
+  };
+  onUseHint?: (hintType: string) => void;
+  currentEvent?: any;
 }
 
 const GameHeader: React.FC<GameHeaderProps> = ({ 

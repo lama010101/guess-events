@@ -1,3 +1,4 @@
+
 import { HistoricalEvent, PlayerGuess, RoundResult } from '@/types/game';
 
 // Function to calculate the distance between two coordinates using Haversine formula
@@ -62,7 +63,7 @@ export function calculateRoundResult(event: HistoricalEvent, guess: PlayerGuess)
   }
 
   // Calculate distance error in kilometers
-  const distanceError = getDistance(
+  const distanceError = calculateDistance(
     guess.location.lat,
     guess.location.lng,
     event.location.lat,

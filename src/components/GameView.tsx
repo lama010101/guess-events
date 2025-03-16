@@ -34,19 +34,21 @@ const GameView: React.FC<GameViewProps> = () => {
   const {
     currentRound,
     totalRounds,
-    gameMode,
-    selectedYear,
-    selectedLocation,
+    gameStatus,
+    settings,
+    hints,
+    roundResults,
     events,
     currentEvent,
-    gameStatus,
-    hints,
-    roundResults
+    currentGuess
   } = gameState;
 
+  const selectedLocation = currentGuess?.location || null;
+  const selectedYear = currentGuess?.year || null;
+  const gameMode = settings.gameMode;
+  const timerEnabled = settings.timerEnabled;
+  const timerDuration = settings.timerDuration;
   const showResult = gameStatus === 'show-result' || gameStatus === 'round-result';
-  const timerEnabled = gameState.settings.timerEnabled;
-  const timerDuration = gameState.settings.timerDuration;
 
   const handleTimerEnd = () => {
     console.log("Timer ended");
@@ -60,9 +62,9 @@ const GameView: React.FC<GameViewProps> = () => {
         <GameHeader
           currentRound={currentRound}
           totalRounds={totalRounds}
-          gameMode={gameMode || 'single'}
-          onSelectYear={handleYearSelect}
+          cumulativeScore={calculateTotalScore(roundResults)}
           year={selectedYear || undefined}
+          onSelectYear={handleYearSelect}
           timerEnabled={timerEnabled}
           timerDuration={timerDuration}
           onTimerEnd={handleTimerEnd}
@@ -122,7 +124,7 @@ const GameView: React.FC<GameViewProps> = () => {
             {showResult && roundResult && (
               <div className="text-sm">
                 <span className="font-medium">Distance: </span>
-                <span>{roundResult.distanceError || roundResult.distance} {distanceUnit}</span>
+                <span>{roundResult.distanceError} {distanceUnit}</span>
                 {(roundResult.yearError !== 0 && roundResult.yearError !== undefined) && (
                   <span className="ml-2 font-medium">Year Error: </span>
                 )}
@@ -144,13 +146,13 @@ const GameView: React.FC<GameViewProps> = () => {
       </div>
       
       {/* Results overlay */}
-      {gameStatus === 'completed' && roundResults && (
+      {gameStatus === 'completed' && (
         <GameResults
           results={roundResults}
           totalScore={calculateTotalScore(roundResults)}
           onPlayAgain={resetGame}
           distanceUnit={distanceUnit}
-          gameMode={gameMode || 'single'}
+          gameMode={gameMode}
           achievements={achievements}
         />
       )}
