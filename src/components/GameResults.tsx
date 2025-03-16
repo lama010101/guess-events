@@ -5,11 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Button } from '@/components/ui/button';
 import { formatNumber } from '@/utils/gameUtils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Home, RotateCcw, Medal, Trophy, Users } from 'lucide-react';
+import { Home, RotateCcw, Medal, Trophy, Users, Share2, Twitter, Facebook, Link, Award } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import AuthButton from './AuthButton';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from "@/hooks/use-toast";
 
 interface GameResultsProps {
   results: RoundResult[];
@@ -23,12 +31,28 @@ const GameResults: React.FC<GameResultsProps> = ({
   onHome
 }) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const totalScore = results.reduce((sum, result) => sum + result.totalScore, 0);
   const [leaderboardSort, setLeaderboardSort] = useState<'daily' | 'total' | 'average'>('daily');
   
   // Check if we're in daily mode by examining if gameMode is set to daily
   const isDailyMode = results.length > 0 && 
     results[0].event.gameMode === 'daily';
+  
+  // Calculate total hints used
+  const hintsUsed = results.reduce((total, result) => {
+    let count = 0;
+    if (result.hintsUsed?.time) count++;
+    if (result.hintsUsed?.location) count++;
+    return total + count;
+  }, 0);
+  
+  // Calculate achievements
+  const achievements = {
+    perfectLocations: results.filter(r => r.achievements?.perfectLocation).length,
+    perfectYears: results.filter(r => r.achievements?.perfectTime).length,
+    perfectScores: results.filter(r => r.achievements?.perfect).length
+  };
   
   // Placeholder leaderboard data
   const leaderboardData = [
@@ -42,6 +66,37 @@ const GameResults: React.FC<GameResultsProps> = ({
     if (leaderboardSort === 'total') return b.totalScore - a.totalScore;
     return b.avgScore - a.avgScore;
   }).map((item, index) => ({ ...item, rank: index + 1 }));
+  
+  // Add share functionality
+  const handleShare = (platform: 'twitter' | 'facebook' | 'copy') => {
+    const shareText = `I scored ${totalScore} points in HistoryGuess! Can you beat my score?`;
+    const url = window.location.href;
+    
+    switch (platform) {
+      case 'twitter':
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(url)}`, '_blank');
+        break;
+      case 'facebook':
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(shareText)}`, '_blank');
+        break;
+      case 'copy':
+        navigator.clipboard.writeText(`${shareText} ${url}`)
+          .then(() => {
+            toast({
+              title: "Link copied!",
+              description: "Share link copied to clipboard",
+            });
+          })
+          .catch(() => {
+            toast({
+              title: "Failed to copy",
+              description: "Could not copy to clipboard",
+              variant: "destructive",
+            });
+          });
+        break;
+    }
+  };
   
   return (
     <div className="w-full max-w-5xl mx-auto">
@@ -60,6 +115,63 @@ const GameResults: React.FC<GameResultsProps> = ({
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
               out of {formatNumber(results.length * 10000)} possible points
             </p>
+            <div className="flex justify-center space-x-4 mt-3">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                    <Share2 className="h-4 w-4" />
+                    Share Score
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => handleShare('twitter')} className="cursor-pointer">
+                    <Twitter className="h-4 w-4 mr-2" />
+                    Share on Twitter
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleShare('facebook')} className="cursor-pointer">
+                    <Facebook className="h-4 w-4 mr-2" />
+                    Share on Facebook
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleShare('copy')} className="cursor-pointer">
+                    <Link className="h-4 w-4 mr-2" />
+                    Copy Share Link
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+          
+          {/* Achievements summary */}
+          {(achievements.perfectLocations > 0 || achievements.perfectYears > 0 || achievements.perfectScores > 0) && (
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 mb-2">
+              <h3 className="font-semibold text-lg flex items-center gap-2">
+                <Award className="h-5 w-5 text-yellow-500" />
+                Achievements Summary
+              </h3>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {achievements.perfectLocations > 0 && (
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    {achievements.perfectLocations} Perfect Locations
+                  </Badge>
+                )}
+                {achievements.perfectYears > 0 && (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    {achievements.perfectYears} Perfect Years
+                  </Badge>
+                )}
+                {achievements.perfectScores > 0 && (
+                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                    {achievements.perfectScores} Perfect Scores
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Hints used summary */}
+          <div className="bg-gray-50 dark:bg-gray-900/10 rounded-lg p-4 mb-2">
+            <h3 className="font-semibold">Hints Used</h3>
+            <p>{hintsUsed} out of {results.length * 2} possible hints</p>
           </div>
           
           <Tabs defaultValue="rounds" className="w-full">

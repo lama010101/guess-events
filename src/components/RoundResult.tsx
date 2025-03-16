@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { formatNumber, convertToMiles } from '@/utils/gameUtils';
 import GameMap from './GameMap';
 import PhotoViewer from './PhotoViewer';
-import { Trophy } from 'lucide-react';
+import { Trophy, Award, Star, Target, Clock } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
 
 interface RoundResultProps {
   result: RoundResult;
@@ -23,7 +24,7 @@ const RoundResultComponent: React.FC<RoundResultProps> = ({
   isLastRound,
   userAvatar = null
 }) => {
-  const { event, guess, distanceError, yearError, locationScore, timeScore, totalScore } = result;
+  const { event, guess, distanceError, yearError, locationScore, timeScore, totalScore, hintsUsed, achievements } = result;
   
   const formattedDistance = distanceUnit === 'km' 
     ? `${formatNumber(Math.round(distanceError))} km` 
@@ -32,6 +33,13 @@ const RoundResultComponent: React.FC<RoundResultProps> = ({
   const isPerfectLocation = distanceError < 0.05; // Less than 50m
   const isPerfectYear = yearError === 0;
   const isPerfectScore = totalScore === 10000;
+
+  // Check if any achievements were earned
+  const hasAchievements = achievements && (
+    achievements.perfectLocation || 
+    achievements.perfectTime || 
+    achievements.perfect
+  );
 
   return (
     <div className="flex flex-col space-y-4 w-full max-w-5xl mx-auto pb-20 z-20">
@@ -59,6 +67,36 @@ const RoundResultComponent: React.FC<RoundResultProps> = ({
               </div>
               
               <div className="md:col-span-2 flex flex-col space-y-4">
+                {/* Display achievements if any were won */}
+                {hasAchievements && (
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 mb-2">
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                      <Award className="h-5 w-5 text-yellow-500" />
+                      Achievements Unlocked
+                    </h3>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {achievements?.perfectLocation && (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
+                          <Target className="h-3 w-3" />
+                          Perfect Location
+                        </Badge>
+                      )}
+                      {achievements?.perfectTime && (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          Perfect Year
+                        </Badge>
+                      )}
+                      {achievements?.perfect && (
+                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 flex items-center gap-1">
+                          <Star className="h-3 w-3" />
+                          Perfect Score
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
                   <h3 className="font-semibold text-lg mb-2">Location</h3>
                   <div className="flex justify-between items-center">
@@ -72,6 +110,12 @@ const RoundResultComponent: React.FC<RoundResultProps> = ({
                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         Correct location: {event.location.name}
                       </p>
+                      
+                      {hintsUsed?.location && (
+                        <p className="text-xs text-orange-500 mt-1">
+                          Used location hint
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-gray-500 dark:text-gray-400">Points</p>
@@ -93,6 +137,12 @@ const RoundResultComponent: React.FC<RoundResultProps> = ({
                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         You guessed: {guess.year} | Actual: {event.year}
                       </p>
+                      
+                      {hintsUsed?.time && (
+                        <p className="text-xs text-orange-500 mt-1">
+                          Used time hint
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-gray-500 dark:text-gray-400">Points</p>

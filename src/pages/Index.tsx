@@ -233,6 +233,8 @@ const Index = () => {
       const yearError = Math.abs(currentEvent.year - gameState.currentGuess.year);
       const timeScore = Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearError, 0.9))));
       
+      const isPerfectTime = yearError === 0;
+      
       const result: RoundResult = {
         event: currentEvent,
         guess: gameState.currentGuess,
@@ -240,7 +242,14 @@ const Index = () => {
         yearError,
         locationScore: 0,
         timeScore,
-        totalScore: timeScore
+        totalScore: timeScore,
+        hintsUsed: {
+          time: gameState.hints.timeHintUsed,
+          location: gameState.hints.locationHintUsed
+        },
+        achievements: {
+          perfectTime: isPerfectTime
+        }
       };
 
       setGameState(prev => ({
@@ -254,6 +263,11 @@ const Index = () => {
 
     const currentEvent = gameState.events[gameState.currentRound - 1];
     const result = calculateRoundResult(currentEvent, gameState.currentGuess);
+    
+    result.hintsUsed = {
+      time: gameState.hints.timeHintUsed,
+      location: gameState.hints.locationHintUsed
+    };
 
     setGameState(prev => ({
       ...prev,

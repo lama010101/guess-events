@@ -176,7 +176,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
           if (user) {
             setShowFriendsDialog(true);
           } else {
-            navigate(sessionUrl);
+            navigate(`/game/${data.id}`);
           }
         }
       } catch (error) {

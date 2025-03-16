@@ -1,113 +1,30 @@
+import { HistoricalEvent, PlayerGuess, RoundResult } from '@/types/game';
 
-import { HistoricalEvent, PlayerGuess, RoundResult } from "../types/game";
+// Function to calculate the distance between two coordinates using Haversine formula
+function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Radius of the Earth in kilometers
+  const lat1Rad = Math.PI / 180 * lat1;
+  const lat2Rad = Math.PI / 180 * lat2;
+  const deltaLatRad = Math.PI / 180 * (lat2 - lat1);
+  const deltaLonRad = Math.PI / 180 * (lon2 - lon1);
 
-// Haversine formula to calculate distance between two points on Earth
-export function calculateDistance(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  const R = 6371; // Radius of the Earth in km
-  const dLat = deg2rad(lat2 - lat1);
-  const dLon = deg2rad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(deg2rad(lat1)) *
-      Math.cos(deg2rad(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+  const a = Math.sin(deltaLatRad / 2) * Math.sin(deltaLatRad / 2) +
+            Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+            Math.sin(deltaLonRad / 2) * Math.sin(deltaLonRad / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c; // Distance in km
-  return distance;
-}
 
-function deg2rad(deg: number): number {
-  return deg * (Math.PI / 180);
+  const distance = R * c;
+  return distance;
 }
 
 export function convertToMiles(km: number): number {
   return km * 0.621371;
 }
 
-// Calculate location score based on distance in km - using the formula from specs
-export function calculateLocationScore(distanceInKm: number): number {
-  return Math.max(0, Math.round(5000 - Math.min(5000, 2.5 * Math.pow(distanceInKm, 0.85))));
+export function formatNumber(num: number): string {
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-// Calculate time score based on year difference - using the formula from specs
-export function calculateTimeScore(yearDifference: number): number {
-  return Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearDifference, 0.9))));
-}
-
-// Calculate complete round results
-export function calculateRoundResult(
-  event: HistoricalEvent,
-  guess: PlayerGuess,
-  hintsUsed?: { time: boolean; location: boolean }
-): RoundResult {
-  const distanceError = calculateDistance(
-    event.location.lat,
-    event.location.lng,
-    guess.location.lat,
-    guess.location.lng
-  );
-  
-  const yearError = Math.abs(event.year - guess.year);
-  
-  const locationScore = calculateLocationScore(distanceError);
-  const timeScore = calculateTimeScore(yearError);
-  
-  return {
-    event,
-    guess,
-    distanceError,
-    yearError,
-    locationScore,
-    timeScore,
-    totalScore: locationScore + timeScore,
-    hintsUsed
-  };
-}
-
-// Generate a location hint region
-export function generateLocationHint(location: { lat: number; lng: number }): { lat: number; lng: number; radiusKm: number } {
-  // Create a hint that's within a reasonable distance of the actual location
-  // The radius should be challenging but helpful
-  const radiusKm = Math.random() * 300 + 200; // Random radius between 200-500km
-  
-  return {
-    lat: location.lat,
-    lng: location.lng,
-    radiusKm
-  };
-}
-
-// Generate a time hint range
-export function generateTimeHint(
-  actualYear: number, 
-  minYear: number = 1900, 
-  maxYear: number = new Date().getFullYear()
-): { min: number; max: number } {
-  // Create a range that's half the size of the original range and includes the actual year
-  const totalRange = maxYear - minYear;
-  const halfRange = Math.floor(totalRange / 4); // Quarter the range size to make it more helpful
-  
-  // Ensure the actual year is within the hint range
-  let minHintYear = Math.max(minYear, actualYear - halfRange);
-  let maxHintYear = Math.min(maxYear, actualYear + halfRange);
-  
-  // If the actual year is close to the boundaries, adjust the range
-  if (actualYear - minHintYear < halfRange / 2) {
-    maxHintYear = Math.min(maxYear, minHintYear + halfRange);
-  } else if (maxHintYear - actualYear < halfRange / 2) {
-    minHintYear = Math.max(minYear, maxHintYear - halfRange);
-  }
-  
-  return { min: minHintYear, max: maxHintYear };
-}
-
-// Shuffle an array of events to randomize game order
 export function shuffleArray<T>(array: T[]): T[] {
   const newArray = [...array];
   for (let i = newArray.length - 1; i > 0; i--) {
@@ -117,12 +34,65 @@ export function shuffleArray<T>(array: T[]): T[] {
   return newArray;
 }
 
-// Format a number with commas for thousands
-export function formatNumber(num: number): string {
-  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
+export function calculateRoundResult(event: HistoricalEvent, guess: PlayerGuess): RoundResult {
+  if (!guess.location) {
+    const yearError = Math.abs(event.year - guess.year);
+    const timeScore = Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearError, 0.9))));
+    
+    return {
+      event,
+      guess,
+      distanceError: Infinity,
+      yearError,
+      locationScore: 0,
+      timeScore,
+      totalScore: timeScore,
+      achievements: {
+        perfectTime: yearError === 0
+      }
+    };
+  }
 
-// Check if a game is in daily mode
-export function isDailyMode(results: RoundResult[]): boolean {
-  return results.length > 0 && results[0].event.gameMode === 'daily';
+  // Calculate distance error in kilometers
+  const distanceError = getDistance(
+    guess.location.lat,
+    guess.location.lng,
+    event.location.lat,
+    event.location.lng
+  );
+
+  // Calculate year error
+  const yearError = Math.abs(event.year - guess.year);
+
+  // Calculate location score (out of 5000)
+  // Max distance error we consider is 10000 km
+  const maxDistanceError = 10000;
+  const locationScore = Math.max(0, Math.round(5000 - Math.min(5000, 5000 * Math.pow(distanceError / maxDistanceError, 0.6))));
+
+  // Calculate time score (out of 5000)
+  // Score decreases more rapidly for recent years vs ancient years
+  const timeScore = Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearError, 0.9))));
+
+  // Calculate total score
+  const totalScore = locationScore + timeScore;
+
+  // Determine if any achievements were earned
+  const isPerfectLocation = distanceError < 0.05; // Less than 50 meters
+  const isPerfectTime = yearError === 0;
+  const isPerfect = isPerfectLocation && isPerfectTime;
+
+  return {
+    event,
+    guess,
+    distanceError,
+    yearError,
+    locationScore,
+    timeScore,
+    totalScore,
+    achievements: {
+      perfectLocation: isPerfectLocation,
+      perfectTime: isPerfectTime,
+      perfect: isPerfect
+    }
+  };
 }
