@@ -12,16 +12,26 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { UserPlus } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AuthPromptDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onContinueAsGuest?: () => void;
 }
 
 const AuthPromptDialog: React.FC<AuthPromptDialogProps> = ({
   open,
-  onOpenChange
+  onOpenChange,
+  onContinueAsGuest
 }) => {
+  const { user } = useAuth();
+  
+  // Don't show the dialog if the user is already authenticated
+  if (user) {
+    return null;
+  }
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md z-[9999]">
@@ -46,7 +56,12 @@ const AuthPromptDialog: React.FC<AuthPromptDialogProps> = ({
         
         <DialogFooter className="flex flex-col sm:flex-row gap-2">
           <DialogClose asChild>
-            <Button variant="outline">Continue as Guest</Button>
+            <Button 
+              variant="outline" 
+              onClick={onContinueAsGuest}
+            >
+              Continue as Guest
+            </Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>

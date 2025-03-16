@@ -7,7 +7,8 @@ import {
   DialogContent, 
   DialogDescription, 
   DialogHeader, 
-  DialogTitle
+  DialogTitle,
+  DialogClose
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -55,6 +56,10 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     navigate('/admin/scraper');
   };
   
+  const handleContinueAsGuest = () => {
+    setOpen(false);
+  };
+  
   // If the authentication data is loading, show a button with loading state
   // but don't disable it to allow users to still open the auth dialog
   if (isLoading) {
@@ -92,31 +97,31 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleViewProfile} className="pointer-events-auto">
+          <DropdownMenuItem onClick={handleViewProfile} className="cursor-pointer">
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleGoToLeaderboard} className="pointer-events-auto">
+          <DropdownMenuItem onClick={handleGoToLeaderboard} className="cursor-pointer">
             <Trophy className="mr-2 h-4 w-4" />
             <span>Leaderboard</span>
           </DropdownMenuItem>
-          <DropdownMenuItem className="pointer-events-auto">
+          <DropdownMenuItem className="cursor-pointer">
             <Users className="mr-2 h-4 w-4" />
             <span>Friends</span>
           </DropdownMenuItem>
-          <DropdownMenuItem className="pointer-events-auto">
+          <DropdownMenuItem className="cursor-pointer">
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleGoToAdmin} className="pointer-events-auto">
+          <DropdownMenuItem onClick={handleGoToAdmin} className="cursor-pointer">
             <span>Admin Dashboard</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleGoToScraper} className="pointer-events-auto">
+          <DropdownMenuItem onClick={handleGoToScraper} className="cursor-pointer">
             <span>Scraper Dashboard</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleSignOut} className="pointer-events-auto">
+          <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
             <LogIn className="mr-2 h-4 w-4" />
             <span>Sign out</span>
           </DropdownMenuItem>
@@ -131,7 +136,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
         variant={topBar ? "outline" : "default"} 
         onClick={() => setOpen(true)}
         size={topBar ? "sm" : "default"}
-        className={`${topBar ? "h-8" : ""} pointer-events-auto`}
+        className={`${topBar ? "h-8" : ""} cursor-pointer`}
       >
         <UserPlus className="mr-2 h-4 w-4" />
         {!topBar && "Register / Sign In"}
@@ -158,6 +163,14 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
               <RegisterForm onSuccess={() => setOpen(false)} />
             </TabsContent>
           </Tabs>
+          
+          <div className="mt-4 text-center">
+            <DialogClose asChild>
+              <Button variant="outline" onClick={handleContinueAsGuest}>
+                Continue as Guest
+              </Button>
+            </DialogClose>
+          </div>
         </DialogContent>
       </Dialog>
     </>

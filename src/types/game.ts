@@ -17,8 +17,8 @@ export interface GameSettings {
   timerEnabled: boolean;
   timerDuration: number; // in minutes
   gameMode: 'daily' | 'friends' | 'single';
-  hintsEnabled?: boolean;
-  maxHints?: number;
+  hintsEnabled: boolean;
+  maxHints: number;
 }
 
 export interface PlayerGuess {
@@ -41,6 +41,11 @@ export interface RoundResult {
     time: boolean;
     location: boolean;
   };
+  achievements?: {
+    perfectLocation?: boolean;
+    perfectTime?: boolean;
+    perfect?: boolean;
+  };
 }
 
 export interface GameState {
@@ -55,7 +60,7 @@ export interface GameState {
   timerRemaining?: number; // seconds remaining
   sessionId?: string; // unique ID for the game session
   userAvatar?: string | null; // user's profile picture
-  hints?: {
+  hints: {
     available: number;
     timeHintUsed: boolean;
     locationHintUsed: boolean;

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import DailyCompetitionButton from './DailyCompetitionButton';
 import FriendsDialog from './FriendsDialog';
 import AuthPromptDialog from './AuthPromptDialog';
+import GameHeader from './GameHeader';
 
 interface HomeScreenProps {
   onStartGame: (settings: GameSettings) => void;
@@ -135,12 +135,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
     
     const newSettings = {
       ...settings,
-      gameMode: mode
+      gameMode: mode,
+      hintsEnabled: true,
+      maxHints: 2
     };
     
     if (mode === 'friends') {
       try {
-        const creatorId = user ? user.id : 'anonymous';
+        const creatorId = user ? user.id : null;
         
         const { data, error } = await supabase
           .from('game_sessions')
@@ -152,7 +154,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
           .select()
           .single();
           
-        if (error) throw error;
+        if (error) {
+          console.error('Error creating game session:', error);
+          throw error;
+        }
         
         if (data) {
           const sessionUrl = `${window.location.origin}/game/${data.id}`;
@@ -160,6 +165,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
           
           try {
             await navigator.clipboard.writeText(sessionUrl);
+            toast({
+              title: "Game link copied",
+              description: "Share this with your friends to play together!",
+            });
           } catch (err) {
             console.error('Failed to copy to clipboard:', err);
           }
@@ -167,7 +176,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
           if (user) {
             setShowFriendsDialog(true);
           } else {
-            setShowAuthPrompt(true);
+            navigate(sessionUrl);
           }
         }
       } catch (error) {
@@ -238,13 +247,29 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
     }
   };
 
+  const handleContinueAsGuest = () => {
+    setShowAuthPrompt(false);
+    
+    onStartGame({
+      ...settings,
+      gameMode: 'single',
+      hintsEnabled: true,
+      maxHints: 2
+    });
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-[#f3f3f3]">
-      <div className="absolute top-4 right-4 z-50">
-        <AuthButton />
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
+        <div className="container mx-auto p-4">
+          <div className="flex justify-between items-center">
+            <h1 className="text-xl font-bold">HISTORYGUESS</h1>
+            <AuthButton topBar={true} />
+          </div>
+        </div>
       </div>
       
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-lg mt-16">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl sm:text-3xl">HISTORYGUESS</CardTitle>
           <CardDescription>Test your knowledge of historical events</CardDescription>
@@ -288,20 +313,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
                   />
                 </div>
               )}
-              
-              <div className="flex items-center justify-between pt-4">
-                <div className="space-y-1">
-                  <h4 className="font-medium leading-none">Enable Hints</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Use hints to narrow down location and time
-                  </p>
-                </div>
-                <Switch
-                  id="hints-enabled"
-                  checked={settings.hintsEnabled}
-                  onCheckedChange={(checked) => handleSettingChange('hintsEnabled', checked)}
-                />
-              </div>
             </div>
           </div>
         </CardContent>
@@ -355,6 +366,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
       <AuthPromptDialog 
         open={showAuthPrompt}
         onOpenChange={setShowAuthPrompt}
+        onContinueAsGuest={handleContinueAsGuest}
       />
     </div>
   );
