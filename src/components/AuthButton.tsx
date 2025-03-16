@@ -68,7 +68,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
         variant={topBar ? "outline" : "default"} 
         onClick={() => setOpen(true)}
         size={topBar ? "sm" : "default"}
-        className={`${topBar ? "h-8" : ""} pointer-events-auto z-[100]`}
+        className={`${topBar ? "h-8" : ""} pointer-events-auto z-50`}
       >
         <UserPlus className="mr-2 h-4 w-4" />
         {!topBar && "Register / Sign In"}
@@ -80,7 +80,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-8 w-8 rounded-full pointer-events-auto z-[100]">
+          <Button variant="ghost" className="relative h-8 w-8 rounded-full pointer-events-auto z-50">
             <Avatar className="h-8 w-8">
               <AvatarImage src={profile.avatar_url || ''} alt={profile.username} />
               <AvatarFallback>{profile.username.slice(0, 2).toUpperCase()}</AvatarFallback>
@@ -137,7 +137,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
         variant={topBar ? "outline" : "default"} 
         onClick={() => setOpen(true)}
         size={topBar ? "sm" : "default"}
-        className={`${topBar ? "h-8" : ""} cursor-pointer z-[100] relative pointer-events-auto`}
+        className={`${topBar ? "h-8" : ""} cursor-pointer z-50 relative pointer-events-auto`}
       >
         <UserPlus className="mr-2 h-4 w-4" />
         {!topBar && "Register / Sign In"}

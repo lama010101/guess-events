@@ -1,293 +1,381 @@
-
-import { useState, useEffect, useCallback } from 'react';
-import { GameState, HistoricalEvent, Event, RoundResult, PlayerGuess } from '@/types/game';
-import { calculateDistance, getDistanceInUnit, calculateTotalScore } from '@/utils/gameUtils';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { 
+  GameSettings, 
+  GameState, 
+  PlayerGuess, 
+  HistoricalEvent,
+  RoundResult 
+} from '@/types/game';
+import { 
+  calculateRoundResult, 
+  shuffleArray 
+} from '@/utils/gameUtils';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { sampleEvents } from '@/data/sampleEvents';
 
-interface Achievement {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  condition: (gameState: GameState) => boolean;
-}
-
-const achievementsList: Achievement[] = [
-  {
-    id: 'first-game',
-    title: 'First Game',
-    description: 'Played your first game!',
-    icon: '/trophy.svg',
-    condition: () => true,
-  },
-  {
-    id: 'perfect-score',
-    title: 'Perfect Score',
-    description: 'Got a perfect score in a game!',
-    icon: '/perfect-score.svg',
-    condition: (gameState) => gameState.roundResults.every(result => 
-      (result.distanceError || result.distance || 0) <= 10 && 
-      Math.abs(result.yearError || 0) <= 5
-    ),
-  },
-  {
-    id: 'streak-5',
-    title: '5 Game Streak',
-    description: 'Won 5 games in a row!',
-    icon: '/streak.svg',
-    condition: () => false, // This would require tracking game history, implement later
-  },
-];
-
-const initHints = (maxHints = 2) => ({
-  available: maxHints,
-  timeHintUsed: false,
-  locationHintUsed: false,
-  yearHintUsed: false,
-  used: [] as string[]
-});
-
-export const useGameState = (
-  initialEvents: HistoricalEvent[] = [], 
-  initialGameMode: string = 'single', 
-  initialTimerEnabled: boolean = false, 
-  initialTimerDuration: number = 5, 
-  initialMaxRounds: number = 5, 
-  initialMaxHints: number = 2
-) => {
+export const useGameState = () => {
+  const { toast } = useToast();
   const { user, profile } = useAuth();
-  const totalRounds = Math.min(initialMaxRounds, initialEvents.length || 5);
+  const navigate = useNavigate();
+  const location = useLocation();
   
   const [gameState, setGameState] = useState<GameState>({
-    events: initialEvents?.slice(0, totalRounds) || [],
-    currentRound: 1,
-    gameStatus: 'not-started',
-    selectedLocation: null,
-    selectedYear: null,
-    roundResults: [],
-    totalScore: 0,
-    currentEvent: initialEvents?.[0],
-    gameMode: initialGameMode,
-    currentGuess: null,
     settings: {
-      timerEnabled: initialTimerEnabled,
-      timerDuration: initialTimerDuration,
-      maxRounds: totalRounds,
-      maxHints: initialMaxHints,
       distanceUnit: profile?.default_distance_unit || 'km',
-      gameMode: initialGameMode as any,
-      hintsEnabled: true
+      timerEnabled: false,
+      timerDuration: 5,
+      gameMode: 'daily',
+      hintsEnabled: true,
+      maxHints: 2
     },
-    hints: initHints(initialMaxHints),
-    totalRounds
+    events: [],
+    currentRound: 1,
+    totalRounds: 5,
+    roundResults: [],
+    gameStatus: 'not-started',
+    currentGuess: null,
+    hints: {
+      available: 2,
+      timeHintUsed: false,
+      locationHintUsed: false
+    }
   });
-  
-  const [view, setView] = useState<'map' | 'photo'>('map');
-  const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
-  const [achievements, setAchievements] = useState<Achievement[]>([]);
-  
-  const distanceUnit = profile?.default_distance_unit || 'km';
-  const userAvatar = profile?.avatar_url;
 
+  // Update URL with round parameter when game is in progress
   useEffect(() => {
-    if (initialEvents?.length > 0) {
+    if (gameState.gameStatus === 'in-progress') {
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('round', gameState.currentRound.toString());
+      window.history.replaceState({}, '', currentUrl.toString());
+    }
+  }, [gameState.currentRound, gameState.gameStatus]);
+
+  // Sync round parameter from URL
+  useEffect(() => {
+    if (gameState.gameStatus === 'in-progress') {
+      const params = new URLSearchParams(location.search);
+      const roundParam = params.get('round');
+      if (roundParam) {
+        const round = parseInt(roundParam);
+        if (!isNaN(round) && round >= 1 && round <= gameState.totalRounds && round !== gameState.currentRound) {
+          setGameState(prev => ({
+            ...prev,
+            currentRound: round,
+            currentGuess: {
+              location: null,
+              year: 1962
+            },
+            timerStartTime: prev.settings.timerEnabled ? Date.now() : undefined,
+            timerRemaining: prev.settings.timerEnabled ? prev.settings.timerDuration * 60 : undefined,
+            hints: {
+              available: prev.settings.maxHints,
+              timeHintUsed: false,
+              locationHintUsed: false,
+              timeHintRange: undefined,
+              locationHintRegion: undefined
+            }
+          }));
+        }
+      }
+    }
+  }, [location.search]);
+
+  // Update distance unit when profile changes
+  useEffect(() => {
+    if (profile) {
       setGameState(prev => ({
         ...prev,
-        events: initialEvents.slice(0, totalRounds),
-        currentEvent: initialEvents[0],
-        gameStatus: 'ready',
         settings: {
           ...prev.settings,
-          maxRounds: totalRounds
-        }
+          distanceUnit: profile.default_distance_unit || prev.settings.distanceUnit
+        },
+        userAvatar: profile.avatar_url
       }));
     }
-  }, [initialEvents, totalRounds]);
+  }, [profile]);
 
+  // Set active view to photo when starting a new round
   useEffect(() => {
-    if (gameState.gameStatus === 'completed' || gameState.gameStatus === 'game-over') {
-      const earnedAchievements = achievementsList.filter(achievement => achievement.condition(gameState));
-      setAchievements(earnedAchievements);
+    if (gameState.gameStatus === 'in-progress') {
+      // This would be handled by the ViewToggle component now
     }
-  }, [gameState]);
+  }, [gameState.currentRound, gameState.gameStatus]);
 
-  const startNextRound = useCallback(() => {
-    if (gameState.currentRound < gameState.totalRounds) {
+  const startGame = (settings: GameSettings) => {
+    const shuffledEvents = shuffleArray(sampleEvents)
+      .slice(0, 5)
+      .map(event => ({
+        ...event,
+        gameMode: settings.gameMode
+      }));
+    
+    setGameState({
+      settings: {
+        ...settings,
+        distanceUnit: profile?.default_distance_unit || settings.distanceUnit
+      },
+      events: shuffledEvents,
+      currentRound: 1,
+      totalRounds: 5,
+      roundResults: [],
+      gameStatus: 'in-progress',
+      currentGuess: {
+        location: null,
+        year: 1962
+      },
+      timerStartTime: settings.timerEnabled ? Date.now() : undefined,
+      timerRemaining: settings.timerEnabled ? settings.timerDuration * 60 : undefined,
+      userAvatar: profile?.avatar_url,
+      hints: {
+        available: settings.maxHints,
+        timeHintUsed: false,
+        locationHintUsed: false
+      }
+    });
+
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('round', '1');
+    window.history.replaceState({}, '', currentUrl.toString());
+  };
+
+  const handleLocationSelect = (lat: number, lng: number) => {
+    console.log("Location selected:", lat, lng);
+    setGameState(prev => ({
+      ...prev,
+      currentGuess: {
+        ...(prev.currentGuess || { year: 1962 }),
+        location: { lat, lng }
+      }
+    }));
+  };
+
+  const handleYearSelect = (year: number) => {
+    console.log("Year selected:", year);
+    setGameState(prev => ({
+      ...prev,
+      currentGuess: {
+        ...(prev.currentGuess || { location: null }),
+        year
+      }
+    }));
+  };
+
+  const handleTimeUp = () => {
+    console.log("Timer expired, submitting current guess");
+    const currentEvent = gameState.events[gameState.currentRound - 1];
+    const currentGuess = gameState.currentGuess || { location: null, year: 1962 };
+    
+    let result: RoundResult;
+    
+    if (currentGuess.location) {
+      result = calculateRoundResult(currentEvent, currentGuess);
+    } else {
+      const yearError = Math.abs(currentEvent.year - currentGuess.year);
+      result = {
+        event: currentEvent,
+        guess: currentGuess,
+        distanceError: Infinity,
+        yearError,
+        locationScore: 0,
+        timeScore: Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearError, 0.9)))),
+        totalScore: 0
+      };
+      result.totalScore = result.locationScore + result.timeScore;
+    }
+
+    setGameState(prev => ({
+      ...prev,
+      roundResults: [...prev.roundResults, result],
+      gameStatus: 'round-result'
+    }));
+
+    toast({
+      title: "Time's up!",
+      description: "Your guess has been submitted automatically.",
+    });
+  };
+
+  const submitGuess = () => {
+    console.log("Submitting guess:", gameState.currentGuess);
+    if (!gameState.currentGuess) {
+      toast({
+        title: "Missing guess",
+        description: "Please select both a location and a year.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!gameState.currentGuess.location) {
+      toast({
+        title: "No location selected",
+        description: "You'll only receive points for your year guess.",
+      });
+      
+      const currentEvent = gameState.events[gameState.currentRound - 1];
+      const yearError = Math.abs(currentEvent.year - gameState.currentGuess.year);
+      const timeScore = Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearError, 0.9))));
+      
+      const isPerfectTime = yearError === 0;
+      
+      const result: RoundResult = {
+        event: currentEvent,
+        guess: gameState.currentGuess,
+        distanceError: Infinity,
+        yearError,
+        locationScore: 0,
+        timeScore,
+        totalScore: timeScore,
+        hintsUsed: {
+          time: gameState.hints.timeHintUsed,
+          location: gameState.hints.locationHintUsed
+        },
+        achievements: {
+          perfectTime: isPerfectTime
+        }
+      };
+
       setGameState(prev => ({
         ...prev,
-        currentRound: prev.currentRound + 1,
-        currentEvent: prev.events[prev.currentRound],
-        gameStatus: 'in-progress',
-        selectedLocation: null,
-        selectedYear: null,
-        currentGuess: null,
-        hints: initHints(prev.settings.maxHints)
+        roundResults: [...prev.roundResults, result],
+        gameStatus: 'round-result'
       }));
-    } else {
+      
+      return;
+    }
+
+    const currentEvent = gameState.events[gameState.currentRound - 1];
+    const result = calculateRoundResult(currentEvent, gameState.currentGuess);
+    
+    result.hintsUsed = {
+      time: gameState.hints.timeHintUsed,
+      location: gameState.hints.locationHintUsed
+    };
+
+    setGameState(prev => ({
+      ...prev,
+      roundResults: [...prev.roundResults, result],
+      gameStatus: 'round-result'
+    }));
+  };
+
+  const handleNextRound = () => {
+    if (gameState.currentRound === gameState.totalRounds) {
       setGameState(prev => ({
         ...prev,
         gameStatus: 'game-over'
       }));
-    }
-  }, [gameState.currentRound, gameState.totalRounds]);
-
-  const handleMapClick = useCallback((location: { lat: number; lng: number }) => {
-    setGameState(prev => ({
-      ...prev,
-      selectedLocation: location
-    }));
-  }, []);
-
-  const handleYearSelect = useCallback((year: number | null) => {
-    setGameState(prev => ({
-      ...prev,
-      selectedYear: year
-    }));
-  }, []);
-
-  const handleSubmitGuess = useCallback(async () => {
-    if (!gameState.selectedLocation || !gameState.selectedYear || !gameState.currentEvent) return;
-
-    const currentEvent = gameState.currentEvent;
-    const eventLat = currentEvent.latitude || currentEvent.location?.lat || 0;
-    const eventLng = currentEvent.longitude || currentEvent.location?.lng || 0;
-
-    const distance = calculateDistance(
-      gameState.selectedLocation.lat,
-      gameState.selectedLocation.lng,
-      eventLat,
-      eventLng
-    );
-
-    const distanceInUnit = getDistanceInUnit(distance, distanceUnit);
-    const yearError = (gameState.selectedYear || 0) - (currentEvent.year || 0);
-    const locationScore = Math.max(0, 100 - (distanceInUnit / 1000) * 100); // Example scoring
-    const yearScore = Math.max(0, 100 - (Math.abs(yearError) / 50) * 100); // Example scoring
-    const score = Math.round((locationScore + yearScore) / 2);
-
-    // Create a basic result that matches what our components expect
-    const basicResult: RoundResult = {
-      distanceError: distanceInUnit,
-      yearError: yearError,
-      locationScore: locationScore,
-      timeScore: yearScore,
-      totalScore: score,
-      // Legacy fields
-      distance: distanceInUnit,
-      score: score,
-      location: gameState.selectedLocation,
-      year: gameState.selectedYear,
-      eventId: currentEvent.id,
-      // Required fields
-      event: {
-        id: currentEvent.id,
-        imageUrl: currentEvent.image_url || '',
-        location: {
-          lat: eventLat,
-          lng: eventLng,
-          name: 'Location'
-        },
-        year: currentEvent.year || 0,
-        description: currentEvent.description || ''
-      },
-      guess: {
-        location: gameState.selectedLocation,
-        year: gameState.selectedYear
-      }
-    };
-
-    setRoundResult(basicResult);
-
-    setGameState(prev => ({
-      ...prev,
-      gameStatus: 'round-result',
-      roundResults: [...prev.roundResults, basicResult],
-      totalScore: calculateTotalScore([...prev.roundResults, basicResult]),
-      currentGuess: {
-        location: gameState.selectedLocation,
-        year: gameState.selectedYear
-      }
-    }));
-
-    // Persist game results to database
-    if (user) {
-      try {
-        const { error } = await supabase
-          .from('game_results')
-          .insert({
-            user_id: user.id,
-            session_id: 'test-session', // Replace with actual session ID
-            round_results: JSON.stringify(basicResult), // Convert to JSON string
-            total_score: score
-          });
-
-        if (error) {
-          console.error('Error saving game result:', error);
-        }
-      } catch (error) {
-        console.error('Error saving game result:', error);
-      }
-    }
-
-    setTimeout(() => {
-      startNextRound();
-      setRoundResult(null);
-    }, 3000);
-  }, [gameState.selectedLocation, gameState.selectedYear, gameState.currentEvent, distanceUnit, user, startNextRound]);
-
-  const resetGame = useCallback(() => {
-    setGameState(prev => ({
-      ...prev,
-      currentRound: 1,
-      gameStatus: 'not-started',
-      selectedLocation: null,
-      selectedYear: null,
-      roundResults: [],
-      totalScore: 0,
-      currentEvent: initialEvents?.[0],
-      hints: initHints(gameState.settings.maxHints),
-      currentGuess: null
-    }));
-    setAchievements([]);
-  }, [initialEvents, gameState.settings.maxHints]);
-
-  const useHint = useCallback((hintType: string) => {
-    setGameState(prev => {
-      if (prev.hints.available <= 0) return prev;
-      
-      const updatedHints = {
-        ...prev.hints,
-        available: prev.hints.available - 1,
-        used: [...(prev.hints.used || []), hintType]
-      };
-      
-      if (hintType === 'year') {
-        updatedHints.timeHintUsed = true;
-        updatedHints.yearHintUsed = true;
-      } else if (hintType === 'location') {
-        updatedHints.locationHintUsed = true;
-      }
-      
-      return {
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.delete('round');
+      window.history.replaceState({}, '', currentUrl.toString());
+    } else {
+      const nextRound = gameState.currentRound + 1;
+      setGameState(prev => ({
         ...prev,
-        hints: updatedHints
-      };
-    });
-  }, []);
+        currentRound: nextRound,
+        gameStatus: 'in-progress',
+        currentGuess: {
+          location: null,
+          year: 1962
+        },
+        timerStartTime: prev.settings.timerEnabled ? Date.now() : undefined,
+        timerRemaining: prev.settings.timerEnabled ? prev.settings.timerDuration * 60 : undefined,
+        hints: {
+          available: prev.settings.maxHints,
+          timeHintUsed: false,
+          locationHintUsed: false
+        }
+      }));
+      
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('round', nextRound.toString());
+      window.history.replaceState({}, '', currentUrl.toString());
+    }
+  };
+
+  const handleTimeHint = () => {
+    if (gameState.hints.available > 0 && !gameState.hints.timeHintUsed) {
+      const currentEvent = gameState.events[gameState.currentRound - 1];
+      const year = currentEvent.year;
+      const range = 60; // 60-year range initially (will be halved)
+      const min = Math.max(1900, year - range / 2);
+      const max = Math.min(new Date().getFullYear(), year + range / 2);
+      
+      setGameState(prev => ({
+        ...prev,
+        hints: {
+          ...prev.hints,
+          available: prev.hints.available - 1,
+          timeHintUsed: true,
+          timeHintRange: { min, max }
+        }
+      }));
+      
+      toast({
+        title: "Time Hint Used",
+        description: `The event occurred between ${min} and ${max}.`,
+      });
+    }
+  };
+  
+  const handleLocationHint = () => {
+    if (gameState.hints.available > 0 && !gameState.hints.locationHintUsed) {
+      const currentEvent = gameState.events[gameState.currentRound - 1];
+      
+      setGameState(prev => ({
+        ...prev,
+        hints: {
+          ...prev.hints,
+          available: prev.hints.available - 1,
+          locationHintUsed: true,
+          locationHintRegion: {
+            lat: currentEvent.location.lat,
+            lng: currentEvent.location.lng,
+            radiusKm: 500
+          }
+        }
+      }));
+      
+      toast({
+        title: "Location Hint Used",
+        description: "A highlighted region has been added to the map.",
+      });
+    }
+  };
+
+  const handleSettingsChange = (newSettings: GameSettings) => {
+    setGameState(prev => ({
+      ...prev,
+      settings: {
+        ...newSettings,
+        distanceUnit: profile?.default_distance_unit || newSettings.distanceUnit
+      },
+      timerRemaining: newSettings.timerEnabled 
+        ? newSettings.timerDuration * 60 
+        : undefined
+    }));
+  };
+
+  const calculateCumulativeScore = () => {
+    return gameState.roundResults.reduce((sum, result) => sum + result.totalScore, 0);
+  };
 
   return {
     gameState,
-    view,
-    roundResult,
-    achievements,
-    distanceUnit,
-    userAvatar,
-    setView,
-    handleMapClick,
+    setGameState,
+    startGame,
+    handleLocationSelect,
     handleYearSelect,
-    handleSubmitGuess,
-    resetGame,
-    useHint
+    handleTimeUp,
+    submitGuess,
+    handleNextRound,
+    handleTimeHint,
+    handleLocationHint,
+    handleSettingsChange,
+    calculateCumulativeScore
   };
 };
+
+export default useGameState;

@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -99,25 +98,4 @@
   body {
     @apply bg-background text-foreground;
   }
-}
-
-/* Remove extra padding from App.css that might cause layout issues */
-#root {
-  max-width: 100%;
-  margin: 0;
-  padding: 0;
-  width: 100%;
-}
-
-/* Ensure full height layouts work properly */
-html, body, #root {
-  height: 100%;
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
 }

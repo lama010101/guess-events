@@ -1,8 +1,7 @@
-
 import { HistoricalEvent, PlayerGuess, RoundResult } from '@/types/game';
 
 // Function to calculate the distance between two coordinates using Haversine formula
-export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Radius of the Earth in kilometers
   const lat1Rad = Math.PI / 180 * lat1;
   const lat2Rad = Math.PI / 180 * lat2;
@@ -35,14 +34,6 @@ export function shuffleArray<T>(array: T[]): T[] {
   return newArray;
 }
 
-export function getDistanceInUnit(distanceKm: number, unit: 'km' | 'miles'): number {
-  return unit === 'km' ? distanceKm : convertToMiles(distanceKm);
-}
-
-export function calculateTotalScore(roundResults: RoundResult[]): number {
-  return roundResults.reduce((acc, result) => acc + (result.totalScore || 0), 0);
-}
-
 export function calculateRoundResult(event: HistoricalEvent, guess: PlayerGuess): RoundResult {
   if (!guess.location) {
     const yearError = Math.abs(event.year - guess.year);
@@ -63,7 +54,7 @@ export function calculateRoundResult(event: HistoricalEvent, guess: PlayerGuess)
   }
 
   // Calculate distance error in kilometers
-  const distanceError = calculateDistance(
+  const distanceError = getDistance(
     guess.location.lat,
     guess.location.lng,
     event.location.lat,
