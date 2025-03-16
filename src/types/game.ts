@@ -33,9 +33,7 @@ export interface RoundResult {
   selectedLocation: { lat: number; lng: number };
   selectedYear: number;
   distanceKm: number;
-  distanceError?: number; // Added for backward compatibility
   yearDifference: number;
-  yearError?: number; // Added for backward compatibility
   locationScore: number;
   yearScore: number;
   timeScore?: number;
