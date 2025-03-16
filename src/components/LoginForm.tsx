@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { signInWithEmail } from '@/integrations/supabase/auth';
 import { AlertCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LoginFormProps {
   onSuccess: () => void;
