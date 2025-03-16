@@ -11,6 +11,11 @@ interface GameMapProps {
   isDisabled?: boolean;
   showCorrectPin?: boolean;
   userAvatar?: string | null;
+  locationHint?: { 
+    lat: number; 
+    lng: number; 
+    radiusKm: number 
+  } | null;
 }
 
 const GameMap: React.FC<GameMapProps> = ({ 
@@ -19,13 +24,15 @@ const GameMap: React.FC<GameMapProps> = ({
   correctLocation, 
   isDisabled = false,
   showCorrectPin = false,
-  userAvatar = null
+  userAvatar = null,
+  locationHint = null
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const [marker, setMarker] = useState<L.Marker | null>(null);
   const [correctMarker, setCorrectMarker] = useState<L.Marker | null>(null);
   const [polyline, setPolyline] = useState<L.Polyline | null>(null);
+  const [hintCircle, setHintCircle] = useState<L.Circle | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const mapInitializedRef = useRef(false);
 
@@ -195,6 +202,38 @@ const GameMap: React.FC<GameMapProps> = ({
       console.error("Error adding correct marker or line:", error);
     }
   }, [correctLocation, selectedLocation, mapLoaded, showCorrectPin]);
+
+  // Handle location hint
+  useEffect(() => {
+    if (!mapLoaded || !mapInstanceRef.current || !locationHint) return;
+    
+    // Remove existing hint circle
+    if (hintCircle) {
+      hintCircle.remove();
+      setHintCircle(null);
+    }
+    
+    try {
+      // Create a circle to indicate the approximate location
+      const circle = L.circle(
+        [locationHint.lat, locationHint.lng], 
+        {
+          radius: locationHint.radiusKm * 1000, // Convert km to meters
+          color: '#3b82f6',
+          fillColor: '#93c5fd',
+          fillOpacity: 0.3,
+          weight: 2
+        }
+      ).addTo(mapInstanceRef.current);
+      
+      setHintCircle(circle);
+      
+      // Adjust view to show the hint circle
+      mapInstanceRef.current.fitBounds(circle.getBounds(), { padding: [50, 50] });
+    } catch (error) {
+      console.error("Error adding location hint:", error);
+    }
+  }, [locationHint, mapLoaded]);
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden shadow-md">

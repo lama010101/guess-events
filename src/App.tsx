@@ -21,6 +21,7 @@ function App() {
           <Route path="/leaderboard" element={<Index />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/scraper" element={<WebScraperAdmin />} />
+          <Route path="/adminlolo" element={<Admin />} />
           <Route path="/profile/:userId" element={<UserProfile />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

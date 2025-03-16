@@ -17,6 +17,8 @@ export interface GameSettings {
   timerEnabled: boolean;
   timerDuration: number; // in minutes
   gameMode: 'daily' | 'friends' | 'single';
+  hintsEnabled?: boolean;
+  maxHints?: number;
 }
 
 export interface PlayerGuess {
@@ -35,6 +37,10 @@ export interface RoundResult {
   locationScore: number;
   timeScore: number;
   totalScore: number;
+  hintsUsed?: {
+    time: boolean;
+    location: boolean;
+  };
 }
 
 export interface GameState {
@@ -49,6 +55,13 @@ export interface GameState {
   timerRemaining?: number; // seconds remaining
   sessionId?: string; // unique ID for the game session
   userAvatar?: string | null; // user's profile picture
+  hints?: {
+    available: number;
+    timeHintUsed: boolean;
+    locationHintUsed: boolean;
+    timeHintRange?: { min: number, max: number };
+    locationHintRegion?: { lat: number, lng: number, radiusKm: number };
+  };
 }
 
 export interface UserProfile {

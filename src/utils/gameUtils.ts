@@ -30,12 +30,12 @@ export function convertToMiles(km: number): number {
   return km * 0.621371;
 }
 
-// Calculate location score based on distance in km
+// Calculate location score based on distance in km - using the formula from specs
 export function calculateLocationScore(distanceInKm: number): number {
   return Math.max(0, Math.round(5000 - Math.min(5000, 2.5 * Math.pow(distanceInKm, 0.85))));
 }
 
-// Calculate time score based on year difference
+// Calculate time score based on year difference - using the formula from specs
 export function calculateTimeScore(yearDifference: number): number {
   return Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearDifference, 0.9))));
 }
@@ -43,7 +43,8 @@ export function calculateTimeScore(yearDifference: number): number {
 // Calculate complete round results
 export function calculateRoundResult(
   event: HistoricalEvent,
-  guess: PlayerGuess
+  guess: PlayerGuess,
+  hintsUsed?: { time: boolean; location: boolean }
 ): RoundResult {
   const distanceError = calculateDistance(
     event.location.lat,
@@ -64,8 +65,46 @@ export function calculateRoundResult(
     yearError,
     locationScore,
     timeScore,
-    totalScore: locationScore + timeScore
+    totalScore: locationScore + timeScore,
+    hintsUsed
   };
+}
+
+// Generate a location hint region
+export function generateLocationHint(location: { lat: number; lng: number }): { lat: number; lng: number; radiusKm: number } {
+  // Create a hint that's within a reasonable distance of the actual location
+  // The radius should be challenging but helpful
+  const radiusKm = Math.random() * 300 + 200; // Random radius between 200-500km
+  
+  return {
+    lat: location.lat,
+    lng: location.lng,
+    radiusKm
+  };
+}
+
+// Generate a time hint range
+export function generateTimeHint(
+  actualYear: number, 
+  minYear: number = 1900, 
+  maxYear: number = new Date().getFullYear()
+): { min: number; max: number } {
+  // Create a range that's half the size of the original range and includes the actual year
+  const totalRange = maxYear - minYear;
+  const halfRange = Math.floor(totalRange / 4); // Quarter the range size to make it more helpful
+  
+  // Ensure the actual year is within the hint range
+  let minHintYear = Math.max(minYear, actualYear - halfRange);
+  let maxHintYear = Math.min(maxYear, actualYear + halfRange);
+  
+  // If the actual year is close to the boundaries, adjust the range
+  if (actualYear - minHintYear < halfRange / 2) {
+    maxHintYear = Math.min(maxYear, minHintYear + halfRange);
+  } else if (maxHintYear - actualYear < halfRange / 2) {
+    minHintYear = Math.max(minYear, maxHintYear - halfRange);
+  }
+  
+  return { min: minHintYear, max: maxHintYear };
 }
 
 // Shuffle an array of events to randomize game order
