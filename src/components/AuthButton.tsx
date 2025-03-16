@@ -130,13 +130,14 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     );
   }
   
+  // Make the button more responsive
   return (
     <>
       <Button 
         variant={topBar ? "outline" : "default"} 
         onClick={() => setOpen(true)}
         size={topBar ? "sm" : "default"}
-        className={`${topBar ? "h-8" : ""} cursor-pointer`}
+        className={`${topBar ? "h-8" : ""} cursor-pointer z-10`}
       >
         <UserPlus className="mr-2 h-4 w-4" />
         {!topBar && "Register / Sign In"}

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,6 @@ import { supabase } from '@/integrations/supabase/client';
 import DailyCompetitionButton from './DailyCompetitionButton';
 import FriendsDialog from './FriendsDialog';
 import AuthPromptDialog from './AuthPromptDialog';
-import GameHeader from './GameHeader';
 
 interface HomeScreenProps {
   onStartGame: (settings: GameSettings) => void;
@@ -142,7 +142,22 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
     
     if (mode === 'friends') {
       try {
-        const creatorId = user ? user.id : null;
+        // For non-authenticated users, simply start a single player game instead
+        if (!user) {
+          toast({
+            title: "Starting Solo Game",
+            description: "Sign in to play with friends and track your progress!",
+          });
+          onStartGame({
+            ...settings,
+            gameMode: 'single',
+            hintsEnabled: true,
+            maxHints: 2
+          });
+          return;
+        }
+        
+        const creatorId = user.id;
         
         const { data, error } = await supabase
           .from('game_sessions')
@@ -173,11 +188,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
             console.error('Failed to copy to clipboard:', err);
           }
           
-          if (user) {
-            setShowFriendsDialog(true);
-          } else {
-            navigate(`/game/${data.id}`);
-          }
+          setShowFriendsDialog(true);
         }
       } catch (error) {
         console.error('Error creating game session:', error);
@@ -283,6 +294,25 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
               onStartGame={() => handleStartGame('daily')}
             />
             
+            <Button 
+              className="w-full" 
+              size="lg" 
+              variant="secondary"
+              onClick={() => handleStartGame('single')}
+            >
+              <User className="mr-2 h-4 w-4" /> Singleplayer
+            </Button>
+            
+            <Button 
+              className="w-full"
+              variant="outline"
+              size="lg" 
+              onClick={() => handleStartGame('friends')}
+            >
+              <Users className="mr-2 h-4 w-4" /> Play with Friends
+            </Button>
+            
+            {/* Moved Timer controls below Play with Friends button */}
             <div className="flex flex-col space-y-2">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -294,7 +324,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
                 <Switch
                   id="timer-enabled"
                   checked={settings.timerEnabled}
-                  onCheckedChange={(checked) => handleSettingChange('timerEnabled', checked)}
+                  onCheckedChange={(checked) => setSettings(prev => ({...prev, timerEnabled: checked}))}
                 />
               </div>
               
@@ -309,7 +339,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
                     max={10}
                     step={1}
                     value={[settings.timerDuration]}
-                    onValueChange={(value) => handleSettingChange('timerDuration', value[0])}
+                    onValueChange={(value) => setSettings(prev => ({...prev, timerDuration: value[0]}))}
                   />
                 </div>
               )}
@@ -317,33 +347,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
-          <Button 
-            className="w-full" 
-            size="lg" 
-            variant="secondary"
-            onClick={() => handleStartGame('single')}
-          >
-            <User className="mr-2 h-4 w-4" /> Singleplayer
-          </Button>
-          
-          <Button 
-            className="w-full"
-            variant="outline"
-            size="lg" 
-            onClick={() => handleStartGame('friends')}
-          >
-            <Users className="mr-2 h-4 w-4" /> Play with Friends
-          </Button>
-          
           <div className="flex w-full justify-center gap-4">
             <Link to="/admin" className="text-sm text-muted-foreground hover:text-primary flex items-center">
               <Shield className="mr-1 h-3 w-3" /> Admin Panel
             </Link>
             <Link to="/admin/scraper" className="text-sm text-muted-foreground hover:text-primary flex items-center">
               <Database className="mr-1 h-3 w-3" /> Scraper Dashboard
-            </Link>
-            <Link to="/adminlolo" className="text-sm text-muted-foreground hover:text-primary flex items-center">
-              <Shield className="mr-1 h-3 w-3" /> Admin Access
             </Link>
           </div>
         </CardFooter>
@@ -355,7 +364,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
         gameSessionLink={gameSessionLink}
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        filteredFriends={filteredFriends}
+        filteredFriends={friendsList.filter(friend => 
+          friend.name.toLowerCase().includes(searchTerm.toLowerCase())
+        )}
         selectedFriends={selectedFriends}
         onToggleFriend={toggleFriendSelection}
         onCopyLink={handleCopyLink}

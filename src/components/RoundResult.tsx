@@ -63,6 +63,7 @@ const RoundResultComponent: React.FC<RoundResultProps> = ({
                   showCorrectPin={true}
                   isDisabled={true}
                   userAvatar={userAvatar}
+                  disableScroll={true}
                 />
               </div>
               

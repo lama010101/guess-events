@@ -1,249 +1,240 @@
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface GameMapProps {
   onLocationSelect: (lat: number, lng: number) => void;
-  selectedLocation?: { lat: number; lng: number } | null;
-  correctLocation?: { lat: number; lng: number } | null;
-  isDisabled?: boolean;
+  selectedLocation: { lat: number; lng: number } | null;
+  correctLocation?: { lat: number; lng: number; name: string };
   showCorrectPin?: boolean;
+  isDisabled?: boolean;
   userAvatar?: string | null;
-  locationHint?: { 
-    lat: number; 
-    lng: number; 
-    radiusKm: number 
-  } | null;
+  locationHint?: { lat: number; lng: number; radiusKm: number } | undefined;
+  disableScroll?: boolean;
 }
+
+// Fix the missing icon issue
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+});
+
+// Custom avatar marker
+const createAvatarIcon = (avatarUrl: string | null) => {
+  return L.divIcon({
+    className: 'custom-avatar-marker',
+    html: `<div class="avatar-container">
+      <img src="${avatarUrl || 'https://ui-avatars.com/api/?name=User&background=random'}" 
+      alt="User" class="avatar-image" />
+    </div>`,
+    iconSize: [38, 38],
+    iconAnchor: [19, 38],
+  });
+};
+
+// Style the avatar marker via CSS
+const createMapStyles = () => {
+  const style = document.createElement('style');
+  style.textContent = `
+    .custom-avatar-marker {
+      background: none;
+      border: none;
+    }
+    
+    .avatar-container {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+    
+    .avatar-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .correct-marker-icon {
+      background-color: #10b981;
+      border: 2px solid white;
+      width: 20px !important;
+      height: 20px !important;
+      border-radius: 50%;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+    
+    .hint-circle {
+      stroke-dasharray: 5, 5;
+      stroke: #f59e0b;
+      fill: #f59e0b;
+      fill-opacity: 0.1;
+    }
+  `;
+  document.head.appendChild(style);
+};
 
 const GameMap: React.FC<GameMapProps> = ({ 
   onLocationSelect, 
   selectedLocation, 
-  correctLocation, 
-  isDisabled = false,
+  correctLocation,
   showCorrectPin = false,
+  isDisabled = false,
   userAvatar = null,
-  locationHint = null
+  locationHint,
+  disableScroll = false
 }) => {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<L.Map | null>(null);
-  const [marker, setMarker] = useState<L.Marker | null>(null);
-  const [correctMarker, setCorrectMarker] = useState<L.Marker | null>(null);
-  const [polyline, setPolyline] = useState<L.Polyline | null>(null);
-  const [hintCircle, setHintCircle] = useState<L.Circle | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const mapInitializedRef = useRef(false);
-
-  // Initialize map only once
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+  const correctMarkerRef = useRef<L.Marker | null>(null);
+  const hintCircleRef = useRef<L.Circle | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  
   useEffect(() => {
-    if (!mapRef.current || mapInstanceRef.current || mapInitializedRef.current) return;
-    mapInitializedRef.current = true;
-
-    try {
+    createMapStyles();
+    
+    if (mapContainerRef.current && !mapRef.current) {
       // Initialize map
-      const map = L.map(mapRef.current, {
+      const map = L.map(mapContainerRef.current, {
         center: [20, 0],
         zoom: 2,
-        layers: [
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          })
-        ]
+        scrollWheelZoom: !disableScroll,
+        dragging: !disableScroll || !isDisabled
       });
-
-      // Add click event
-      map.on('click', (e) => {
-        if (!isDisabled) {
-          onLocationSelect(e.latlng.lat, e.latlng.lng);
-        }
-      });
-
-      mapInstanceRef.current = map;
-      setMapLoaded(true);
-      console.log("Map loaded successfully");
-    } catch (error) {
-      console.error("Error initializing map:", error);
+      
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+      
+      mapRef.current = map;
+      
+      // Add click event if not disabled
+      if (!isDisabled) {
+        map.on('click', (e: L.LeafletMouseEvent) => {
+          const { lat, lng } = e.latlng;
+          onLocationSelect(lat, lng);
+        });
+      }
     }
-
+    
     return () => {
-      // Do not remove the map on unmount - this prevents view reset
-      // We'll only clean up on final component unmount
-    };
-  }, [isDisabled, onLocationSelect]);
-
-  // Properly clean up the map only when component is fully unmounted
-  useEffect(() => {
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-        mapInitializedRef.current = false;
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
       }
     };
-  }, []);
-
+  }, [onLocationSelect, isDisabled, disableScroll]);
+  
   // Update marker when selectedLocation changes
   useEffect(() => {
-    if (!mapLoaded || !mapInstanceRef.current) return;
+    if (!mapRef.current) return;
     
+    // Remove existing marker
+    if (markerRef.current) {
+      markerRef.current.remove();
+      markerRef.current = null;
+    }
+    
+    // Add new marker if location is selected
     if (selectedLocation) {
-      // Remove existing marker if it exists
-      if (marker) {
-        marker.remove();
-      }
-
-      // Create new marker
-      try {
-        // Create custom user avatar icon if available
-        let markerIcon;
-        
-        if (userAvatar) {
-          // Create a custom icon with user's avatar
-          const avatarHtml = `
-            <div style="width: 40px; height: 40px; border-radius: 50%; overflow: hidden; border: 3px solid #3b82f6; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-              <img src="${userAvatar}" style="width: 100%; height: 100%; object-fit: cover;" alt="User avatar" />
-            </div>
-          `;
-          
-          markerIcon = L.divIcon({
-            html: avatarHtml,
-            className: 'custom-avatar-marker',
-            iconSize: [40, 40],
-            iconAnchor: [20, 40]
-          });
-        } else {
-          // Use default blue marker
-          markerIcon = L.icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-            shadowSize: [41, 41]
-          });
-        }
-
-        // Add marker at location WITHOUT changing the view or zoom
-        const newMarker = L.marker([selectedLocation.lat, selectedLocation.lng], { icon: markerIcon })
-          .addTo(mapInstanceRef.current);
-
-        setMarker(newMarker);
-      } catch (error) {
-        console.error("Error adding marker:", error);
-      }
-    }
-  }, [selectedLocation, mapLoaded, userAvatar]);
-
-  // Show correct location and line if provided
-  useEffect(() => {
-    if (!mapLoaded || !mapInstanceRef.current || !correctLocation || !showCorrectPin) return;
-    
-    // Show correct marker
-    if (correctMarker) {
-      correctMarker.remove();
-    }
-
-    // Remove existing polyline
-    if (polyline) {
-      polyline.remove();
-      setPolyline(null);
-    }
-
-    try {
-      // Use a custom "correct" icon with a checkmark
-      const correctIconHtml = `
-        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: #22c55e; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); border: 3px solid white;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-        </div>
-      `;
+      const icon = createAvatarIcon(userAvatar);
+      const marker = L.marker([selectedLocation.lat, selectedLocation.lng], { icon }).addTo(mapRef.current);
+      markerRef.current = marker;
       
-      const correctDivIcon = L.divIcon({
-        html: correctIconHtml,
-        className: 'correct-location-icon',
-        iconSize: [40, 40],
-        iconAnchor: [20, 40]
-      });
-
-      const newCorrectMarker = L.marker([correctLocation.lat, correctLocation.lng], { icon: correctDivIcon })
-        .addTo(mapInstanceRef.current);
-
-      setCorrectMarker(newCorrectMarker);
-
-      // Add line between markers if both exist
-      if (selectedLocation && mapInstanceRef.current) {
-        const newPolyline = L.polyline(
-          [
-            [selectedLocation.lat, selectedLocation.lng],
-            [correctLocation.lat, correctLocation.lng]
-          ],
-          { 
-            color: '#ef4444',
-            weight: 2,
-            dashArray: '5, 5',
-            opacity: 0.7
-          }
-        ).addTo(mapInstanceRef.current);
-        
-        setPolyline(newPolyline);
-
-        // ONLY fit bounds in results view - not during gameplay
-        if (showCorrectPin) {
-          const bounds = L.latLngBounds(
-            [selectedLocation.lat, selectedLocation.lng],
-            [correctLocation.lat, correctLocation.lng]
-          );
-  
-          mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
-        }
+      // Center map on the marker
+      if (!showCorrectPin) {
+        mapRef.current.setView([selectedLocation.lat, selectedLocation.lng], mapRef.current.getZoom());
       }
-    } catch (error) {
-      console.error("Error adding correct marker or line:", error);
     }
-  }, [correctLocation, selectedLocation, mapLoaded, showCorrectPin]);
-
+  }, [selectedLocation, userAvatar, showCorrectPin]);
+  
+  // Show correct pin when requested
+  useEffect(() => {
+    if (!mapRef.current || !correctLocation) return;
+    
+    // Remove existing correct marker
+    if (correctMarkerRef.current) {
+      correctMarkerRef.current.remove();
+      correctMarkerRef.current = null;
+    }
+    
+    if (showCorrectPin) {
+      // Create a custom icon for the correct location
+      const correctIcon = L.divIcon({
+        className: 'correct-marker-icon',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+      
+      const correctMarker = L.marker([correctLocation.lat, correctLocation.lng], { 
+        icon: correctIcon,
+        zIndexOffset: 1000 // Ensure it's on top
+      })
+        .addTo(mapRef.current)
+        .bindTooltip(correctLocation.name);
+      
+      correctMarkerRef.current = correctMarker;
+      
+      // If both markers exist, set bounds to show both
+      if (markerRef.current) {
+        const bounds = L.latLngBounds(
+          [correctLocation.lat, correctLocation.lng],
+          [selectedLocation!.lat, selectedLocation!.lng]
+        );
+        mapRef.current.fitBounds(bounds, { padding: [50, 50] });
+      } else {
+        // If only correct marker exists, center on it
+        mapRef.current.setView([correctLocation.lat, correctLocation.lng], 5);
+      }
+    }
+  }, [correctLocation, showCorrectPin, selectedLocation]);
+  
   // Handle location hint
   useEffect(() => {
-    if (!mapLoaded || !mapInstanceRef.current || !locationHint) return;
+    if (!mapRef.current) return;
     
     // Remove existing hint circle
-    if (hintCircle) {
-      hintCircle.remove();
-      setHintCircle(null);
+    if (hintCircleRef.current) {
+      hintCircleRef.current.remove();
+      hintCircleRef.current = null;
     }
     
-    try {
-      // Create a circle to indicate the approximate location
-      const circle = L.circle(
-        [locationHint.lat, locationHint.lng], 
-        {
-          radius: locationHint.radiusKm * 1000, // Convert km to meters
-          color: '#3b82f6',
-          fillColor: '#93c5fd',
-          fillOpacity: 0.3,
-          weight: 2
-        }
-      ).addTo(mapInstanceRef.current);
+    if (locationHint) {
+      const circle = L.circle([locationHint.lat, locationHint.lng], {
+        radius: locationHint.radiusKm * 1000, // Convert km to meters
+        className: 'hint-circle'
+      }).addTo(mapRef.current);
       
-      setHintCircle(circle);
+      hintCircleRef.current = circle;
       
-      // Adjust view to show the hint circle
-      mapInstanceRef.current.fitBounds(circle.getBounds(), { padding: [50, 50] });
-    } catch (error) {
-      console.error("Error adding location hint:", error);
+      // Zoom to show the circle
+      mapRef.current.fitBounds(circle.getBounds(), { padding: [50, 50] });
     }
-  }, [locationHint, mapLoaded]);
+  }, [locationHint]);
+  
+  // Update scroll wheel when disableScroll changes
+  useEffect(() => {
+    if (!mapRef.current) return;
+    
+    if (disableScroll) {
+      mapRef.current.scrollWheelZoom.disable();
+      if (isDisabled) {
+        mapRef.current.dragging.disable();
+      }
+    } else {
+      mapRef.current.scrollWheelZoom.enable();
+      mapRef.current.dragging.enable();
+    }
+  }, [disableScroll, isDisabled]);
 
   return (
-    <div className="relative w-full h-full rounded-lg overflow-hidden shadow-md">
-      <div ref={mapRef} className="w-full h-full z-10" />
-      {!selectedLocation && !isDisabled && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium text-gray-700 shadow-sm z-20">
-          Click on the map to place your guess
-        </div>
-      )}
-    </div>
+    <div ref={mapContainerRef} className="h-full w-full rounded-md overflow-hidden"></div>
   );
 };
 
