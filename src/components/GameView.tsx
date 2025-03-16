@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import PhotoViewer from './PhotoViewer';
 import GameMap from './GameMap';
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import GameHeader from './GameHeader';
 import GameResults from './GameResults';
 import { useGameState } from '@/hooks/useGameState';
 import { calculateTotalScore } from '@/utils/gameUtils';
-import { GameState, RoundResult } from '@/types/game';
 
 // Define a proper interface for the component props
 interface GameViewProps {
@@ -56,9 +55,9 @@ const GameView: React.FC<GameViewProps> = () => {
   };
   
   return (
-    <div className="relative flex flex-col h-full">
+    <div className="flex flex-col h-full">
       {/* Game header with year selector and timer */}
-      <div className="p-4 border-b z-10">
+      <div className="px-4 py-2 border-b z-10">
         <GameHeader
           currentRound={currentRound}
           totalRounds={totalRounds}
@@ -117,8 +116,8 @@ const GameView: React.FC<GameViewProps> = () => {
         </div>
       </div>
       
-      {/* Game controls footer - ensure always visible */}
-      <div className="p-4 border-t bg-background z-10">
+      {/* Game controls footer - make more compact */}
+      <div className="py-2 px-4 border-t bg-background z-10">
         <div className="flex justify-between items-center">
           <div>
             {showResult && roundResult && (
