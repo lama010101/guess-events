@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { RoundResult } from '@/types/game';
@@ -86,7 +87,6 @@ const GameResults: React.FC<GameResultsProps> = ({
             <RoundResultComponent
               key={index}
               result={result}
-              roundNumber={index + 1}
               distanceUnit={distanceUnit}
             />
           ))}

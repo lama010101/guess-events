@@ -9,9 +9,10 @@ interface HintSystemProps {
   gameMode: string;
   hints: {
     available: number;
-    used: string[];
-    yearHintUsed: boolean;
-    locationHintUsed: boolean;
+    used?: string[];
+    yearHintUsed?: boolean;
+    locationHintUsed?: boolean;
+    timeHintUsed?: boolean;
   };
   onUseHint: (hintType: string) => void;
   year?: number;
@@ -28,7 +29,7 @@ const HintSystem: React.FC<HintSystemProps> = ({
 }) => {
   const { user } = useAuth();
   
-  const isYearHintDisabled = hints.yearHintUsed || hints.available <= 0;
+  const isYearHintDisabled = (hints.yearHintUsed || hints.timeHintUsed) || hints.available <= 0;
   const isLocationHintDisabled = hints.locationHintUsed || hints.available <= 0;
   
   return (

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -9,8 +10,13 @@ interface GameMapProps {
   actualLocation?: { lat: number; lng: number };
   distanceUnit: 'km' | 'miles';
   showDistance?: boolean;
-  userAvatar?: string; // Add user avatar prop
+  userAvatar?: string | null;
   className?: string;
+  // Adding props needed by RoundResultComponent
+  correctLocation?: { lat: number; lng: number; name: string };
+  showCorrectPin?: boolean;
+  isDisabled?: boolean;
+  disableScroll?: boolean;
 }
 
 // Custom marker icon creation function using user avatar
@@ -54,9 +60,13 @@ const GameMap = ({
   selectedLocation,
   onLocationSelect,
   actualLocation,
+  correctLocation,
   distanceUnit,
   showDistance = false,
-  userAvatar, // Add user avatar prop
+  showCorrectPin = false, 
+  isDisabled = false,
+  disableScroll = false,
+  userAvatar,
   className = ''
 }: GameMapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -73,7 +83,9 @@ const GameMap = ({
       center: [0, 0],
       zoom: 2,
       zoomControl: false,
-      attributionControl: false
+      attributionControl: false,
+      dragging: !disableScroll,
+      scrollWheelZoom: !disableScroll
     });
     
     // Add tile layer
@@ -81,16 +93,18 @@ const GameMap = ({
       maxZoom: 19,
     }).addTo(map.current);
     
-    // Handle map click to select location
-    map.current.on('click', (e: L.LeafletMouseEvent) => {
-      onLocationSelect({ lat: e.latlng.lat, lng: e.latlng.lng });
-    });
+    // Handle map click to select location (only if not disabled)
+    if (!isDisabled) {
+      map.current.on('click', (e: L.LeafletMouseEvent) => {
+        onLocationSelect({ lat: e.latlng.lat, lng: e.latlng.lng });
+      });
+    }
     
     return () => {
       map.current?.remove();
       map.current = null;
     };
-  }, []);
+  }, [disableScroll, isDisabled, onLocationSelect]);
   
   // Update map view when actualLocation changes
   useEffect(() => {
@@ -98,8 +112,10 @@ const GameMap = ({
     
     if (actualLocation) {
       map.current.setView([actualLocation.lat, actualLocation.lng], 5);
+    } else if (correctLocation) {
+      map.current.setView([correctLocation.lat, correctLocation.lng], 5);
     }
-  }, [actualLocation]);
+  }, [actualLocation, correctLocation]);
   
   // Update marker creation to use the user's avatar
   useEffect(() => {
@@ -130,9 +146,10 @@ const GameMap = ({
     }
     
     // Add target marker and polyline if actual location is available and showDistance is true
-    if (actualLocation && selectedLocation && showDistance) {
+    const targetLoc = actualLocation || (showCorrectPin && correctLocation);
+    if (targetLoc && selectedLocation && (showDistance || showCorrectPin)) {
       targetMarker.current = L.marker(
-        [actualLocation.lat, actualLocation.lng],
+        [targetLoc.lat, targetLoc.lng],
         { icon: targetIcon }
       ).addTo(map.current);
       
@@ -140,12 +157,12 @@ const GameMap = ({
       polyline.current = L.polyline(
         [
           [selectedLocation.lat, selectedLocation.lng],
-          [actualLocation.lat, actualLocation.lng]
+          [targetLoc.lat, targetLoc.lng]
         ],
         { color: 'red', weight: 3, dashArray: '5,10' }
       ).addTo(map.current);
     }
-  }, [selectedLocation, actualLocation, distanceUnit, showDistance, userAvatar]);
+  }, [selectedLocation, actualLocation, correctLocation, distanceUnit, showDistance, showCorrectPin, userAvatar]);
   
   return (
     <div className={`h-full w-full ${className}`} ref={mapContainer} />

@@ -1,40 +1,57 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { PhotoViewer } from './PhotoViewer';
-import { GameMap } from './GameMap';
+import PhotoViewer from './PhotoViewer';
+import GameMap from './GameMap';
 import { Button } from "@/components/ui/button";
-import { ViewToggle } from './ViewToggle';
-import { GameHeader } from './GameHeader';
-import { GameResults } from './GameResults';
+import ViewToggle from './ViewToggle';
+import GameHeader from './GameHeader';
+import GameResults from './GameResults';
 import { useGameState } from '@/hooks/useGameState';
 import { calculateTotalScore } from '@/utils/gameUtils';
+import { GameState, RoundResult } from '@/types/game';
 
-const GameView = () => {
+// Define a proper interface for the component props
+interface GameViewProps {
+  // Add any props needed for the GameView component
+}
+
+const GameView: React.FC<GameViewProps> = () => {
+  const {
+    gameState,
+    view,
+    setView,
+    handleMapClick,
+    handleYearSelect,
+    handleSubmitGuess,
+    resetGame,
+    useHint,
+    roundResult,
+    achievements,
+    distanceUnit,
+    userAvatar
+  } = useGameState();
+
   const {
     currentRound,
     totalRounds,
     gameMode,
     selectedYear,
     selectedLocation,
-    view,
-    setView,
-    handleYearSelect,
-    handleMapClick,
-    handleSubmitGuess,
-    showResult,
-    roundResult,
-    gameStatus,
-    resetGame,
     events,
     currentEvent,
-    distanceUnit,
-    timerEnabled,
-    timerDuration,
-    handleTimerEnd,
+    gameStatus,
     hints,
-    useHint,
-    achievements,
-    userAvatar
-  } = useGameState();
+    roundResults
+  } = gameState;
+
+  const showResult = gameStatus === 'show-result' || gameStatus === 'round-result';
+  const timerEnabled = gameState.settings.timerEnabled;
+  const timerDuration = gameState.settings.timerDuration;
+
+  const handleTimerEnd = () => {
+    console.log("Timer ended");
+    // Implement timer end logic if needed
+  };
   
   return (
     <div className="relative flex flex-col h-full">
@@ -43,9 +60,9 @@ const GameView = () => {
         <GameHeader
           currentRound={currentRound}
           totalRounds={totalRounds}
-          gameMode={gameMode}
+          gameMode={gameMode || 'single'}
           onSelectYear={handleYearSelect}
-          year={selectedYear}
+          year={selectedYear || undefined}
           timerEnabled={timerEnabled}
           timerDuration={timerDuration}
           onTimerEnd={handleTimerEnd}
@@ -69,7 +86,7 @@ const GameView = () => {
             {view === 'photo' && (
               <div className="h-full w-full flex items-center justify-center">
                 <PhotoViewer
-                  src={currentEvent?.image_url || ''}
+                  src={currentEvent?.image_url || currentEvent?.imageUrl || ''}
                   alt={currentEvent?.description || 'Historical event'}
                 />
               </div>
@@ -82,12 +99,15 @@ const GameView = () => {
                   onLocationSelect={handleMapClick}
                   actualLocation={
                     showResult
-                      ? { lat: currentEvent?.latitude, lng: currentEvent?.longitude }
+                      ? { 
+                          lat: currentEvent?.latitude || currentEvent?.location?.lat || 0, 
+                          lng: currentEvent?.longitude || currentEvent?.location?.lng || 0 
+                        }
                       : undefined
                   }
                   distanceUnit={distanceUnit}
                   showDistance={showResult}
-                  userAvatar={userAvatar} // Pass user avatar for the pin
+                  userAvatar={userAvatar}
                 />
               </div>
             )}
@@ -102,11 +122,11 @@ const GameView = () => {
             {showResult && roundResult && (
               <div className="text-sm">
                 <span className="font-medium">Distance: </span>
-                <span>{roundResult.distance} {distanceUnit}</span>
-                {roundResult.yearError !== 0 && (
+                <span>{roundResult.distanceError || roundResult.distance} {distanceUnit}</span>
+                {(roundResult.yearError !== 0 && roundResult.yearError !== undefined) && (
                   <span className="ml-2 font-medium">Year Error: </span>
                 )}
-                {roundResult.yearError !== 0 && (
+                {(roundResult.yearError !== 0 && roundResult.yearError !== undefined) && (
                   <span>{Math.abs(roundResult.yearError)} years</span>
                 )}
               </div>
@@ -124,14 +144,14 @@ const GameView = () => {
       </div>
       
       {/* Results overlay */}
-      {gameStatus === 'completed' && (
+      {gameStatus === 'completed' && roundResults && (
         <GameResults
           results={roundResults}
           totalScore={calculateTotalScore(roundResults)}
           onPlayAgain={resetGame}
           distanceUnit={distanceUnit}
-          gameMode={gameMode}
-          achievements={achievements} // Pass achievements to display them
+          gameMode={gameMode || 'single'}
+          achievements={achievements}
         />
       )}
     </div>

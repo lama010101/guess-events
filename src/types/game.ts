@@ -10,7 +10,13 @@ export interface HistoricalEvent {
   year: number;
   description: string;
   gameMode?: 'daily' | 'friends' | 'single';
+  // Added fields for backward compatibility
+  latitude?: number;
+  longitude?: number;
+  image_url?: string;
 }
+
+export type Event = HistoricalEvent; // Alias for backward compatibility
 
 export interface GameSettings {
   distanceUnit: 'km' | 'miles';
@@ -19,6 +25,7 @@ export interface GameSettings {
   gameMode: 'daily' | 'friends' | 'single';
   hintsEnabled: boolean;
   maxHints: number;
+  maxRounds?: number; // Added for compatibility
 }
 
 export interface PlayerGuess {
@@ -26,7 +33,7 @@ export interface PlayerGuess {
     lat: number;
     lng: number;
   } | null;
-  year: number;
+  year: number | null;
 }
 
 export interface RoundResult {
@@ -37,9 +44,15 @@ export interface RoundResult {
   locationScore: number;
   timeScore: number;
   totalScore: number;
+  // For backward compatibility
+  distance?: number;
+  score?: number;
+  location?: {lat: number, lng: number};
+  year?: number;
+  eventId?: string;
   hintsUsed?: {
-    time: boolean;
-    location: boolean;
+    time?: boolean;
+    location?: boolean;
   };
   achievements?: {
     perfectLocation?: boolean;
@@ -54,7 +67,7 @@ export interface GameState {
   currentRound: number;
   totalRounds: number;
   roundResults: RoundResult[];
-  gameStatus: 'not-started' | 'in-progress' | 'round-result' | 'game-over';
+  gameStatus: 'not-started' | 'in-progress' | 'round-result' | 'game-over' | 'ready' | 'show-result' | 'completed' | 'loading';
   currentGuess: PlayerGuess | null;
   timerStartTime?: number; // timestamp when timer started
   timerRemaining?: number; // seconds remaining
@@ -66,7 +79,16 @@ export interface GameState {
     locationHintUsed: boolean;
     timeHintRange?: { min: number, max: number };
     locationHintRegion?: { lat: number, lng: number, radiusKm: number };
+    // For backward compatibility
+    yearHintUsed?: boolean;
+    used?: string[];
   };
+  // Extra fields for backward compatibility
+  selectedLocation?: {lat: number, lng: number} | null;
+  selectedYear?: number | null;
+  currentEvent?: HistoricalEvent;
+  gameMode?: string;
+  totalScore?: number;
 }
 
 export interface UserProfile {

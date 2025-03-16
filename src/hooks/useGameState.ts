@@ -1,6 +1,7 @@
+
 import { useState, useEffect, useCallback } from 'react';
-import { GameState, Event, RoundResult } from '@/types/game';
-import { calculateDistance, getDistanceInUnit } from '@/utils/gameUtils';
+import { GameState, HistoricalEvent, Event, RoundResult, PlayerGuess } from '@/types/game';
+import { calculateDistance, getDistanceInUnit, calculateTotalScore } from '@/utils/gameUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -25,7 +26,10 @@ const achievementsList: Achievement[] = [
     title: 'Perfect Score',
     description: 'Got a perfect score in a game!',
     icon: '/perfect-score.svg',
-    condition: (gameState) => gameState.roundResults.every(result => result.distance <= 10 && Math.abs(result.yearError) <= 5),
+    condition: (gameState) => gameState.roundResults.every(result => 
+      (result.distanceError || result.distance || 0) <= 10 && 
+      Math.abs(result.yearError || 0) <= 5
+    ),
   },
   {
     id: 'streak-5',
@@ -36,52 +40,62 @@ const achievementsList: Achievement[] = [
   },
 ];
 
-const calculateTotalScore = (roundResults: RoundResult[]): number => {
-  return roundResults.reduce((acc, result) => acc + result.score, 0);
-};
-
 const initHints = (maxHints = 2) => ({
   available: maxHints,
-  used: [],
+  timeHintUsed: false,
+  locationHintUsed: false,
   yearHintUsed: false,
-  locationHintUsed: false
+  used: [] as string[]
 });
 
-export const useGameState = (events: Event[], gameMode: string, timerEnabled: boolean, timerDuration: number, maxRounds: number, maxHints: number) => {
+export const useGameState = (
+  initialEvents: HistoricalEvent[] = [], 
+  initialGameMode: string = 'single', 
+  initialTimerEnabled: boolean = false, 
+  initialTimerDuration: number = 5, 
+  initialMaxRounds: number = 5, 
+  initialMaxHints: number = 2
+) => {
   const { user, profile } = useAuth();
-  const totalRounds = Math.min(maxRounds, events.length);
+  const totalRounds = Math.min(initialMaxRounds, initialEvents.length || 5);
+  
   const [gameState, setGameState] = useState<GameState>({
-    events: events.slice(0, totalRounds),
+    events: initialEvents?.slice(0, totalRounds) || [],
     currentRound: 1,
-    gameStatus: 'loading',
+    gameStatus: 'not-started',
     selectedLocation: null,
     selectedYear: null,
     roundResults: [],
     totalScore: 0,
-    currentEvent: events[0],
-    gameMode: gameMode,
+    currentEvent: initialEvents?.[0],
+    gameMode: initialGameMode,
+    currentGuess: null,
     settings: {
-      timerEnabled: timerEnabled,
-      timerDuration: timerDuration,
+      timerEnabled: initialTimerEnabled,
+      timerDuration: initialTimerDuration,
       maxRounds: totalRounds,
-      maxHints: maxHints
+      maxHints: initialMaxHints,
+      distanceUnit: profile?.default_distance_unit || 'km',
+      gameMode: initialGameMode as any,
+      hintsEnabled: true
     },
-    hints: initHints(maxHints),
-    currentGuess: null
+    hints: initHints(initialMaxHints),
+    totalRounds
   });
+  
   const [view, setView] = useState<'map' | 'photo'>('map');
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
-  const { currentRound, settings, currentEvent, gameStatus, hints, selectedLocation, selectedYear } = gameState;
+  
   const distanceUnit = profile?.default_distance_unit || 'km';
   const userAvatar = profile?.avatar_url;
 
   useEffect(() => {
-    if (events.length > 0) {
+    if (initialEvents?.length > 0) {
       setGameState(prev => ({
         ...prev,
-        events: events.slice(0, totalRounds),
-        currentEvent: events[0],
+        events: initialEvents.slice(0, totalRounds),
+        currentEvent: initialEvents[0],
         gameStatus: 'ready',
         settings: {
           ...prev.settings,
@@ -89,17 +103,17 @@ export const useGameState = (events: Event[], gameMode: string, timerEnabled: bo
         }
       }));
     }
-  }, [events, totalRounds]);
+  }, [initialEvents, totalRounds]);
 
   useEffect(() => {
-    if (gameStatus === 'completed') {
+    if (gameState.gameStatus === 'completed' || gameState.gameStatus === 'game-over') {
       const earnedAchievements = achievementsList.filter(achievement => achievement.condition(gameState));
       setAchievements(earnedAchievements);
     }
-  }, [gameStatus, gameState]);
+  }, [gameState]);
 
   const startNextRound = useCallback(() => {
-    if (currentRound < totalRounds) {
+    if (gameState.currentRound < gameState.totalRounds) {
       setGameState(prev => ({
         ...prev,
         currentRound: prev.currentRound + 1,
@@ -113,10 +127,10 @@ export const useGameState = (events: Event[], gameMode: string, timerEnabled: bo
     } else {
       setGameState(prev => ({
         ...prev,
-        gameStatus: 'completed'
+        gameStatus: 'game-over'
       }));
     }
-  }, [currentRound, totalRounds]);
+  }, [gameState.currentRound, gameState.totalRounds]);
 
   const handleMapClick = useCallback((location: { lat: number; lng: number }) => {
     setGameState(prev => ({
@@ -133,40 +147,66 @@ export const useGameState = (events: Event[], gameMode: string, timerEnabled: bo
   }, []);
 
   const handleSubmitGuess = useCallback(async () => {
-    if (!selectedLocation || !selectedYear || !currentEvent) return;
+    if (!gameState.selectedLocation || !gameState.selectedYear || !gameState.currentEvent) return;
+
+    const currentEvent = gameState.currentEvent;
+    const eventLat = currentEvent.latitude || currentEvent.location?.lat || 0;
+    const eventLng = currentEvent.longitude || currentEvent.location?.lng || 0;
 
     const distance = calculateDistance(
-      selectedLocation.lat,
-      selectedLocation.lng,
-      currentEvent.latitude,
-      currentEvent.longitude
+      gameState.selectedLocation.lat,
+      gameState.selectedLocation.lng,
+      eventLat,
+      eventLng
     );
 
     const distanceInUnit = getDistanceInUnit(distance, distanceUnit);
-    const yearError = selectedYear - currentEvent.year;
+    const yearError = (gameState.selectedYear || 0) - (currentEvent.year || 0);
     const locationScore = Math.max(0, 100 - (distanceInUnit / 1000) * 100); // Example scoring
     const yearScore = Math.max(0, 100 - (Math.abs(yearError) / 50) * 100); // Example scoring
     const score = Math.round((locationScore + yearScore) / 2);
 
-    const result: RoundResult = {
-      distance: distanceInUnit,
+    // Create a basic result that matches what our components expect
+    const basicResult: RoundResult = {
+      distanceError: distanceInUnit,
       yearError: yearError,
+      locationScore: locationScore,
+      timeScore: yearScore,
+      totalScore: score,
+      // Legacy fields
+      distance: distanceInUnit,
       score: score,
-      location: selectedLocation,
-      year: selectedYear,
-      eventId: currentEvent.id
+      location: gameState.selectedLocation,
+      year: gameState.selectedYear,
+      eventId: currentEvent.id,
+      // Required fields
+      event: {
+        id: currentEvent.id,
+        imageUrl: currentEvent.image_url || '',
+        location: {
+          lat: eventLat,
+          lng: eventLng,
+          name: 'Location'
+        },
+        year: currentEvent.year || 0,
+        description: currentEvent.description || ''
+      },
+      guess: {
+        location: gameState.selectedLocation,
+        year: gameState.selectedYear
+      }
     };
 
-    setRoundResult(result);
+    setRoundResult(basicResult);
 
     setGameState(prev => ({
       ...prev,
-      gameStatus: 'show-result',
-      roundResults: [...prev.roundResults, result],
-      totalScore: calculateTotalScore([...prev.roundResults, result]),
+      gameStatus: 'round-result',
+      roundResults: [...prev.roundResults, basicResult],
+      totalScore: calculateTotalScore([...prev.roundResults, basicResult]),
       currentGuess: {
-        location: selectedLocation,
-        year: selectedYear
+        location: gameState.selectedLocation,
+        year: gameState.selectedYear
       }
     }));
 
@@ -178,7 +218,7 @@ export const useGameState = (events: Event[], gameMode: string, timerEnabled: bo
           .insert({
             user_id: user.id,
             session_id: 'test-session', // Replace with actual session ID
-            round_results: result,
+            round_results: JSON.stringify(basicResult), // Convert to JSON string
             total_score: score
           });
 
@@ -194,23 +234,23 @@ export const useGameState = (events: Event[], gameMode: string, timerEnabled: bo
       startNextRound();
       setRoundResult(null);
     }, 3000);
-  }, [selectedLocation, selectedYear, currentEvent, distanceUnit, user, startNextRound]);
+  }, [gameState.selectedLocation, gameState.selectedYear, gameState.currentEvent, distanceUnit, user, startNextRound]);
 
   const resetGame = useCallback(() => {
     setGameState(prev => ({
       ...prev,
       currentRound: 1,
-      gameStatus: 'ready',
+      gameStatus: 'not-started',
       selectedLocation: null,
       selectedYear: null,
       roundResults: [],
       totalScore: 0,
-      currentEvent: events[0],
-      hints: initHints(settings.maxHints),
+      currentEvent: initialEvents?.[0],
+      hints: initHints(gameState.settings.maxHints),
       currentGuess: null
     }));
     setAchievements([]);
-  }, [events, settings.maxHints]);
+  }, [initialEvents, gameState.settings.maxHints]);
 
   const useHint = useCallback((hintType: string) => {
     setGameState(prev => {
@@ -219,10 +259,11 @@ export const useGameState = (events: Event[], gameMode: string, timerEnabled: bo
       const updatedHints = {
         ...prev.hints,
         available: prev.hints.available - 1,
-        used: [...prev.hints.used, hintType]
+        used: [...(prev.hints.used || []), hintType]
       };
       
       if (hintType === 'year') {
+        updatedHints.timeHintUsed = true;
         updatedHints.yearHintUsed = true;
       } else if (hintType === 'location') {
         updatedHints.locationHintUsed = true;

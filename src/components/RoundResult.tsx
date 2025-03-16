@@ -11,17 +11,17 @@ import { Badge } from "@/components/ui/badge";
 
 interface RoundResultProps {
   result: RoundResult;
-  onNextRound: () => void;
   distanceUnit: 'km' | 'miles';
-  isLastRound: boolean;
+  onNextRound?: () => void;
+  isLastRound?: boolean;
   userAvatar?: string | null;
 }
 
 const RoundResultComponent: React.FC<RoundResultProps> = ({ 
   result, 
-  onNextRound, 
   distanceUnit,
-  isLastRound,
+  onNextRound, 
+  isLastRound = false,
   userAvatar = null
 }) => {
   const { event, guess, distanceError, yearError, locationScore, timeScore, totalScore, hintsUsed, achievements } = result;
@@ -64,6 +64,7 @@ const RoundResultComponent: React.FC<RoundResultProps> = ({
                   isDisabled={true}
                   userAvatar={userAvatar}
                   disableScroll={true}
+                  distanceUnit={distanceUnit}
                 />
               </div>
               
@@ -175,14 +176,16 @@ const RoundResultComponent: React.FC<RoundResultProps> = ({
         </Card>
       </div>
       
-      {/* Fixed footer with Next Round button */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-white shadow-md border-t border-gray-200 p-4">
-        <div className="container mx-auto">
-          <Button onClick={onNextRound} className="w-full">
-            {isLastRound ? 'See Final Results' : 'Next Round'}
-          </Button>
+      {/* Fixed footer with Next Round button - only show if onNextRound is provided */}
+      {onNextRound && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-white shadow-md border-t border-gray-200 p-4">
+          <div className="container mx-auto">
+            <Button onClick={onNextRound} className="w-full">
+              {isLastRound ? 'See Final Results' : 'Next Round'}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
