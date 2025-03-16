@@ -130,21 +130,21 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     );
   }
   
-  // Make the button more responsive
+  // Enhanced responsiveness for auth button
   return (
     <>
       <Button 
         variant={topBar ? "outline" : "default"} 
         onClick={() => setOpen(true)}
         size={topBar ? "sm" : "default"}
-        className={`${topBar ? "h-8" : ""} cursor-pointer z-10`}
+        className={`${topBar ? "h-8" : ""} cursor-pointer z-10 relative`}
       >
         <UserPlus className="mr-2 h-4 w-4" />
         {!topBar && "Register / Sign In"}
       </Button>
       
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[425px] z-[9999]">
+        <DialogContent className="sm:max-w-[425px] z-[9999] overflow-visible">
           <DialogHeader>
             <DialogTitle>Account Access</DialogTitle>
             <DialogDescription>

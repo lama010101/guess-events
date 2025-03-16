@@ -34,7 +34,7 @@ const AuthPromptDialog: React.FC<AuthPromptDialogProps> = ({
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md z-[9999]">
+      <DialogContent className="sm:max-w-md z-[9999] overflow-visible">
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <UserPlus className="mr-2 h-5 w-5 text-primary" /> 
@@ -59,6 +59,7 @@ const AuthPromptDialog: React.FC<AuthPromptDialogProps> = ({
             <Button 
               variant="outline" 
               onClick={onContinueAsGuest}
+              className="relative"
             >
               Continue as Guest
             </Button>

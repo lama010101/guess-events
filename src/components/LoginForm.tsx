@@ -32,12 +32,43 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
       
       if (error) {
         setError(error.message);
+        console.error('Login error:', error);
       } else {
+        toast.success('Successfully signed in!');
         onSuccess();
       }
     } catch (error: any) {
       console.error('Login error:', error);
       setError('Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Handle forgot password functionality
+  const handleForgotPassword = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    if (!email) {
+      setError('Please enter your email address first');
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) {
+        setError(error.message);
+      } else {
+        toast.success('Password reset email sent. Please check your inbox.');
+      }
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      setError('Failed to send reset email. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -66,9 +97,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor="password">Password</Label>
-          <a href="#" className="text-xs text-blue-600 hover:underline">
+          <button 
+            type="button"
+            onClick={handleForgotPassword}
+            className="text-xs text-blue-600 hover:underline"
+          >
             Forgot password?
-          </a>
+          </button>
         </div>
         <Input 
           id="password" 
@@ -93,7 +128,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
       </div>
       <Button 
         type="submit" 
-        className="w-full" 
+        className="w-full relative" 
         disabled={isLoading}
       >
         {isLoading ? "Signing in..." : "Sign In"}
