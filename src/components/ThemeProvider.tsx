@@ -5,7 +5,7 @@ import * as React from "react"
 import { ThemeProvider as NextThemesProvider } from "next-themes"
 
 // Define the Attribute type that next-themes expects
-type Attribute = string | 'class' | 'data-theme' | 'data-mode';
+type Attribute = 'class' | 'data-theme' | 'data-mode';
 
 // Define ThemeProviderProps interface with the correct attribute type
 interface ThemeProviderProps {
