@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -294,7 +295,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
             />
             
             <Button 
-              className="w-full relative z-10" 
+              className="w-full" 
               size="lg" 
               variant="secondary"
               onClick={() => handleStartGame('single')}
@@ -303,7 +304,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
             </Button>
             
             <Button 
-              className="w-full relative z-10"
+              className="w-full"
               variant="outline"
               size="lg" 
               onClick={() => handleStartGame('friends')}
@@ -311,6 +312,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
               <Users className="mr-2 h-4 w-4" /> Play with Friends
             </Button>
             
+            {/* Moved Timer controls below Play with Friends button */}
             <div className="flex flex-col space-y-2">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
