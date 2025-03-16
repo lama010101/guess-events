@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +11,7 @@ import GameResults from '@/components/GameResults';
 import SettingsDialog from '@/components/SettingsDialog';
 import Timer from '@/components/Timer';
 import ViewToggle from '@/components/ViewToggle';
+import HintSystem from '@/components/HintSystem';
 import { sampleEvents } from '@/data/sampleEvents';
 import {
   AlertDialog,
@@ -50,14 +50,21 @@ const Index = () => {
       distanceUnit: profile?.default_distance_unit || 'km',
       timerEnabled: false,
       timerDuration: 5,
-      gameMode: 'daily'
+      gameMode: 'daily',
+      hintsEnabled: true,
+      maxHints: 2
     },
     events: [],
     currentRound: 1,
     totalRounds: 5,
     roundResults: [],
     gameStatus: 'not-started',
-    currentGuess: null
+    currentGuess: null,
+    hints: {
+      available: 2,
+      timeHintUsed: false,
+      locationHintUsed: false
+    }
   });
 
   useEffect(() => {
@@ -102,7 +109,7 @@ const Index = () => {
         ...prev,
         settings: {
           ...prev.settings,
-          distanceUnit: profile.default_distance_unit || 'km'
+          distanceUnit: profile.default_distance_unit || settings.distanceUnit
         },
         userAvatar: profile.avatar_url
       }));
@@ -110,7 +117,6 @@ const Index = () => {
   }, [profile]);
 
   const startGame = (settings: GameSettings) => {
-    // Create a copy of the events and add gameMode to each event
     const shuffledEvents = shuffleArray(sampleEvents)
       .slice(0, 5)
       .map(event => ({
@@ -134,7 +140,12 @@ const Index = () => {
       },
       timerStartTime: settings.timerEnabled ? Date.now() : undefined,
       timerRemaining: settings.timerEnabled ? settings.timerDuration * 60 : undefined,
-      userAvatar: profile?.avatar_url
+      userAvatar: profile?.avatar_url,
+      hints: {
+        available: settings.maxHints,
+        timeHintUsed: false,
+        locationHintUsed: false
+      }
     });
 
     setActiveView('photo');
@@ -271,7 +282,12 @@ const Index = () => {
           year: 1962
         },
         timerStartTime: prev.settings.timerEnabled ? Date.now() : undefined,
-        timerRemaining: prev.settings.timerEnabled ? prev.settings.timerDuration * 60 : undefined
+        timerRemaining: prev.settings.timerEnabled ? prev.settings.timerDuration * 60 : undefined,
+        hints: {
+          available: prev.hints.available,
+          timeHintUsed: false,
+          locationHintUsed: false
+        }
       }));
       
       const currentUrl = new URL(window.location.href);
@@ -349,6 +365,56 @@ const Index = () => {
     setActiveView(view);
   };
 
+  const handleTimeHint = () => {
+    if (gameState.hints.available > 0 && !gameState.hints.timeHintUsed) {
+      const currentEvent = gameState.events[gameState.currentRound - 1];
+      const year = currentEvent.year;
+      const range = 60; // 60-year range initially (will be halved)
+      const min = Math.max(1900, year - range / 2);
+      const max = Math.min(new Date().getFullYear(), year + range / 2);
+      
+      setGameState(prev => ({
+        ...prev,
+        hints: {
+          ...prev.hints,
+          available: prev.hints.available - 1,
+          timeHintUsed: true,
+          timeHintRange: { min, max }
+        }
+      }));
+      
+      toast({
+        title: "Time Hint Used",
+        description: `The event occurred between ${min} and ${max}.`,
+      });
+    }
+  };
+  
+  const handleLocationHint = () => {
+    if (gameState.hints.available > 0 && !gameState.hints.locationHintUsed) {
+      const currentEvent = gameState.events[gameState.currentRound - 1];
+      
+      setGameState(prev => ({
+        ...prev,
+        hints: {
+          ...prev.hints,
+          available: prev.hints.available - 1,
+          locationHintUsed: true,
+          locationHintRegion: {
+            lat: currentEvent.location.lat,
+            lng: currentEvent.location.lng,
+            radiusKm: 500
+          }
+        }
+      }));
+      
+      toast({
+        title: "Location Hint Used",
+        description: "A highlighted region has been added to the map.",
+      });
+    }
+  };
+
   const renderGameView = () => {
     switch (gameState.gameStatus) {
       case 'not-started':
@@ -384,6 +450,18 @@ const Index = () => {
                   </div>
                 )}
                 
+                {gameState.settings.hintsEnabled && (
+                  <HintSystem
+                    onTimeHint={handleTimeHint}
+                    onLocationHint={handleLocationHint}
+                    timeHintUsed={gameState.hints.timeHintUsed}
+                    locationHintUsed={gameState.hints.locationHintUsed}
+                    hintsAvailable={gameState.hints.available}
+                    timeHintRange={gameState.hints.timeHintRange}
+                    locationHintRegion={gameState.hints.locationHintRegion}
+                  />
+                )}
+                
                 <div className="w-full">
                   <YearSlider 
                     value={gameState.currentGuess?.year || 1962}
@@ -407,6 +485,7 @@ const Index = () => {
                     onLocationSelect={handleLocationSelect} 
                     selectedLocation={gameState.currentGuess?.location}
                     userAvatar={gameState.userAvatar}
+                    hintRegion={gameState.hints.locationHintRegion}
                   />
                 )}
               </div>
