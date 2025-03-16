@@ -1,3 +1,4 @@
+
 import { Event, RoundResult, PlayerGuess, HistoricalEvent } from '@/types/game';
 
 // Function to calculate the distance between two coordinates using Haversine formula
@@ -35,13 +36,15 @@ export function shuffleArray<T>(array: T[]): T[] {
 }
 
 export function calculateRoundResult(event: Event | HistoricalEvent, guess: PlayerGuess): RoundResult {
+  // Handle different property names between Event and HistoricalEvent
   const eventLoc = 'location' in event ? event.location : 
-    { lat: event.lat, lng: event.lng, name: event.name || '' };
-  const eventYear = 'year' in event ? event.year : (event as any).year;
-  const eventDesc = 'description' in event ? event.description : (event as any).description;
+    { lat: 0, lng: 0, name: '' }; // This should never happen but TypeScript needs a fallback
+  
+  const eventYear = event.year;
+  const eventDesc = event.description;
   const eventImage = 'image_url' in event ? event.image_url : 
-    ('imageUrl' in event ? (event as any).imageUrl : '');
-  const eventId = 'id' in event ? event.id : (event as any).id;
+    ('imageUrl' in event ? (event as HistoricalEvent).imageUrl : '');
+  const eventId = event.id;
   
   // Create a properly formatted Event object
   const formattedEvent: Event = {
@@ -52,20 +55,20 @@ export function calculateRoundResult(event: Event | HistoricalEvent, guess: Play
     location: {
       lat: eventLoc.lat,
       lng: eventLoc.lng,
-      name: eventLoc.name
+      name: eventLoc.name || ''
     }
   };
   
   if (!guess.location) {
-    const yearError = Math.abs(eventYear - guess.year);
-    const yearScore = Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearError, 0.9))));
+    const yearDifference = Math.abs(eventYear - guess.year);
+    const yearScore = Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearDifference, 0.9))));
     
     return {
       event: formattedEvent,
       selectedLocation: { lat: 0, lng: 0 }, // Default values
       selectedYear: guess.year,
       distanceKm: Infinity,
-      yearDifference: yearError,
+      yearDifference: yearDifference,
       locationScore: 0,
       yearScore: yearScore,
       timeScore: yearScore, // For backward compatibility
@@ -76,7 +79,7 @@ export function calculateRoundResult(event: Event | HistoricalEvent, guess: Play
       },
       guess: guess,
       achievements: {
-        perfectTime: yearError === 0
+        perfectTime: yearDifference === 0
       }
     };
   }
@@ -90,7 +93,7 @@ export function calculateRoundResult(event: Event | HistoricalEvent, guess: Play
   );
 
   // Calculate year error
-  const yearError = Math.abs(eventYear - guess.year);
+  const yearDifference = Math.abs(eventYear - guess.year);
 
   // Calculate location score (out of 5000)
   // Max distance error we consider is 10000 km
@@ -99,14 +102,14 @@ export function calculateRoundResult(event: Event | HistoricalEvent, guess: Play
 
   // Calculate time score (out of 5000)
   // Score decreases more rapidly for recent years vs ancient years
-  const yearScore = Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearError, 0.9))));
+  const yearScore = Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearDifference, 0.9))));
 
   // Calculate total score
   const totalScore = locationScore + yearScore;
 
   // Determine if any achievements were earned
   const isPerfectLocation = distanceError < 10; // Less than 10 kilometers
-  const isPerfectTime = yearError === 0;
+  const isPerfectTime = yearDifference === 0;
   const isPerfect = isPerfectLocation && isPerfectTime;
 
   return {
@@ -114,7 +117,9 @@ export function calculateRoundResult(event: Event | HistoricalEvent, guess: Play
     selectedLocation: guess.location,
     selectedYear: guess.year,
     distanceKm: distanceError,
-    yearDifference: yearError,
+    distanceError: distanceError, // For backward compatibility
+    yearDifference,
+    yearError: yearDifference, // For backward compatibility
     locationScore,
     yearScore,
     timeScore: yearScore, // For backward compatibility

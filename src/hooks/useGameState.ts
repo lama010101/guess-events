@@ -6,7 +6,9 @@ import {
   GameState, 
   PlayerGuess, 
   HistoricalEvent,
-  RoundResult 
+  RoundResult,
+  Event,
+  convertToEvent
 } from '@/types/game';
 import { 
   calculateRoundResult, 
@@ -36,6 +38,17 @@ export const useGameState = () => {
     totalRounds: 5,
     roundResults: [],
     gameStatus: 'not-started',
+    currentEvent: null,
+    selectedLocation: null,
+    selectedYear: null,
+    userAvatar: null,
+    hintsUsed: {
+      time: false,
+      location: false
+    },
+    hintsAvailable: 2,
+    gameSessionId: null,
+    sessionUrl: null,
     currentGuess: null,
     hints: {
       available: 2,
@@ -98,9 +111,10 @@ export const useGameState = () => {
   }, [gameState.currentRound, gameState.gameStatus]);
 
   const startGame = (settings: GameSettings) => {
+    // Convert historical events to the Event type format
     const shuffledEvents = shuffleArray(sampleEvents)
       .slice(0, 5)
-      .map(event => ({
+      .map(event => convertToEvent({
         ...event,
         gameMode: settings.gameMode
       }));
@@ -113,15 +127,25 @@ export const useGameState = () => {
       events: shuffledEvents,
       currentRound: 1,
       totalRounds: 5,
+      currentEvent: shuffledEvents[0],
       roundResults: [],
       gameStatus: 'in-progress',
+      selectedLocation: null,
+      selectedYear: null,
+      userAvatar: profile?.avatar_url,
+      hintsUsed: {
+        time: false,
+        location: false
+      },
+      hintsAvailable: settings.maxHints,
+      gameSessionId: null,
+      sessionUrl: null,
       currentGuess: {
         location: null,
         year: 1962
       },
       timerStartTime: settings.timerEnabled ? Date.now() : undefined,
       timerRemaining: settings.timerEnabled ? settings.timerDuration * 60 : undefined,
-      userAvatar: profile?.avatar_url,
       hints: {
         available: settings.maxHints,
         timeHintUsed: false,
@@ -166,17 +190,23 @@ export const useGameState = () => {
     if (currentGuess.location) {
       result = calculateRoundResult(currentEvent, currentGuess);
     } else {
-      const yearError = Math.abs(currentEvent.year - currentGuess.year);
+      const yearDifference = Math.abs(currentEvent.year - currentGuess.year);
       result = {
         event: currentEvent,
-        guess: currentGuess,
-        distanceError: Infinity,
-        yearError,
+        selectedLocation: { lat: 0, lng: 0 }, // Default values
+        selectedYear: currentGuess.year,
+        distanceKm: Infinity,
+        yearDifference,
         locationScore: 0,
-        timeScore: Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearError, 0.9)))),
-        totalScore: 0
+        yearScore: Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearDifference, 0.9)))),
+        totalScore: 0,
+        hintsUsed: {
+          time: gameState.hints.timeHintUsed,
+          location: gameState.hints.locationHintUsed
+        },
+        guess: currentGuess
       };
-      result.totalScore = result.locationScore + result.timeScore;
+      result.totalScore = result.locationScore + result.yearScore;
     }
 
     setGameState(prev => ({
@@ -209,23 +239,25 @@ export const useGameState = () => {
       });
       
       const currentEvent = gameState.events[gameState.currentRound - 1];
-      const yearError = Math.abs(currentEvent.year - gameState.currentGuess.year);
-      const timeScore = Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearError, 0.9))));
+      const yearDifference = Math.abs(currentEvent.year - gameState.currentGuess.year);
+      const yearScore = Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearDifference, 0.9))));
       
-      const isPerfectTime = yearError === 0;
+      const isPerfectTime = yearDifference === 0;
       
       const result: RoundResult = {
         event: currentEvent,
-        guess: gameState.currentGuess,
-        distanceError: Infinity,
-        yearError,
+        selectedLocation: { lat: 0, lng: 0 }, // Default values
+        selectedYear: gameState.currentGuess.year,
+        distanceKm: Infinity,
+        yearDifference,
         locationScore: 0,
-        timeScore,
-        totalScore: timeScore,
+        yearScore,
+        totalScore: yearScore,
         hintsUsed: {
           time: gameState.hints.timeHintUsed,
           location: gameState.hints.locationHintUsed
         },
+        guess: gameState.currentGuess,
         achievements: {
           perfectTime: isPerfectTime
         }
@@ -269,6 +301,7 @@ export const useGameState = () => {
       setGameState(prev => ({
         ...prev,
         currentRound: nextRound,
+        currentEvent: prev.events[nextRound - 1],
         gameStatus: 'in-progress',
         currentGuess: {
           location: null,

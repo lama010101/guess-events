@@ -560,7 +560,7 @@ const Admin = () => {
             >
               <X className="h-4 w-4" />
             </Button>
-            <PhotoViewer src={previewImage} />
+            <PhotoViewer image={previewImage} />
           </div>
         </div>
       )}

@@ -3,7 +3,7 @@ import React from 'react';
 import { Card } from "@/components/ui/card";
 
 export interface PhotoViewerProps {
-  image: string;
+  image?: string;
   src?: string; // Alternative prop name
   description?: string;
   hint?: string;
