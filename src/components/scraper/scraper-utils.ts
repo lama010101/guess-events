@@ -11,7 +11,9 @@ export const DEFAULT_SCRAPER_SETTINGS: Partial<ScraperSettings> = {
     "USA Today Historical Events",
     "Rare Historical Photos",
     "Demilked Historical Pics"
-  ]
+  ],
+  custom_sources: [],
+  max_images_to_import: 50
 };
 
 export interface ScraperProgressState {
@@ -64,7 +66,9 @@ export const useScraperProgress = (scraperSettings?: ScraperSettings) => {
       // Call the edge function
       const { data, error } = await supabase.functions.invoke('scrape-historical-events', {
         body: { 
-          sourcesToScrape: enabledSources || DEFAULT_SCRAPER_SETTINGS.enabled_sources 
+          sourcesToScrape: enabledSources || DEFAULT_SCRAPER_SETTINGS.enabled_sources,
+          customSources: scraperSettings?.custom_sources || [],
+          maxImagesToImport: scraperSettings?.max_images_to_import || 50
         }
       });
       

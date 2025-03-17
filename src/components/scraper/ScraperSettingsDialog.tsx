@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Plus, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScraperSettings } from '@/types/scraper';
 import { DEFAULT_SCRAPER_SETTINGS } from './scraper-utils';
@@ -19,6 +21,8 @@ const ScraperSettingsDialog: React.FC<ScraperSettingsDialogProps> = ({
   onSave 
 }) => {
   const [newSettings, setNewSettings] = useState<Partial<ScraperSettings>>(DEFAULT_SCRAPER_SETTINGS);
+  const [newSourceName, setNewSourceName] = useState('');
+  const [newSourceUrl, setNewSourceUrl] = useState('');
   
   useEffect(() => {
     if (settings) {
@@ -43,8 +47,30 @@ const ScraperSettingsDialog: React.FC<ScraperSettingsDialogProps> = ({
     }
   };
   
+  const handleAddCustomSource = () => {
+    if (!newSourceName || !newSourceUrl) return;
+    
+    setNewSettings({
+      ...newSettings,
+      custom_sources: [
+        ...(newSettings.custom_sources || []),
+        { name: newSourceName, url: newSourceUrl }
+      ]
+    });
+    
+    setNewSourceName('');
+    setNewSourceUrl('');
+  };
+  
+  const handleRemoveCustomSource = (index: number) => {
+    setNewSettings({
+      ...newSettings,
+      custom_sources: (newSettings.custom_sources || []).filter((_, i) => i !== index)
+    });
+  };
+  
   return (
-    <DialogContent>
+    <DialogContent className="max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>Scraper Settings</DialogTitle>
         <DialogDescription>
@@ -77,10 +103,32 @@ const ScraperSettingsDialog: React.FC<ScraperSettingsDialogProps> = ({
           </Select>
         </div>
         
+        <div className="space-y-2">
+          <Label htmlFor="max-images">Maximum Images to Import</Label>
+          <Select 
+            value={String(newSettings.max_images_to_import || 50)}
+            onValueChange={(value) => setNewSettings({
+              ...newSettings,
+              max_images_to_import: parseInt(value)
+            })}
+          >
+            <SelectTrigger id="max-images">
+              <SelectValue placeholder="Select maximum" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10 images</SelectItem>
+              <SelectItem value="25">25 images</SelectItem>
+              <SelectItem value="50">50 images</SelectItem>
+              <SelectItem value="100">100 images</SelectItem>
+              <SelectItem value="200">200 images</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
         <Separator />
         
         <div className="space-y-2">
-          <Label>Enabled Sources</Label>
+          <Label>Enabled Default Sources</Label>
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
               <Checkbox 
@@ -122,6 +170,58 @@ const ScraperSettingsDialog: React.FC<ScraperSettingsDialogProps> = ({
               >
                 Demilked Historical Pics
               </label>
+            </div>
+          </div>
+        </div>
+        
+        <Separator />
+        
+        <div className="space-y-3">
+          <Label>Custom Sources</Label>
+          
+          {/* List of existing custom sources */}
+          <div className="space-y-2">
+            {newSettings.custom_sources?.map((source, index) => (
+              <div key={index} className="flex items-center justify-between p-2 border rounded-md bg-muted/50">
+                <div>
+                  <p className="font-medium text-sm">{source.name}</p>
+                  <p className="text-xs text-muted-foreground truncate max-w-[280px]">{source.url}</p>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => handleRemoveCustomSource(index)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          
+          {/* Add new custom source */}
+          <div className="space-y-2 p-3 border rounded-md">
+            <Label htmlFor="new-source-name">Add New Source</Label>
+            <div className="space-y-2">
+              <Input
+                id="new-source-name"
+                placeholder="Source Name"
+                value={newSourceName}
+                onChange={(e) => setNewSourceName(e.target.value)}
+              />
+              <Input
+                id="new-source-url"
+                placeholder="Source URL"
+                value={newSourceUrl}
+                onChange={(e) => setNewSourceUrl(e.target.value)}
+              />
+              <Button
+                onClick={handleAddCustomSource}
+                className="w-full"
+                disabled={!newSourceName || !newSourceUrl}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Source
+              </Button>
             </div>
           </div>
         </div>

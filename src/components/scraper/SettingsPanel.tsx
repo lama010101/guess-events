@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Clock, Database, Download, CheckCircle, Pause } from 'lucide-react';
+import { Clock, Database, Download, CheckCircle, Pause, Globe } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -67,7 +67,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             <Separator />
             
             <div className="space-y-2">
-              <Label>Enabled Sources</Label>
+              <Label>Max Images to Import</Label>
+              <div className="text-sm">
+                The scraper will import up to {scraperSettings?.max_images_to_import || 50} images per run.
+              </div>
+            </div>
+            
+            <Separator />
+            
+            <div className="space-y-2">
+              <Label>Enabled Default Sources</Label>
               <div className="text-sm space-y-2">
                 {scraperSettings?.enabled_sources?.map((source, index) => (
                   <div key={index} className="flex items-center gap-2">
@@ -77,6 +86,29 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 ))}
               </div>
             </div>
+            
+            {scraperSettings?.custom_sources && scraperSettings.custom_sources.length > 0 && (
+              <>
+                <Separator />
+                
+                <div className="space-y-2">
+                  <Label>Custom Sources</Label>
+                  <div className="text-sm space-y-2">
+                    {scraperSettings.custom_sources.map((source, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <Globe className="h-4 w-4 text-blue-500" />
+                        <div>
+                          <div>{source.name}</div>
+                          <div className="text-xs text-muted-foreground truncate max-w-[300px]">
+                            {source.url}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
             
             <div className="flex justify-end">
               <Button 

@@ -24,6 +24,8 @@ export interface ScraperSettings {
   last_run_at: string | null;
   is_running: boolean;
   enabled_sources: string[];
+  custom_sources: { name: string; url: string }[];
+  max_images_to_import: number;
   created_at: string;
   updated_at: string;
 }

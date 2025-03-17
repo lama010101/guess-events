@@ -9,8 +9,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Sources to scrape
-const SCRAPE_SOURCES = [
+// Default sources to scrape
+const DEFAULT_SCRAPE_SOURCES = [
   {
     name: "USA Today Historical Events",
     url: "https://www.usatoday.com/picture-gallery/life/2020/09/06/the-worlds-most-important-event-every-year-since-1920/42346845/",
@@ -157,14 +157,67 @@ const parsers = {
     }
     
     return events;
+  },
+  
+  // Generic parser for custom sources
+  genericScraper: async (html: string, source: any) => {
+    const events = [];
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    
+    if (!doc) return [];
+    
+    // Look for images
+    const images = doc.querySelectorAll("img");
+    console.log(`Found ${images.length} images on ${source.name}`);
+    
+    // Try to find nearby text for each image
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i];
+      const imageUrl = img.getAttribute("src") || img.getAttribute("data-src") || "";
+      
+      if (!imageUrl || !imageUrl.match(/\.(jpe?g|png|gif|webp)/i)) continue;
+      
+      // Try to get alt text or nearby paragraph
+      const altText = img.getAttribute("alt") || "";
+      const parent = img.parentElement;
+      const nearbyParagraph = parent?.querySelector("p")?.textContent || 
+                             parent?.nextElementSibling?.textContent || 
+                             "";
+      
+      const description = altText || nearbyParagraph || "Historical image";
+      
+      // Try to extract year
+      const yearMatch = description.match(/\b(1[0-9]{3}|20[0-2][0-9])\b/) || 
+                       parent?.textContent?.match(/\b(1[0-9]{3}|20[0-2][0-9])\b/);
+      const eventYear = yearMatch ? parseInt(yearMatch[0]) : new Date().getFullYear();
+      
+      // Generate a title
+      let title = description.split('.')[0] || "Historical Event";
+      if (title.length > 50) title = title.substring(0, 47) + "...";
+      
+      if (imageUrl) {
+        events.push({
+          title,
+          description: description || title,
+          image_url: imageUrl.startsWith('http') ? imageUrl : new URL(imageUrl, source.url).href,
+          event_date: `${eventYear}-01-01`,
+          source_name: source.name,
+          source_url: source.url
+        });
+      }
+    }
+    
+    return events;
   }
 };
 
 // Helper function to extract location from event description using simple heuristics
-function extractLocation(description: string): { latitude: number | null, longitude: number | null } {
+function extractLocation(description: string): { latitude: number | null, longitude: number | null, name: string | null } {
   // Default to null coordinates
   let latitude = null;
   let longitude = null;
+  let name = null;
   
   // Common locations with approximate coordinates
   const commonLocations: Record<string, [number, number]> = {
@@ -181,7 +234,7 @@ function extractLocation(description: string): { latitude: number | null, longit
     "washington dc": [38.9072, -77.0369],
     "san francisco": [37.7749, -122.4194],
     "beijing": [39.9042, 116.4074],
-    "sydney": [33.8688, 151.2093],
+    "sydney": [-33.8688, 151.2093],
     "rio de janeiro": [-22.9068, -43.1729],
     "cairo": [30.0444, 31.2357],
     "jerusalem": [31.7683, 35.2137]
@@ -192,15 +245,16 @@ function extractLocation(description: string): { latitude: number | null, longit
   for (const [location, coords] of Object.entries(commonLocations)) {
     if (lowerDescription.includes(location)) {
       [latitude, longitude] = coords;
+      name = location.charAt(0).toUpperCase() + location.slice(1);
       break;
     }
   }
   
-  return { latitude, longitude };
+  return { latitude, longitude, name };
 }
 
 // Function to fetch and scrape a single source
-async function scrapeSource(source: any) {
+async function scrapeSource(source: any, maxImages: number) {
   console.log(`Starting to scrape ${source.name} (${source.url})`);
   
   try {
@@ -215,21 +269,31 @@ async function scrapeSource(source: any) {
     console.log(`Successfully fetched HTML from ${source.name} (${html.length} bytes)`);
     
     // Parse the page using the appropriate parser
-    const parser = parsers[source.parser as keyof typeof parsers];
-    if (!parser) {
-      throw new Error(`No parser found for ${source.parser}`);
+    let parser;
+    if (source.parser && parsers[source.parser as keyof typeof parsers]) {
+      parser = parsers[source.parser as keyof typeof parsers];
+    } else {
+      // Use generic parser for custom sources
+      parser = parsers.genericScraper;
     }
     
-    const events = await parser(html, source);
+    let events = await parser(html, source);
     console.log(`Extracted ${events.length} events from ${source.name}`);
+    
+    // Limit the number of events to import
+    if (events.length > maxImages) {
+      console.log(`Limiting to ${maxImages} events from ${source.name}`);
+      events = events.slice(0, maxImages);
+    }
     
     // Enhance events with location data
     return events.map(event => {
-      const { latitude, longitude } = extractLocation(event.description);
+      const { latitude, longitude, name } = extractLocation(event.description);
       return {
         ...event,
-        latitude,
-        longitude
+        latitude: latitude || 0,
+        longitude: longitude || 0,
+        location_name: name || event.title.split(' ').slice(0, 3).join(' ')
       };
     });
   } catch (error) {
@@ -253,12 +317,28 @@ serve(async (req) => {
   }
 
   try {
-    const { sourcesToScrape } = await req.json();
-    const sourcesToProcess = sourcesToScrape?.length 
-      ? SCRAPE_SOURCES.filter(source => sourcesToScrape.includes(source.name))
-      : SCRAPE_SOURCES;
+    const { sourcesToScrape, customSources, maxImagesToImport = 50 } = await req.json();
     
-    console.log(`Processing ${sourcesToProcess.length} sources`);
+    // Create the sources to process list
+    let allSources = DEFAULT_SCRAPE_SOURCES;
+    
+    // Add custom sources
+    if (customSources && Array.isArray(customSources) && customSources.length > 0) {
+      const formattedCustomSources = customSources.map((source: any) => ({
+        name: source.name,
+        url: source.url,
+        parser: "genericScraper" // Use generic parser for custom sources
+      }));
+      
+      allSources = [...allSources, ...formattedCustomSources];
+    }
+    
+    // Filter sources based on enabled sources
+    const sourcesToProcess = sourcesToScrape?.length 
+      ? allSources.filter(source => sourcesToScrape.includes(source.name))
+      : allSources;
+    
+    console.log(`Processing ${sourcesToProcess.length} sources, max ${maxImagesToImport} images per source`);
 
     // Get Supabase admin client
     const supabaseAdminKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
@@ -284,19 +364,30 @@ serve(async (req) => {
     // Process each source
     for (const source of sourcesToProcess) {
       try {
-        const events = await scrapeSource(source);
+        const events = await scrapeSource(source, maxImagesToImport);
         
         let newEventsCount = 0;
         let existingEventsCount = 0;
         
         // Insert events into database
         for (const event of events) {
-          // Check if this event already exists (by title and source)
+          // Prepare the event with attribution and license
+          const eventToInsert = {
+            description: event.description,
+            location_name: event.location_name || 'Unknown location',
+            latitude: event.latitude,
+            longitude: event.longitude,
+            year: parseInt(event.event_date.split('-')[0]) || new Date().getFullYear(),
+            image_url: event.image_url,
+            image_attribution: `Image from ${source.name} (${source.url})`,
+            image_license: 'Used for educational purposes under fair use'
+          };
+          
+          // Check if this event already exists (by image_url)
           const { data: existingEvents, error: checkError } = await supabase
             .from('historical_events')
             .select('id')
-            .eq('title', event.title)
-            .eq('source_url', event.source_url)
+            .eq('image_url', event.image_url)
             .limit(1);
           
           if (checkError) {
@@ -312,7 +403,7 @@ serve(async (req) => {
           // Insert the new event
           const { error: insertError } = await supabase
             .from('historical_events')
-            .insert([event]);
+            .insert([eventToInsert]);
           
           if (insertError) {
             console.error('Error inserting event:', insertError);
