@@ -9,6 +9,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious 
+} from "@/components/ui/pagination";
 import { HistoricalEventDB } from '@/types/scraper';
 import { UseMutationResult } from '@tanstack/react-query';
 
@@ -17,6 +25,8 @@ interface EventsTableProps {
   isLoadingEvents: boolean;
   bulkUpdateEventsMutation: UseMutationResult<any, Error, { ids: string[], deleted: boolean }, unknown>;
 }
+
+const ITEMS_PER_PAGE = 10;
 
 const EventsTable: React.FC<EventsTableProps> = ({
   events,
@@ -27,6 +37,7 @@ const EventsTable: React.FC<EventsTableProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
   const [showDeleted, setShowDeleted] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   
   // Handle bulk delete
   const handleBulkDelete = () => {
@@ -135,6 +146,50 @@ const EventsTable: React.FC<EventsTableProps> = ({
     return true;
   });
   
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredEvents.length / ITEMS_PER_PAGE);
+  const paginatedEvents = filteredEvents.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE, 
+    currentPage * ITEMS_PER_PAGE
+  );
+  
+  // Generate page numbers for pagination
+  const pageNumbers = [];
+  const maxPageButtons = 5;
+  
+  if (totalPages <= maxPageButtons) {
+    // Show all pages if there are few
+    for (let i = 1; i <= totalPages; i++) {
+      pageNumbers.push(i);
+    }
+  } else {
+    // Show a subset of pages with ellipsis
+    if (currentPage <= 3) {
+      // Near the beginning
+      for (let i = 1; i <= 4; i++) {
+        pageNumbers.push(i);
+      }
+      pageNumbers.push('ellipsis');
+      pageNumbers.push(totalPages);
+    } else if (currentPage >= totalPages - 2) {
+      // Near the end
+      pageNumbers.push(1);
+      pageNumbers.push('ellipsis');
+      for (let i = totalPages - 3; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      // In the middle
+      pageNumbers.push(1);
+      pageNumbers.push('ellipsis');
+      for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+        pageNumbers.push(i);
+      }
+      pageNumbers.push('ellipsis');
+      pageNumbers.push(totalPages);
+    }
+  }
+  
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -203,9 +258,22 @@ const EventsTable: React.FC<EventsTableProps> = ({
               <TableRow>
                 <TableHead className="w-10">
                   <Checkbox 
-                    checked={filteredEvents.length > 0 && selectedEvents.length === filteredEvents.length}
-                    onCheckedChange={toggleSelectAll}
-                    aria-label="Select all events"
+                    checked={paginatedEvents.length > 0 && selectedEvents.length === paginatedEvents.length}
+                    onCheckedChange={(checked) => {
+                      // Only toggle the current page's items
+                      if (checked) {
+                        const pageIds = paginatedEvents.map(e => e.id);
+                        setSelectedEvents(prev => 
+                          Array.from(new Set([...prev, ...pageIds]))
+                        );
+                      } else {
+                        const pageIds = new Set(paginatedEvents.map(e => e.id));
+                        setSelectedEvents(prev => 
+                          prev.filter(id => !pageIds.has(id))
+                        );
+                      }
+                    }}
+                    aria-label="Select all events on this page"
                   />
                 </TableHead>
                 <TableHead className="w-12">Image</TableHead>
@@ -224,14 +292,14 @@ const EventsTable: React.FC<EventsTableProps> = ({
                     Loading events...
                   </TableCell>
                 </TableRow>
-              ) : filteredEvents.length === 0 ? (
+              ) : paginatedEvents.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8">
                     No events found. Run the scraper to collect historical events.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredEvents.map((event) => (
+                paginatedEvents.map((event) => (
                   <TableRow 
                     key={event.id}
                     className={event.deleted ? "opacity-60 bg-gray-50 dark:bg-gray-800/50" : ""}
@@ -273,7 +341,7 @@ const EventsTable: React.FC<EventsTableProps> = ({
                     </TableCell>
                     <TableCell>
                       <span className="line-clamp-1">
-                        {event.location_name}
+                        {event.source_name || event.location_name}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -336,6 +404,45 @@ const EventsTable: React.FC<EventsTableProps> = ({
             </TableBody>
           </Table>
         </div>
+        
+        {/* Pagination */}
+        {filteredEvents.length > 0 && (
+          <div className="mt-4">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                
+                {pageNumbers.map((pageNum, index) => (
+                  <PaginationItem key={index}>
+                    {pageNum === 'ellipsis' ? (
+                      <span className="flex h-9 w-9 items-center justify-center">...</span>
+                    ) : (
+                      <PaginationLink
+                        isActive={currentPage === pageNum}
+                        onClick={() => setCurrentPage(Number(pageNum))}
+                        className="cursor-pointer"
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    )}
+                  </PaginationItem>
+                ))}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

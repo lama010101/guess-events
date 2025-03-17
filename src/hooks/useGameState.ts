@@ -13,7 +13,7 @@ import {
 } from '@/utils/gameUtils';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { sampleEvents } from '@/data/sampleEvents';
+import { fetchRandomHistoricalEvents } from '@/integrations/supabase/events';
 
 export const useGameState = () => {
   const { toast } = useToast();
@@ -103,41 +103,66 @@ export const useGameState = () => {
     }
   }, [gameState.currentRound, gameState.gameStatus]);
 
-  const startGame = (settings: GameSettings) => {
-    const shuffledEvents = shuffleArray(sampleEvents)
-      .slice(0, 5)
-      .map(event => ({
+  const startGame = async (settings: GameSettings) => {
+    try {
+      toast({
+        title: "Loading Game",
+        description: "Fetching historical events...",
+      });
+      
+      // Fetch events from the database
+      const fetchedEvents = await fetchRandomHistoricalEvents(5);
+      
+      if (fetchedEvents.length === 0) {
+        toast({
+          title: "Error",
+          description: "No historical events found. Please try again or contact support.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Map the database events to the game format if needed
+      const gameEvents = fetchedEvents.map(event => ({
         ...event,
         gameMode: settings.gameMode
       }));
-    
-    setGameState({
-      settings: {
-        ...settings,
-        distanceUnit: profile?.default_distance_unit || settings.distanceUnit
-      },
-      events: shuffledEvents,
-      currentRound: 1,
-      totalRounds: 5,
-      roundResults: [],
-      gameStatus: 'in-progress',
-      currentGuess: {
-        location: null,
-        year: 1962
-      },
-      timerStartTime: settings.timerEnabled ? Date.now() : undefined,
-      timerRemaining: settings.timerEnabled ? settings.timerDuration * 60 : undefined,
-      userAvatar: profile?.avatar_url,
-      hints: {
-        available: settings.maxHints,
-        timeHintUsed: false,
-        locationHintUsed: false
-      }
-    });
+      
+      setGameState({
+        settings: {
+          ...settings,
+          distanceUnit: profile?.default_distance_unit || settings.distanceUnit
+        },
+        events: gameEvents,
+        currentRound: 1,
+        totalRounds: gameEvents.length,
+        roundResults: [],
+        gameStatus: 'in-progress',
+        currentGuess: {
+          location: null,
+          year: 1962
+        },
+        timerStartTime: settings.timerEnabled ? Date.now() : undefined,
+        timerRemaining: settings.timerEnabled ? settings.timerDuration * 60 : undefined,
+        userAvatar: profile?.avatar_url,
+        hints: {
+          available: settings.maxHints,
+          timeHintUsed: false,
+          locationHintUsed: false
+        }
+      });
 
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.set('round', '1');
-    window.history.replaceState({}, '', currentUrl.toString());
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('round', '1');
+      window.history.replaceState({}, '', currentUrl.toString());
+    } catch (error) {
+      console.error("Error starting game:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load historical events. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleLocationSelect = (lat: number, lng: number) => {

@@ -18,7 +18,7 @@ export const fetchAllHistoricalEvents = async (): Promise<HistoricalEvent[]> => 
 
     if (!data) return [];
 
-    // Convert database format to application format - avoid explicit type annotation
+    // Convert database format to application format
     return data.map(event => ({
       id: event.id,
       year: event.year,
@@ -42,16 +42,37 @@ export const fetchAllHistoricalEvents = async (): Promise<HistoricalEvent[]> => 
  */
 export const fetchRandomHistoricalEvents = async (limit: number = 5): Promise<HistoricalEvent[]> => {
   try {
+    // First, count total available events
+    const { count, error: countError } = await supabase
+      .from('historical_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('deleted', false)
+      .not('image_url', 'is', null); // Ensure we have images
+    
+    if (countError) throw countError;
+    
+    if (!count || count === 0) {
+      console.warn('No historical events found in database');
+      return [];
+    }
+    
+    // Fetch random events with images and valid coordinates
     const { data, error } = await supabase
       .from('historical_events')
       .select('*')
       .eq('deleted', false)
+      .not('image_url', 'is', null) // Ensure image exists
+      .not('latitude', 'is', null) // Ensure latitude exists
+      .not('longitude', 'is', null) // Ensure longitude exists
       .order('created_at', { ascending: false })
       .limit(limit);
 
     if (error) throw error;
 
-    if (!data) return [];
+    if (!data || data.length === 0) {
+      console.warn('No valid historical events found with images and coordinates');
+      return [];
+    }
 
     // Convert database format to application format - avoid explicit type annotation
     return data.map(event => ({
