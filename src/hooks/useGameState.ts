@@ -1,26 +1,26 @@
+
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   GameSettings, 
-  GameState, 
-  PlayerGuess, 
-  HistoricalEvent,
-  RoundResult 
+  GameState
 } from '@/types/game';
-import { 
-  calculateRoundResult, 
-  shuffleArray 
-} from '@/utils/gameUtils';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchRandomHistoricalEvents } from '@/integrations/supabase/events';
+
+// Import our new specialized hooks
+import useGameEvents from './useGameEvents';
+import useGameGuess from './useGameGuess';
+import useGameNavigation from './useGameNavigation';
+import useGameSettings from './useGameSettings';
+import useGameTimer from './useGameTimer';
+import useHints from './useHints';
 
 export const useGameState = () => {
   const { toast } = useToast();
   const { user, profile } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
   
+  // Initialize game state with default values
   const [gameState, setGameState] = useState<GameState>({
     settings: {
       distanceUnit: profile?.default_distance_unit || 'km',
@@ -43,354 +43,37 @@ export const useGameState = () => {
     }
   });
 
-  // Update URL with round parameter when game is in progress
-  useEffect(() => {
-    if (gameState.gameStatus === 'in-progress') {
-      const currentUrl = new URL(window.location.href);
-      currentUrl.searchParams.set('round', gameState.currentRound.toString());
-      window.history.replaceState({}, '', currentUrl.toString());
-    }
-  }, [gameState.currentRound, gameState.gameStatus]);
-
-  // Sync round parameter from URL
-  useEffect(() => {
-    if (gameState.gameStatus === 'in-progress') {
-      const params = new URLSearchParams(location.search);
-      const roundParam = params.get('round');
-      if (roundParam) {
-        const round = parseInt(roundParam);
-        if (!isNaN(round) && round >= 1 && round <= gameState.totalRounds && round !== gameState.currentRound) {
-          setGameState(prev => ({
-            ...prev,
-            currentRound: round,
-            currentGuess: {
-              location: null,
-              year: 1962
-            },
-            timerStartTime: prev.settings.timerEnabled ? Date.now() : undefined,
-            timerRemaining: prev.settings.timerEnabled ? prev.settings.timerDuration * 60 : undefined,
-            hints: {
-              available: prev.settings.maxHints,
-              timeHintUsed: false,
-              locationHintUsed: false,
-              timeHintRange: undefined,
-              locationHintRegion: undefined
-            }
-          }));
-        }
-      }
-    }
-  }, [location.search]);
-
-  // Update distance unit when profile changes
-  useEffect(() => {
-    if (profile) {
-      setGameState(prev => ({
-        ...prev,
-        settings: {
-          ...prev.settings,
-          distanceUnit: profile.default_distance_unit || prev.settings.distanceUnit
-        },
-        userAvatar: profile.avatar_url
-      }));
-    }
-  }, [profile]);
-
-  // Set active view to photo when starting a new round
-  useEffect(() => {
-    if (gameState.gameStatus === 'in-progress') {
-      // This would be handled by the ViewToggle component now
-    }
-  }, [gameState.currentRound, gameState.gameStatus]);
-
-  const startGame = async (settings: GameSettings) => {
-    try {
-      toast({
-        title: "Loading Game",
-        description: "Fetching historical events...",
-      });
-      
-      // Fetch events from the database
-      const fetchedEvents = await fetchRandomHistoricalEvents(5);
-      
-      if (fetchedEvents.length === 0) {
-        toast({
-          title: "Error",
-          description: "No historical events found. Please try again or contact support.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      // Map the database events to the game format if needed
-      const gameEvents = fetchedEvents.map(event => ({
-        ...event,
-        gameMode: settings.gameMode
-      }));
-      
-      setGameState({
-        settings: {
-          ...settings,
-          distanceUnit: profile?.default_distance_unit || settings.distanceUnit
-        },
-        events: gameEvents,
-        currentRound: 1,
-        totalRounds: gameEvents.length,
-        roundResults: [],
-        gameStatus: 'in-progress',
-        currentGuess: {
-          location: null,
-          year: 1962
-        },
-        timerStartTime: settings.timerEnabled ? Date.now() : undefined,
-        timerRemaining: settings.timerEnabled ? settings.timerDuration * 60 : undefined,
-        userAvatar: profile?.avatar_url,
-        hints: {
-          available: settings.maxHints,
-          timeHintUsed: false,
-          locationHintUsed: false
-        }
-      });
-
-      const currentUrl = new URL(window.location.href);
-      currentUrl.searchParams.set('round', '1');
-      window.history.replaceState({}, '', currentUrl.toString());
-    } catch (error) {
-      console.error("Error starting game:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load historical events. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleLocationSelect = (lat: number, lng: number) => {
-    console.log("Location selected:", lat, lng);
-    setGameState(prev => ({
-      ...prev,
-      currentGuess: {
-        ...(prev.currentGuess || { year: 1962 }),
-        location: { lat, lng }
-      }
-    }));
-  };
-
-  const handleYearSelect = (year: number) => {
-    console.log("Year selected:", year);
-    setGameState(prev => ({
-      ...prev,
-      currentGuess: {
-        ...(prev.currentGuess || { location: null }),
-        year
-      }
-    }));
-  };
-
-  const handleTimeUp = () => {
-    console.log("Timer expired, submitting current guess");
-    const currentEvent = gameState.events[gameState.currentRound - 1];
-    const currentGuess = gameState.currentGuess || { location: null, year: 1962 };
-    
-    let result: RoundResult;
-    
-    if (currentGuess.location) {
-      result = calculateRoundResult(currentEvent, currentGuess);
-    } else {
-      const yearError = Math.abs(currentEvent.year - currentGuess.year);
-      result = {
-        event: currentEvent,
-        guess: currentGuess,
-        distanceError: Infinity,
-        yearError,
-        locationScore: 0,
-        timeScore: Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearError, 0.9)))),
-        totalScore: 0
-      };
-      result.totalScore = result.locationScore + result.timeScore;
-    }
-
-    setGameState(prev => ({
-      ...prev,
-      roundResults: [...prev.roundResults, result],
-      gameStatus: 'round-result'
-    }));
-
-    toast({
-      title: "Time's up!",
-      description: "Your guess has been submitted automatically.",
-    });
-  };
-
-  const submitGuess = () => {
-    console.log("Submitting guess:", gameState.currentGuess);
-    if (!gameState.currentGuess) {
-      toast({
-        title: "Missing guess",
-        description: "Please select both a location and a year.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!gameState.currentGuess.location) {
-      toast({
-        title: "No location selected",
-        description: "You'll only receive points for your year guess.",
-      });
-      
-      const currentEvent = gameState.events[gameState.currentRound - 1];
-      const yearError = Math.abs(currentEvent.year - gameState.currentGuess.year);
-      const timeScore = Math.max(0, Math.round(5000 - Math.min(5000, 400 * Math.pow(yearError, 0.9))));
-      
-      const isPerfectTime = yearError === 0;
-      
-      const result: RoundResult = {
-        event: currentEvent,
-        guess: gameState.currentGuess,
-        distanceError: Infinity,
-        yearError,
-        locationScore: 0,
-        timeScore,
-        totalScore: timeScore,
-        hintsUsed: {
-          time: gameState.hints.timeHintUsed,
-          location: gameState.hints.locationHintUsed
-        },
-        achievements: {
-          perfectTime: isPerfectTime
-        }
-      };
-
-      setGameState(prev => ({
-        ...prev,
-        roundResults: [...prev.roundResults, result],
-        gameStatus: 'round-result'
-      }));
-      
-      return;
-    }
-
-    const currentEvent = gameState.events[gameState.currentRound - 1];
-    const result = calculateRoundResult(currentEvent, gameState.currentGuess);
-    
-    result.hintsUsed = {
-      time: gameState.hints.timeHintUsed,
-      location: gameState.hints.locationHintUsed
-    };
-
-    setGameState(prev => ({
-      ...prev,
-      roundResults: [...prev.roundResults, result],
-      gameStatus: 'round-result'
-    }));
-  };
-
-  const handleNextRound = () => {
-    if (gameState.currentRound === gameState.totalRounds) {
-      setGameState(prev => ({
-        ...prev,
-        gameStatus: 'game-over'
-      }));
-      const currentUrl = new URL(window.location.href);
-      currentUrl.searchParams.delete('round');
-      window.history.replaceState({}, '', currentUrl.toString());
-    } else {
-      const nextRound = gameState.currentRound + 1;
-      setGameState(prev => ({
-        ...prev,
-        currentRound: nextRound,
-        gameStatus: 'in-progress',
-        currentGuess: {
-          location: null,
-          year: 1962
-        },
-        timerStartTime: prev.settings.timerEnabled ? Date.now() : undefined,
-        timerRemaining: prev.settings.timerEnabled ? prev.settings.timerDuration * 60 : undefined,
-        hints: {
-          available: prev.settings.maxHints,
-          timeHintUsed: false,
-          locationHintUsed: false
-        }
-      }));
-      
-      const currentUrl = new URL(window.location.href);
-      currentUrl.searchParams.set('round', nextRound.toString());
-      window.history.replaceState({}, '', currentUrl.toString());
-    }
-  };
-
-  const handleTimeHint = () => {
-    if (gameState.hints.available > 0 && !gameState.hints.timeHintUsed) {
-      const currentEvent = gameState.events[gameState.currentRound - 1];
-      const year = currentEvent.year;
-      const range = 60; // 60-year range initially (will be halved)
-      const min = Math.max(1900, year - range / 2);
-      const max = Math.min(new Date().getFullYear(), year + range / 2);
-      
-      setGameState(prev => ({
-        ...prev,
-        hints: {
-          ...prev.hints,
-          available: prev.hints.available - 1,
-          timeHintUsed: true,
-          timeHintRange: { min, max }
-        }
-      }));
-      
-      toast({
-        title: "Time Hint Used",
-        description: `The event occurred between ${min} and ${max}.`,
-      });
-    }
-  };
+  // Use specialized hooks
+  const { startGame, calculateCumulativeScore } = useGameEvents();
   
-  const handleLocationHint = () => {
-    if (gameState.hints.available > 0 && !gameState.hints.locationHintUsed) {
-      const currentEvent = gameState.events[gameState.currentRound - 1];
-      
-      setGameState(prev => ({
-        ...prev,
-        hints: {
-          ...prev.hints,
-          available: prev.hints.available - 1,
-          locationHintUsed: true,
-          locationHintRegion: {
-            lat: currentEvent.location.lat,
-            lng: currentEvent.location.lng,
-            radiusKm: 500
-          }
-        }
-      }));
-      
-      toast({
-        title: "Location Hint Used",
-        description: "A highlighted region has been added to the map.",
-      });
+  const { 
+    handleLocationSelect, 
+    handleYearSelect, 
+    handleTimeUp, 
+    submitGuess 
+  } = useGameGuess(gameState, setGameState);
+  
+  const { handleNextRound } = useGameNavigation(gameState, setGameState);
+  
+  const { handleSettingsChange } = useGameSettings(gameState, setGameState, profile);
+  
+  const { handleTimeHint, handleLocationHint } = useHints(gameState, setGameState);
+  
+  // Initialize the timer
+  useGameTimer(gameState, setGameState, handleTimeUp);
+
+  // Main function to start a new game
+  const handleStartGame = async (settings: GameSettings) => {
+    const newGameState = await startGame(settings, profile);
+    if (newGameState) {
+      setGameState(newGameState);
     }
-  };
-
-  const handleSettingsChange = (newSettings: GameSettings) => {
-    setGameState(prev => ({
-      ...prev,
-      settings: {
-        ...newSettings,
-        distanceUnit: profile?.default_distance_unit || newSettings.distanceUnit
-      },
-      timerRemaining: newSettings.timerEnabled 
-        ? newSettings.timerDuration * 60 
-        : undefined
-    }));
-  };
-
-  const calculateCumulativeScore = () => {
-    return gameState.roundResults.reduce((sum, result) => sum + result.totalScore, 0);
   };
 
   return {
     gameState,
     setGameState,
-    startGame,
+    startGame: handleStartGame,
     handleLocationSelect,
     handleYearSelect,
     handleTimeUp,
@@ -399,7 +82,7 @@ export const useGameState = () => {
     handleTimeHint,
     handleLocationHint,
     handleSettingsChange,
-    calculateCumulativeScore
+    calculateCumulativeScore: () => calculateCumulativeScore(gameState.roundResults)
   };
 };
 
