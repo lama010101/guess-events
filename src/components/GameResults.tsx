@@ -3,11 +3,11 @@ import React from 'react';
 import { RoundResult } from '@/types/game';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Medal, Users } from 'lucide-react';
+import { Trophy, Medal } from 'lucide-react';
 import AuthButton from './AuthButton';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Import our newly created components
+// Import our results components
 import TotalScoreDisplay from './results/TotalScoreDisplay';
 import AchievementsSummary from './results/AchievementsSummary';
 import HintsUsedSummary from './results/HintsUsedSummary';
@@ -29,7 +29,7 @@ const GameResults: React.FC<GameResultsProps> = ({
   const { user } = useAuth();
   const totalScore = results.reduce((sum, result) => sum + result.totalScore, 0);
   
-  // Check if we're in daily mode by examining if gameMode is set to daily
+  // Check if we're in daily mode
   const isDailyMode = results.length > 0 && 
     results[0].event.gameMode === 'daily';
   
