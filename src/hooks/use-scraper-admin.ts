@@ -12,7 +12,9 @@ const DEFAULT_SCRAPER_SETTINGS: Partial<ScraperSettings> = {
     "USA Today Historical Events",
     "Rare Historical Photos",
     "Demilked Historical Pics"
-  ]
+  ],
+  custom_sources: [],
+  max_images_to_import: 50
 };
 
 export const useScraperAdmin = () => {
@@ -140,6 +142,10 @@ export const useScraperAdmin = () => {
           enabled_sources: Array.isArray((settingsData as any)?.enabled_sources) 
             ? (settingsData as any).enabled_sources 
             : DEFAULT_SCRAPER_SETTINGS.enabled_sources || [],
+          custom_sources: Array.isArray((settingsData as any)?.custom_sources)
+            ? (settingsData as any).custom_sources
+            : DEFAULT_SCRAPER_SETTINGS.custom_sources || [],
+          max_images_to_import: parseInt(String((settingsData as any)?.max_images_to_import || 50)),
           created_at: (settingsData as any)?.created_at || new Date().toISOString(),
           updated_at: (settingsData as any)?.updated_at || new Date().toISOString()
         };
@@ -198,6 +204,10 @@ export const useScraperAdmin = () => {
         enabled_sources: Array.isArray((data as any)?.enabled_sources) 
           ? (data as any).enabled_sources 
           : DEFAULT_SCRAPER_SETTINGS.enabled_sources || [],
+        custom_sources: Array.isArray((data as any)?.custom_sources)
+          ? (data as any).custom_sources
+          : DEFAULT_SCRAPER_SETTINGS.custom_sources || [],
+        max_images_to_import: parseInt(String((data as any)?.max_images_to_import || 50)),
         created_at: (data as any)?.created_at || new Date().toISOString(),
         updated_at: (data as any)?.updated_at || new Date().toISOString()
       } as ScraperSettings;
