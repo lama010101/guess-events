@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { HistoricalEvent, GameSettings } from '@/types/game';
+import { HistoricalEvent, GameSettings, GameState } from '@/types/game';
 import { useToast } from '@/hooks/use-toast';
 import { fetchRandomHistoricalEvents } from '@/integrations/supabase/events';
 
@@ -32,7 +32,7 @@ export const useGameEvents = () => {
         gameMode: settings.gameMode
       }));
       
-      const initialGameState = {
+      const initialGameState: GameState = {
         settings: {
           ...settings,
           distanceUnit: profile?.default_distance_unit || settings.distanceUnit
@@ -41,7 +41,7 @@ export const useGameEvents = () => {
         currentRound: 1,
         totalRounds: gameEvents.length,
         roundResults: [],
-        gameStatus: 'in-progress',
+        gameStatus: 'in-progress' as const,
         currentGuess: {
           location: null,
           year: 1962
