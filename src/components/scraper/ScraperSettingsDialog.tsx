@@ -1,15 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
-import { DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Save } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScraperSettings } from '@/types/scraper';
 import { DEFAULT_SCRAPER_SETTINGS } from './scraper-utils';
+import { useToast } from "@/hooks/use-toast";
 
 interface ScraperSettingsDialogProps {
   settings: ScraperSettings | undefined;
@@ -20,9 +21,11 @@ const ScraperSettingsDialog: React.FC<ScraperSettingsDialogProps> = ({
   settings, 
   onSave 
 }) => {
+  const { toast } = useToast();
   const [newSettings, setNewSettings] = useState<Partial<ScraperSettings>>(DEFAULT_SCRAPER_SETTINGS);
   const [newSourceName, setNewSourceName] = useState('');
   const [newSourceUrl, setNewSourceUrl] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   
   useEffect(() => {
     if (settings) {
@@ -67,6 +70,31 @@ const ScraperSettingsDialog: React.FC<ScraperSettingsDialogProps> = ({
       ...newSettings,
       custom_sources: (newSettings.custom_sources || []).filter((_, i) => i !== index)
     });
+  };
+  
+  const handleSubmit = async () => {
+    try {
+      setIsSaving(true);
+      
+      // Make a copy of the settings to send to the server
+      const settingsToSave = { ...newSettings };
+      
+      await onSave(settingsToSave);
+      
+      toast({
+        title: "Settings saved",
+        description: "Scraper settings have been updated successfully."
+      });
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      toast({
+        title: "Save failed",
+        description: "There was an error saving the settings. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
   
   return (
@@ -228,10 +256,19 @@ const ScraperSettingsDialog: React.FC<ScraperSettingsDialogProps> = ({
       </div>
       
       <DialogFooter>
-        <Button variant="outline" onClick={() => setNewSettings(settings || DEFAULT_SCRAPER_SETTINGS)}>
-          Reset
+        <DialogClose asChild>
+          <Button variant="outline">
+            Cancel
+          </Button>
+        </DialogClose>
+        <Button 
+          onClick={handleSubmit} 
+          disabled={isSaving}
+          className="gap-2"
+        >
+          <Save className="h-4 w-4" />
+          {isSaving ? "Saving..." : "Save Changes"}
         </Button>
-        <Button onClick={() => onSave(newSettings)}>Save Changes</Button>
       </DialogFooter>
     </DialogContent>
   );

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
 import { HistoricalEventDB, ScraperLog, ScraperSettings } from '@/types/scraper';
+import { importHistoricalEvents } from '@/integrations/supabase/events';
 
 const DEFAULT_SCRAPER_SETTINGS: Partial<ScraperSettings> = {
   auto_run_interval: 24, // 24 hours
@@ -228,6 +229,27 @@ export const useScraperAdmin = () => {
     }
   });
 
+  // Mutation to import historical events
+  const importEventsMutation = useMutation({
+    mutationFn: async () => {
+      return await importHistoricalEvents();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['historical-events'] });
+      toast({
+        title: "Import Successful",
+        description: `Successfully imported ${data.results?.filter(r => r.status === 'success').length || 0} historical events.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Import Failed",
+        description: `Failed to import events: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+
   // Return all the necessary data and functions
   return {
     events,
@@ -241,5 +263,6 @@ export const useScraperAdmin = () => {
     refetchSettings,
     bulkUpdateEventsMutation,
     updateSettingsMutation,
+    importEventsMutation
   };
 };

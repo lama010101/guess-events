@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { UserPlus, LogIn, User, Trophy, Settings, Users } from 'lucide-react';
 import { 
@@ -34,8 +34,22 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
   const navigate = useNavigate();
   const { user, profile, signOut, isLoading } = useAuth();
   
+  // Track component mounting to prevent state updates on unmounted component
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+  
   const handleSignOut = async () => {
-    await signOut();
+    try {
+      await signOut();
+      // Force reload after sign out to ensure clean state
+      window.location.reload();
+    } catch (error) {
+      console.error("Sign out error:", error);
+    }
   };
   
   const handleViewProfile = () => {
@@ -60,7 +74,36 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     setOpen(false);
   };
   
-  // If the authentication data is loading, show a loading state
+  // If the authentication data is loading and we're mounted, show a loading state
+  // Limit loading state to 5 seconds to avoid infinite loading
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  
+  useEffect(() => {
+    if (isLoading && isMounted) {
+      const timer = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, isMounted]);
+  
+  // If loading took too long, show the login button anyway
+  if (loadingTimeout) {
+    return (
+      <Button 
+        variant={topBar ? "outline" : "default"} 
+        onClick={() => setOpen(true)}
+        size={topBar ? "sm" : "default"}
+        className={`${topBar ? "h-8" : ""} cursor-pointer z-50 relative pointer-events-auto`}
+      >
+        <UserPlus className="mr-2 h-4 w-4" />
+        {!topBar && "Register / Sign In"}
+      </Button>
+    );
+  }
+  
+  // If the authentication data is loading, show a loading state with a timeout
   if (isLoading) {
     return (
       <Button 
@@ -76,7 +119,6 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
   
   // If the user is authenticated, show the user avatar
   if (user && profile) {
-    console.log("Rendering authenticated state with profile:", profile);
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

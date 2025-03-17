@@ -1,7 +1,8 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
-import { Play, Pause, Settings, Clock } from 'lucide-react';
+import { Play, Pause, Settings, Clock, RefreshCcw } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
@@ -29,6 +30,7 @@ const ScraperControls: React.FC<ScraperControlsProps> = ({
   updateSettingsMutation
 }) => {
   const { toast } = useToast();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   const {
     isStartingScraper,
@@ -42,8 +44,18 @@ const ScraperControls: React.FC<ScraperControlsProps> = ({
   const updateSettings = async (settings: Partial<ScraperSettings>): Promise<void> => {
     try {
       await updateSettingsMutation.mutateAsync(settings);
+      toast({
+        title: "Settings Updated",
+        description: "Scraper settings have been updated successfully."
+      });
+      setIsSettingsOpen(false);
     } catch (error) {
       console.error('Error updating settings:', error);
+      toast({
+        title: "Settings Update Failed",
+        description: "There was an error updating the settings. Please try again.",
+        variant: "destructive"
+      });
     }
   };
   
@@ -64,7 +76,17 @@ const ScraperControls: React.FC<ScraperControlsProps> = ({
   };
   
   const handleSaveSettings = (newSettings: Partial<ScraperSettings>) => {
-    updateSettingsMutation.mutate(newSettings);
+    updateSettings(newSettings);
+  };
+  
+  const forceRefresh = () => {
+    refetchEvents();
+    refetchLogs();
+    refetchSettings();
+    toast({
+      title: "Data Refreshed",
+      description: "All scraper data has been refreshed from the database."
+    });
   };
   
   return (
@@ -102,7 +124,7 @@ const ScraperControls: React.FC<ScraperControlsProps> = ({
                 </Button>
               )}
               
-              <Dialog>
+              <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" className="gap-2">
                     <Settings className="h-4 w-4" />
@@ -114,6 +136,15 @@ const ScraperControls: React.FC<ScraperControlsProps> = ({
                   onSave={handleSaveSettings}
                 />
               </Dialog>
+              
+              <Button 
+                variant="outline" 
+                onClick={forceRefresh} 
+                className="gap-2"
+              >
+                <RefreshCcw className="h-4 w-4" />
+                Refresh Data
+              </Button>
             </div>
             
             <div className="flex items-center gap-2 text-sm text-muted-foreground">

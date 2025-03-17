@@ -1,8 +1,9 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Trophy, ShieldAlert } from 'lucide-react';
+import { Trophy, ShieldAlert, Lock } from 'lucide-react';
 import { format } from 'date-fns';
+import { useToast } from "@/hooks/use-toast";
 
 interface DailyCompetitionButtonProps {
   dailyCompleted: boolean;
@@ -17,7 +18,30 @@ const DailyCompetitionButton: React.FC<DailyCompetitionButtonProps> = ({
   user,
   onStartGame
 }) => {
+  const { toast } = useToast();
   const todayDate = format(new Date(), 'MMMM d, yyyy');
+
+  const handleDailyClick = () => {
+    if (dailyCompleted) {
+      toast({
+        title: "Already Completed",
+        description: "You've already completed today's Daily Competition. Come back tomorrow!",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "You need to sign in to play the Daily Competition.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    onStartGame();
+  };
 
   if (dailyCompleted) {
     return (
@@ -25,9 +49,9 @@ const DailyCompetitionButton: React.FC<DailyCompetitionButtonProps> = ({
         className="w-full" 
         size="lg" 
         variant="default"
-        disabled
+        onClick={handleDailyClick}
       >
-        <Trophy className="mr-2 h-4 w-4" /> Daily Competition Completed ({todayDate}): {dailyScore}
+        <Lock className="mr-2 h-4 w-4" /> Daily Competition Completed ({todayDate}): {dailyScore}
       </Button>
     );
   }
@@ -37,7 +61,7 @@ const DailyCompetitionButton: React.FC<DailyCompetitionButtonProps> = ({
       className="w-full" 
       size="lg" 
       variant={user ? "default" : "outline"}
-      onClick={onStartGame}
+      onClick={handleDailyClick}
     >
       <Trophy className="mr-2 h-4 w-4" /> Daily Competition ({todayDate})
       {!user && (
