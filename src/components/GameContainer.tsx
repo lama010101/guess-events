@@ -29,7 +29,6 @@ const GameContainer: React.FC<GameContainerProps> = ({
             totalRounds={gameState.totalRounds}
             cumulativeScore={cumulativeScore}
             onShare={onShare}
-            onSettingsClick={onSettingsClick}
             onHomeClick={onHomeClick}
           />
         </div>

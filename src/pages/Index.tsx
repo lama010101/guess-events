@@ -58,7 +58,7 @@ const Index = () => {
           <GameContainer 
             gameState={gameState}
             onShare={handleShare}
-            onSettingsClick={() => {}} // Removing settings from topbar
+            onSettingsClick={() => {}} // Passing empty function for compatibility
             onHomeClick={() => handleGoHome(setConfirmHomeOpen)}
             cumulativeScore={calculateCumulativeScore()}
           >
@@ -80,7 +80,7 @@ const Index = () => {
           <GameContainer 
             gameState={gameState}
             onShare={handleShare}
-            onSettingsClick={() => {}} // Removing settings from topbar
+            onSettingsClick={() => {}} // Passing empty function for compatibility
             onHomeClick={() => handleGoHome(setConfirmHomeOpen)}
             cumulativeScore={calculateCumulativeScore()}
           >
@@ -97,7 +97,7 @@ const Index = () => {
           <GameContainer 
             gameState={gameState}
             onShare={handleShare}
-            onSettingsClick={() => {}} // Removing settings from topbar
+            onSettingsClick={() => {}} // Passing empty function for compatibility
             onHomeClick={() => handleGoHome(setConfirmHomeOpen)}
             cumulativeScore={calculateCumulativeScore()}
           >
