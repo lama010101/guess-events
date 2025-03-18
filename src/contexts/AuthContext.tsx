@@ -1,209 +1,67 @@
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { uploadAvatar } from '@/integrations/supabase/storage';
-import { Session, User } from '@supabase/supabase-js';
+import React, { createContext, useContext } from 'react';
+import { useAuthSession } from '@/hooks/useAuthSession';
+import { signIn, signUp, signOut, updateProfile } from '@/services/authService';
+import { updateUserAvatar } from '@/services/avatarService';
 import { useToast } from '@/hooks/use-toast';
-import { toast } from 'sonner';
-
-type Profile = {
-  id: string;
-  username: string;
-  avatar_url: string | null;
-  role: 'user' | 'admin';
-  default_distance_unit: 'km' | 'miles';
-};
-
-type AuthContextType = {
-  session: Session | null;
-  user: User | null;
-  profile: Profile | null;
-  isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any | null }>;
-  signUp: (email: string, password: string, username: string) => Promise<{ error: any | null }>;
-  signOut: () => Promise<void>;
-  updateProfile: (updates: Partial<Profile>) => Promise<{ error: any | null }>;
-  updateAvatar: (file: File) => Promise<{ error: any | null, url: string | null }>;
-};
+import { AuthContextType } from '@/types/auth';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { session, user, profile, isLoading, fetchProfile, setProfile } = useAuthSession();
   const { toast: uiToast } = useToast();
 
-  useEffect(() => {
-    // Get initial session
-    const initAuth = async () => {
-      setIsLoading(true);
-      
-      try {
-        console.log("Initializing auth...");
-        // Get the current session
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          console.log("Session found, fetching profile...");
-          await fetchProfile(session.user.id);
-        } else {
-          console.log("No session found");
-          setProfile(null);
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Sign in wrapper with UI toast
+  const handleSignIn = async (email: string, password: string) => {
+    const result = await signIn(email, password);
     
-    initAuth();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
-          setProfile(null);
-        }
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const fetchProfile = async (userId: string) => {
-    try {
-      console.log('Fetching profile for user:', userId);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-      } else if (data) {
-        console.log('Profile fetched successfully:', data);
-        setProfile(data as Profile);
-      }
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-    }
-  };
-
-  const signIn = async (email: string, password: string) => {
-    try {
-      console.log("Signing in with email:", email);
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) {
-        console.error("Sign in failed:", error.message);
-        toast(`Sign in failed: ${error.message}`, {
-          position: "top-center",
-        });
-        uiToast({
-          title: 'Sign in failed',
-          description: error.message,
-          variant: 'destructive',
-        });
-        return { error };
-      }
-      
-      console.log("Sign in successful:", data);
-      toast("Welcome back! You have successfully signed in.", {
-        position: "top-center",
-      });
-      
+    if (!result.error) {
       uiToast({
         title: 'Welcome back!',
         description: 'You have successfully signed in.',
       });
-      
-      return { error: null };
-    } catch (error) {
-      console.error('Sign in error:', error);
-      return { error };
+    } else {
+      uiToast({
+        title: 'Sign in failed',
+        description: result.error.message,
+        variant: 'destructive',
+      });
     }
+    
+    return result;
   };
 
-  const signUp = async (email: string, password: string, username: string) => {
-    try {
-      console.log("Signing up with email:", email, "and username:", username);
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username,
-          },
-        },
-      });
-      
-      if (error) {
-        console.error("Registration failed:", error.message);
-        toast(`Registration failed: ${error.message}`, {
-          position: "top-center",
-        });
-        
-        uiToast({
-          title: 'Registration failed',
-          description: error.message,
-          variant: 'destructive',
-        });
-        return { error };
-      }
-      
-      console.log("Registration successful:", data);
-      toast("Welcome to HistoryGuessr! Your account has been created successfully.", {
-        position: "top-center",
-      });
-      
+  // Sign up wrapper with UI toast
+  const handleSignUp = async (email: string, password: string, username: string) => {
+    const result = await signUp(email, password, username);
+    
+    if (!result.error) {
       uiToast({
         title: 'Welcome to HistoryGuessr!',
         description: 'Your account has been created successfully.',
       });
-      
-      return { error: null };
-    } catch (error) {
-      console.error('Sign up error:', error);
-      return { error };
+    } else {
+      uiToast({
+        title: 'Registration failed',
+        description: result.error.message,
+        variant: 'destructive',
+      });
     }
+    
+    return result;
   };
 
-  const signOut = async () => {
-    try {
-      console.log("Signing out...");
-      await supabase.auth.signOut();
-      toast("You have been signed out. Come back soon!", {
-        position: "top-center",
-      });
-      
-      uiToast({
-        title: 'You have been signed out',
-        description: 'Come back soon!',
-      });
-    } catch (error) {
-      console.error('Sign out error:', error);
-      toast("Sign out failed. Please try again", {
-        position: "top-center",
-      });
-      
+  // Sign out wrapper with UI toast
+  const handleSignOut = async () => {
+    const result = await signOut();
+    
+    uiToast({
+      title: 'You have been signed out',
+      description: 'Come back soon!',
+    });
+    
+    if (result.error) {
       uiToast({
         title: 'Sign out failed',
         description: 'Please try again',
@@ -212,24 +70,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateProfile = async (updates: Partial<Profile>) => {
-    try {
-      if (!user) return { error: new Error('User not logged in') };
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id);
-      
-      if (error) {
-        uiToast({
-          title: 'Update failed',
-          description: error.message,
-          variant: 'destructive',
-        });
-        return { error };
-      }
-      
+  // Update profile wrapper with UI toast and profile refresh
+  const handleUpdateProfile = async (updates: Partial<typeof profile>) => {
+    if (!user) return { error: new Error('User not logged in') };
+    
+    const result = await updateProfile(user.id, updates);
+    
+    if (!result.error) {
       // Refresh profile data
       await fetchProfile(user.id);
       
@@ -237,74 +84,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: 'Profile updated',
         description: 'Your profile has been updated successfully.',
       });
-      
-      return { error: null };
-    } catch (error) {
-      console.error('Update profile error:', error);
-      return { error };
     }
+    
+    return result;
   };
 
-  const updateAvatar = async (file: File) => {
-    try {
-      if (!user) return { error: new Error('User not logged in'), url: null };
+  // Update avatar wrapper with UI toast
+  const handleUpdateAvatar = async (file: File) => {
+    if (!user) return { error: new Error('User not logged in'), url: null };
+    
+    const result = await updateUserAvatar(user.id, file);
+    
+    if (!result.error) {
+      // Refresh profile after avatar update
+      await fetchProfile(user.id);
       
-      console.log("Starting avatar upload process for user:", user.id);
-      
-      // Upload the avatar
-      try {
-        const publicUrl = await uploadAvatar(user.id, file);
-        
-        if (!publicUrl) {
-          throw new Error('Upload failed: No public URL returned');
-        }
-        
-        console.log("Avatar uploaded successfully, updating profile with URL:", publicUrl);
-        
-        // Update the profile with the new avatar URL
-        const { error } = await updateProfile({ avatar_url: publicUrl });
-        
-        if (error) {
-          console.error('Error updating profile with avatar URL:', error);
-          return { error, url: null };
-        }
-        
-        uiToast({
-          title: 'Avatar updated',
-          description: 'Your profile picture has been updated successfully.',
-        });
-        
-        return { error: null, url: publicUrl };
-      } catch (error) {
-        console.error('Error uploading avatar:', error);
-        uiToast({
-          title: 'Avatar update failed',
-          description: 'Unable to upload avatar. Please try again.',
-          variant: 'destructive',
-        });
-        return { error, url: null };
-      }
-    } catch (error) {
-      console.error('Update avatar error:', error);
       uiToast({
-        title: 'Avatar update failed',
-        description: 'An unexpected error occurred. Please try again.',
-        variant: 'destructive',
+        title: 'Avatar updated',
+        description: 'Your profile picture has been updated successfully.',
       });
-      return { error, url: null };
     }
+    
+    return result;
   };
 
-  const value = {
+  const value: AuthContextType = {
     session,
     user,
     profile,
     isLoading,
-    signIn,
-    signUp,
-    signOut,
-    updateProfile,
-    updateAvatar,
+    signIn: handleSignIn,
+    signUp: handleSignUp,
+    signOut: handleSignOut,
+    updateProfile: handleUpdateProfile,
+    updateAvatar: handleUpdateAvatar,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
