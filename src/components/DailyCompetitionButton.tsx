@@ -23,6 +23,7 @@ const DailyCompetitionButton: React.FC<DailyCompetitionButtonProps> = ({
 
   const handleDailyClick = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     console.log('Daily competition button clicked');
     
     if (dailyCompleted) {
@@ -53,6 +54,7 @@ const DailyCompetitionButton: React.FC<DailyCompetitionButtonProps> = ({
         size="lg" 
         variant="default"
         onClick={handleDailyClick}
+        type="button"
       >
         <Lock className="mr-2 h-4 w-4" /> Daily Competition Completed ({todayDate}): {dailyScore}
       </Button>
@@ -65,6 +67,7 @@ const DailyCompetitionButton: React.FC<DailyCompetitionButtonProps> = ({
       size="lg" 
       variant={user ? "default" : "outline"}
       onClick={handleDailyClick}
+      type="button"
     >
       <Trophy className="mr-2 h-4 w-4" /> Daily Competition ({todayDate})
       {!user && (

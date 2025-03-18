@@ -75,21 +75,23 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
   };
   
   // If the authentication data is loading and we're mounted, show a loading state
-  // Limit loading state to 5 seconds to avoid infinite loading
+  // Limit loading state to 3 seconds to avoid infinite loading
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   
   useEffect(() => {
     if (isLoading && isMounted) {
       const timer = setTimeout(() => {
-        setLoadingTimeout(true);
-      }, 5000);
+        if (isMounted) {
+          setLoadingTimeout(true);
+        }
+      }, 3000); // Reduced from 5000ms to 3000ms for quicker fallback
       
       return () => clearTimeout(timer);
     }
   }, [isLoading, isMounted]);
   
   // If loading took too long, show the login button anyway
-  if (loadingTimeout) {
+  if (isLoading && loadingTimeout) {
     return (
       <Button 
         variant={topBar ? "outline" : "default"} 
@@ -104,7 +106,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
   }
   
   // If the authentication data is loading, show a loading state with a timeout
-  if (isLoading) {
+  if (isLoading && !loadingTimeout) {
     return (
       <Button 
         variant={topBar ? "outline" : "default"} 
@@ -184,6 +186,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
         onClick={() => setOpen(true)}
         size={topBar ? "sm" : "default"}
         className={`${topBar ? "h-8" : ""} cursor-pointer z-50 relative pointer-events-auto`}
+        type="button"
       >
         <UserPlus className="mr-2 h-4 w-4" />
         {!topBar && "Register / Sign In"}
@@ -213,7 +216,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
           
           <div className="mt-4 text-center">
             <DialogClose asChild>
-              <Button variant="outline" onClick={handleContinueAsGuest}>
+              <Button variant="outline" onClick={handleContinueAsGuest} type="button">
                 Continue as Guest
               </Button>
             </DialogClose>

@@ -1,19 +1,17 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { Shield, Users, User, Database, Calendar, Lightbulb } from "lucide-react";
 import { GameSettings } from '@/types/game';
 import { useToast } from "@/hooks/use-toast";
 import AuthButton from './AuthButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import DailyCompetitionButton from './DailyCompetitionButton';
 import FriendsDialog from './FriendsDialog';
 import AuthPromptDialog from './AuthPromptDialog';
+import GameModeButtons from './home/GameModeButtons';
+import GameSettingsComponent from './home/GameSettings';
+import AdminLinks from './home/AdminLinks';
 
 interface HomeScreenProps {
   onStartGame: (settings: GameSettings) => void;
@@ -121,34 +119,27 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
 
   const handleStartGame = async (mode: 'daily' | 'friends' | 'single') => {
     console.log(`Starting game in ${mode} mode`);
-    if (mode === 'daily' && !user) {
-      toast({
-        title: "Authentication Required",
-        description: "You need to sign in to play the Daily Competition.",
-        variant: "destructive"
-      });
-      setShowAuthPrompt(true);
-      return;
-    }
     
+    // Always ensure hints settings are properly set
     const newSettings = {
       ...settings,
       gameMode: mode,
+      hintsEnabled: settings.hintsEnabled,
+      maxHints: settings.hintsEnabled ? 2 : 0
     };
     
     if (mode === 'friends') {
-      if (!user) {
-        toast({
-          title: "Authentication Required",
-          description: "You need to sign in to play with friends.",
-          variant: "destructive"
-        });
-        setShowAuthPrompt(true);
-        return;
-      }
-      
       try {
-        const creatorId = user.id;
+        const creatorId = user?.id;
+        if (!creatorId) {
+          toast({
+            title: "Authentication Required",
+            description: "You need to sign in to play with friends.",
+            variant: "destructive"
+          });
+          setShowAuthPrompt(true);
+          return;
+        }
         
         const { data, error } = await supabase
           .from('game_sessions')
@@ -191,6 +182,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
       }
     } else {
       console.log("Calling onStartGame with settings:", newSettings);
+      // Direct call to start single player or daily game
       onStartGame(newSettings);
     }
   };
@@ -228,10 +220,19 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
   };
 
   const handleSettingChange = (key: keyof GameSettings, value: any) => {
-    setSettings(prev => ({
-      ...prev,
-      [key]: value
-    }));
+    if (key === 'hintsEnabled') {
+      // When changing hints enabled, automatically set maxHints to 2 or 0
+      setSettings(prev => ({
+        ...prev,
+        hintsEnabled: value,
+        maxHints: value ? 2 : 0
+      }));
+    } else {
+      setSettings(prev => ({
+        ...prev,
+        [key]: value
+      }));
+    }
   };
 
   const handleCopyLink = async () => {
@@ -279,114 +280,21 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            <DailyCompetitionButton 
+            <GameModeButtons 
               dailyCompleted={dailyCompleted}
               dailyScore={dailyScore}
-              user={user}
-              onStartGame={() => handleStartGame('daily')}
+              onStartGame={handleStartGame}
+              setShowAuthPrompt={setShowAuthPrompt}
             />
             
-            <Button 
-              className="w-full" 
-              size="lg" 
-              variant="secondary"
-              onClick={() => handleStartGame('single')}
-            >
-              <User className="mr-2 h-4 w-4" /> Singleplayer
-            </Button>
-            
-            <Button 
-              className="w-full"
-              variant="outline"
-              size="lg" 
-              onClick={() => handleStartGame('friends')}
-            >
-              <Users className="mr-2 h-4 w-4" /> Play with Friends
-            </Button>
-            
-            <div className="flex flex-col space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <h4 className="font-medium leading-none">Enable Timer</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Play with a time limit for each round
-                  </p>
-                </div>
-                <Switch
-                  id="timer-enabled"
-                  checked={settings.timerEnabled}
-                  onCheckedChange={(checked) => setSettings(prev => ({...prev, timerEnabled: checked}))}
-                />
-              </div>
-              
-              {settings.timerEnabled && (
-                <div className="pt-2 pb-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <Label htmlFor="timer-duration">Timer Duration: {settings.timerDuration} minutes</Label>
-                  </div>
-                  <Slider
-                    id="timer-duration"
-                    min={1}
-                    max={10}
-                    step={1}
-                    value={[settings.timerDuration]}
-                    onValueChange={(value) => setSettings(prev => ({...prev, timerDuration: value[0]}))}
-                  />
-                </div>
-              )}
-              
-              <div className="flex items-center justify-between mt-4">
-                <div className="space-y-1">
-                  <h4 className="font-medium leading-none">Enable Hints</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Get help with location and time period
-                  </p>
-                </div>
-                <Switch
-                  id="hints-enabled"
-                  checked={settings.hintsEnabled}
-                  onCheckedChange={(checked) => setSettings(prev => ({
-                    ...prev, 
-                    hintsEnabled: checked,
-                    maxHints: checked ? 2 : 0
-                  }))}
-                />
-              </div>
-              
-              {settings.hintsEnabled && (
-                <div className="pt-2 pb-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <Label htmlFor="max-hints" className="flex items-center">
-                      <Lightbulb className="mr-2 h-4 w-4 text-yellow-500" />
-                      Available Hints: {settings.maxHints}
-                    </Label>
-                  </div>
-                  <Slider
-                    id="max-hints"
-                    min={1}
-                    max={3}
-                    step={1}
-                    value={[settings.maxHints]}
-                    onValueChange={(value) => setSettings(prev => ({...prev, maxHints: value[0]}))}
-                  />
-                </div>
-              )}
-            </div>
+            <GameSettingsComponent
+              settings={settings}
+              onSettingChange={handleSettingChange}
+            />
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
-          <div className="flex w-full justify-center gap-4">
-            {profile?.role === 'admin' && (
-              <>
-                <Link to="/admin" className="text-sm text-muted-foreground hover:text-primary flex items-center">
-                  <Shield className="mr-1 h-3 w-3" /> Admin Panel
-                </Link>
-                <Link to="/admin/scraper" className="text-sm text-muted-foreground hover:text-primary flex items-center">
-                  <Database className="mr-1 h-3 w-3" /> Scraper Dashboard
-                </Link>
-              </>
-            )}
-          </div>
+          <AdminLinks isAdmin={profile?.role === 'admin'} />
         </CardFooter>
       </Card>
       
