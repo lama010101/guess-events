@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/contexts/AuthContext';
+import { AlertCircle } from 'lucide-react';
 
 interface RegisterFormProps {
   onSuccess: () => void;
@@ -20,6 +21,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setError(null);
     
     if (password !== confirmPassword) {
@@ -30,6 +32,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
     setIsLoading(true);
     
     try {
+      console.log("Attempting to register with:", email, username);
       const { error } = await signUp(email, password, username);
       
       if (!error) {
@@ -45,6 +48,13 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
   
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative flex items-start">
+          <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
+      
       <div className="space-y-2">
         <Label htmlFor="username">Username</Label>
         <Input 
@@ -86,10 +96,6 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
           onChange={(e) => setConfirmPassword(e.target.value)}
         />
       </div>
-      
-      {error && (
-        <div className="text-red-500 text-sm">{error}</div>
-      )}
       
       <Button 
         type="submit" 

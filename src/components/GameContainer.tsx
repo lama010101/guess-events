@@ -7,7 +7,7 @@ interface GameContainerProps {
   gameState: GameState;
   children: React.ReactNode;
   onShare: () => void;
-  onSettingsClick: () => void;
+  onSettingsClick: () => void; // Keeping for compatibility
   onHomeClick: () => void;
   cumulativeScore: number;
 }
@@ -16,7 +16,7 @@ const GameContainer: React.FC<GameContainerProps> = ({
   gameState, 
   children, 
   onShare, 
-  onSettingsClick, 
+  onSettingsClick, // Keeping unused param for compatibility
   onHomeClick, 
   cumulativeScore 
 }) => {

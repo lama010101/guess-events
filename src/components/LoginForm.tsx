@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { signInWithEmail } from '@/integrations/supabase/auth';
 import { AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -24,12 +23,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsLoading(true);
     setError(null);
     
     try {
-      // Use the signInWithEmail function from auth.ts for consistency
-      const { error } = await signInWithEmail(email, password);
+      console.log("Attempting to sign in with:", email);
+      const { error } = await signIn(email, password);
       
       if (error) {
         setError(error.message);
@@ -49,6 +49,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   // Handle forgot password functionality
   const handleForgotPassword = async (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     
     if (!email) {
       setError('Please enter your email address first');
@@ -58,6 +59,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     setIsLoading(true);
     
     try {
+      console.log("Sending password reset to:", email);
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });

@@ -3,7 +3,6 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Trophy, Lock } from 'lucide-react';
 import { format } from 'date-fns';
-import { useToast } from "@/hooks/use-toast";
 
 interface DailyCompetitionButtonProps {
   dailyCompleted: boolean;
@@ -18,7 +17,6 @@ const DailyCompetitionButton: React.FC<DailyCompetitionButtonProps> = ({
   user,
   onStartGame
 }) => {
-  const { toast } = useToast();
   const todayDate = format(new Date(), 'MMMM d, yyyy');
 
   const handleDailyClick = (e: React.MouseEvent) => {
@@ -26,24 +24,19 @@ const DailyCompetitionButton: React.FC<DailyCompetitionButtonProps> = ({
     e.stopPropagation();
     console.log('Daily competition button clicked');
     
+    // If user completed daily competition, don't allow them to start again
     if (dailyCompleted) {
-      toast({
-        title: "Already Completed",
-        description: "You've already completed today's Daily Competition. Come back tomorrow!",
-        variant: "destructive"
-      });
+      console.log("Daily competition already completed");
       return;
     }
     
+    // Check if user is authenticated
     if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "You need to sign in to play the Daily Competition.",
-        variant: "destructive"
-      });
+      console.log("User not authenticated, redirecting to login");
       return;
     }
     
+    // All checks passed, start the game
     onStartGame();
   };
 
@@ -64,7 +57,7 @@ const DailyCompetitionButton: React.FC<DailyCompetitionButtonProps> = ({
 
   return (
     <Button 
-      className="w-full" 
+      className="w-full pointer-events-auto" 
       size="lg" 
       variant="default"
       onClick={handleDailyClick}
