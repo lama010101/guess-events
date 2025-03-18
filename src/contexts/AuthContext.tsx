@@ -222,7 +222,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', user.id);
       
       if (error) {
-        toast({
+        uiToast({
           title: 'Update failed',
           description: error.message,
           variant: 'destructive',
@@ -233,7 +233,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Refresh profile data
       await fetchProfile(user.id);
       
-      toast({
+      uiToast({
         title: 'Profile updated',
         description: 'Your profile has been updated successfully.',
       });
@@ -269,7 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return { error, url: null };
         }
         
-        toast({
+        uiToast({
           title: 'Avatar updated',
           description: 'Your profile picture has been updated successfully.',
         });
@@ -277,7 +277,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: null, url: publicUrl };
       } catch (error) {
         console.error('Error uploading avatar:', error);
-        toast({
+        uiToast({
           title: 'Avatar update failed',
           description: 'Unable to upload avatar. Please try again.',
           variant: 'destructive',
@@ -286,7 +286,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Update avatar error:', error);
-      toast({
+      uiToast({
         title: 'Avatar update failed',
         description: 'An unexpected error occurred. Please try again.',
         variant: 'destructive',
