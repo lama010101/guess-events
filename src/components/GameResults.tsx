@@ -4,7 +4,6 @@ import { RoundResult } from '@/types/game';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trophy, Medal } from 'lucide-react';
-import AuthButton from './AuthButton';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Import our results components
@@ -35,10 +34,6 @@ const GameResults: React.FC<GameResultsProps> = ({
   
   return (
     <div className="w-full max-w-5xl mx-auto">
-      <div className="flex justify-end mb-4">
-        <AuthButton />
-      </div>
-      
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl text-center">Game Results</CardTitle>

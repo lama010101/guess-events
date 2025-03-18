@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import HomeScreen from '@/components/HomeScreen';
 import GameResults from '@/components/GameResults';
@@ -11,7 +12,7 @@ import useGameActions from '@/hooks/useGameActions';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmHomeOpen, setConfirmHomeOpen] = useState(false);
   
@@ -57,7 +58,7 @@ const Index = () => {
           <GameContainer 
             gameState={gameState}
             onShare={handleShare}
-            onSettingsClick={() => setSettingsOpen(true)}
+            onSettingsClick={() => {}} // Removing settings from topbar
             onHomeClick={() => handleGoHome(setConfirmHomeOpen)}
             cumulativeScore={calculateCumulativeScore()}
           >
@@ -79,7 +80,7 @@ const Index = () => {
           <GameContainer 
             gameState={gameState}
             onShare={handleShare}
-            onSettingsClick={() => setSettingsOpen(true)}
+            onSettingsClick={() => {}} // Removing settings from topbar
             onHomeClick={() => handleGoHome(setConfirmHomeOpen)}
             cumulativeScore={calculateCumulativeScore()}
           >
@@ -96,7 +97,7 @@ const Index = () => {
           <GameContainer 
             gameState={gameState}
             onShare={handleShare}
-            onSettingsClick={() => setSettingsOpen(true)}
+            onSettingsClick={() => {}} // Removing settings from topbar
             onHomeClick={() => handleGoHome(setConfirmHomeOpen)}
             cumulativeScore={calculateCumulativeScore()}
           >

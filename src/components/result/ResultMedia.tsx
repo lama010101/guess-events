@@ -24,7 +24,7 @@ const ResultMedia: React.FC<ResultMediaProps> = ({
         <PhotoViewer src={imageUrl} alt={eventDescription} />
       </div>
       
-      <div className="h-96">
+      <div className="h-96 relative z-10">
         <GameMap 
           onLocationSelect={() => {}} 
           selectedLocation={userGuessLocation}

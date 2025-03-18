@@ -25,9 +25,9 @@ const GameControls: React.FC<GameControlsProps> = ({
 }) => {
   return (
     <>
-      <div className="mb-4 mt-2">
+      <div className="mb-2">
         {gameState.settings.timerEnabled && (
-          <div className="mb-4">
+          <div className="mb-2">
             <Timer 
               durationMinutes={gameState.settings.timerDuration}
               onTimeUp={onTimeUp}
@@ -37,7 +37,14 @@ const GameControls: React.FC<GameControlsProps> = ({
           </div>
         )}
         
-        <div className="w-full">
+        <div className="w-full mb-2">
+          <ViewToggle 
+            activeView={activeView}
+            onViewChange={onViewChange}
+          />
+        </div>
+        
+        <div className="w-full mt-2">
           <YearSlider 
             value={gameState.currentGuess?.year || 1962}
             onChange={onYearSelect}
@@ -47,11 +54,6 @@ const GameControls: React.FC<GameControlsProps> = ({
         </div>
       </div>
       
-      <ViewToggle 
-        activeView={activeView}
-        onViewChange={onViewChange}
-      />
-      
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white shadow-md border-t border-gray-200">
         <div className="container mx-auto p-4">
           <Button 
@@ -59,6 +61,7 @@ const GameControls: React.FC<GameControlsProps> = ({
             onClick={onSubmitGuess}
             disabled={!gameState.currentGuess?.year}
             className="w-full"
+            type="button"
           >
             Submit Guess
           </Button>

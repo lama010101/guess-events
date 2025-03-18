@@ -1,24 +1,21 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Settings, Share2, Home } from 'lucide-react';
+import { Share2, Home } from 'lucide-react';
 import { 
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useToast } from "@/hooks/use-toast";
 import { formatNumber } from '@/utils/gameUtils';
 import AuthButton from './AuthButton';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface GameHeaderProps {
   currentRound: number;
   totalRounds: number;
   cumulativeScore: number;
   onShare?: () => void;
-  onSettingsClick?: () => void;
   onHomeClick?: () => void;
 }
 
@@ -27,12 +24,8 @@ const GameHeader: React.FC<GameHeaderProps> = ({
   totalRounds, 
   cumulativeScore,
   onShare,
-  onSettingsClick,
   onHomeClick
 }) => {
-  const { toast } = useToast();
-  const { user, isLoading } = useAuth();
-
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 shadow-md rounded-b-lg p-4 flex items-center justify-between">
       <div className="flex items-center space-x-6">
@@ -56,6 +49,7 @@ const GameHeader: React.FC<GameHeaderProps> = ({
                 size="icon" 
                 onClick={onHomeClick}
                 className="h-8 w-8"
+                type="button"
               >
                 <Home className="h-4 w-4" />
               </Button>
@@ -74,30 +68,13 @@ const GameHeader: React.FC<GameHeaderProps> = ({
                 size="icon" 
                 onClick={onShare}
                 className="h-8 w-8"
+                type="button"
               >
                 <Share2 className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
               <p>Share this game</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={onSettingsClick}
-                className="h-8 w-8"
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Game settings</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

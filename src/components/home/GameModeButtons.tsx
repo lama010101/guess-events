@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { User, Users, Trophy } from 'lucide-react';
+import { User, Users } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
 import DailyCompetitionButton from '../DailyCompetitionButton';
@@ -37,12 +37,17 @@ const GameModeButtons: React.FC<GameModeButtonsProps> = ({
     onStartGame('daily');
   };
 
-  const handleSinglePlayerClick = () => {
+  const handleSinglePlayerClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     console.log("Starting single player mode");
     onStartGame('single');
   };
 
-  const handleFriendsClick = () => {
+  const handleFriendsClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (!user) {
       toast({
         title: "Authentication Required",

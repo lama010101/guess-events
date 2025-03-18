@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Trophy, ShieldAlert, Lock } from 'lucide-react';
+import { Trophy, Lock } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 
@@ -55,6 +55,7 @@ const DailyCompetitionButton: React.FC<DailyCompetitionButtonProps> = ({
         variant="default"
         onClick={handleDailyClick}
         type="button"
+        disabled
       >
         <Lock className="mr-2 h-4 w-4" /> Daily Competition Completed ({todayDate}): {dailyScore}
       </Button>
@@ -65,16 +66,11 @@ const DailyCompetitionButton: React.FC<DailyCompetitionButtonProps> = ({
     <Button 
       className="w-full" 
       size="lg" 
-      variant={user ? "default" : "outline"}
+      variant="default"
       onClick={handleDailyClick}
       type="button"
     >
       <Trophy className="mr-2 h-4 w-4" /> Daily Competition ({todayDate})
-      {!user && (
-        <span className="ml-1 flex items-center text-sm text-gray-500 dark:text-gray-400">
-          <ShieldAlert className="ml-1 h-3 w-3" /> Sign in required
-        </span>
-      )}
     </Button>
   );
 };

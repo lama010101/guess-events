@@ -3,7 +3,6 @@ import React from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Lightbulb } from 'lucide-react';
 import { GameSettings } from '@/types/game';
 
 interface GameSettingsProps {
