@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import HomeScreen from '@/components/HomeScreen';
 import GameResults from '@/components/GameResults';
 import GameView from '@/components/GameView';
@@ -39,10 +38,19 @@ const Index = () => {
     handleShare
   } = useGameActions(gameState, setGameState, startGame);
 
+  useEffect(() => {
+    console.log("Game state changed:", gameState.gameStatus);
+  }, [gameState.gameStatus]);
+
+  const handleStartGameWithLog = (settings) => {
+    console.log("Starting game with settings:", settings);
+    startGame(settings);
+  };
+
   const renderGameContent = () => {
     switch (gameState.gameStatus) {
       case 'not-started':
-        return <HomeScreen onStartGame={startGame} />;
+        return <HomeScreen onStartGame={handleStartGameWithLog} />;
       
       case 'in-progress':
         return (

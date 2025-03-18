@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Shield, Users, User, Database, Calendar } from "lucide-react";
+import { Shield, Users, User, Database, Calendar, Lightbulb } from "lucide-react";
 import { GameSettings } from '@/types/game';
 import { useToast } from "@/hooks/use-toast";
 import AuthButton from './AuthButton';
@@ -44,6 +44,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
 
   useEffect(() => {
     if (user) {
+      console.log("User authenticated, fetching data...");
       checkDailyCompletion();
       fetchFriends();
     }
@@ -51,6 +52,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
 
   useEffect(() => {
     if (profile) {
+      console.log("Profile loaded, updating settings");
       setSettings(prev => ({
         ...prev,
         distanceUnit: profile.default_distance_unit || 'km'
@@ -118,6 +120,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
   };
 
   const handleStartGame = async (mode: 'daily' | 'friends' | 'single') => {
+    console.log(`Starting game in ${mode} mode`);
     if (mode === 'daily' && !user) {
       toast({
         title: "Authentication Required",
@@ -131,8 +134,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
     const newSettings = {
       ...settings,
       gameMode: mode,
-      hintsEnabled: true,
-      maxHints: 2
     };
     
     if (mode === 'friends') {
@@ -189,6 +190,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
         });
       }
     } else {
+      console.log("Calling onStartGame with settings:", newSettings);
       onStartGame(newSettings);
     }
   };
@@ -329,6 +331,43 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStartGame }) => {
                     step={1}
                     value={[settings.timerDuration]}
                     onValueChange={(value) => setSettings(prev => ({...prev, timerDuration: value[0]}))}
+                  />
+                </div>
+              )}
+              
+              <div className="flex items-center justify-between mt-4">
+                <div className="space-y-1">
+                  <h4 className="font-medium leading-none">Enable Hints</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Get help with location and time period
+                  </p>
+                </div>
+                <Switch
+                  id="hints-enabled"
+                  checked={settings.hintsEnabled}
+                  onCheckedChange={(checked) => setSettings(prev => ({
+                    ...prev, 
+                    hintsEnabled: checked,
+                    maxHints: checked ? 2 : 0
+                  }))}
+                />
+              </div>
+              
+              {settings.hintsEnabled && (
+                <div className="pt-2 pb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <Label htmlFor="max-hints" className="flex items-center">
+                      <Lightbulb className="mr-2 h-4 w-4 text-yellow-500" />
+                      Available Hints: {settings.maxHints}
+                    </Label>
+                  </div>
+                  <Slider
+                    id="max-hints"
+                    min={1}
+                    max={3}
+                    step={1}
+                    value={[settings.maxHints]}
+                    onValueChange={(value) => setSettings(prev => ({...prev, maxHints: value[0]}))}
                   />
                 </div>
               )}

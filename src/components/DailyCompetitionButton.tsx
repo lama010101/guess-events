@@ -21,7 +21,10 @@ const DailyCompetitionButton: React.FC<DailyCompetitionButtonProps> = ({
   const { toast } = useToast();
   const todayDate = format(new Date(), 'MMMM d, yyyy');
 
-  const handleDailyClick = () => {
+  const handleDailyClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    console.log('Daily competition button clicked');
+    
     if (dailyCompleted) {
       toast({
         title: "Already Completed",
