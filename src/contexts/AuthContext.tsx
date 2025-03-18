@@ -3,29 +3,26 @@ import React, { createContext, useContext } from 'react';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { signIn, signUp, signOut, updateProfile } from '@/services/authService';
 import { updateUserAvatar } from '@/services/avatarService';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { AuthContextType } from '@/types/auth';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { session, user, profile, isLoading, fetchProfile, setProfile } = useAuthSession();
-  const { toast: uiToast } = useToast();
+  const { session, user, profile, isLoading, fetchProfile } = useAuthSession();
 
   // Sign in wrapper with UI toast
   const handleSignIn = async (email: string, password: string) => {
     const result = await signIn(email, password);
     
     if (!result.error) {
-      uiToast({
-        title: 'Welcome back!',
-        description: 'You have successfully signed in.',
+      toast("Welcome back! You have successfully signed in.", {
+        position: "top-center",
       });
     } else {
-      uiToast({
-        title: 'Sign in failed',
-        description: result.error.message,
-        variant: 'destructive',
+      toast(`Sign in failed: ${result.error.message}`, {
+        position: "top-center",
+        style: { backgroundColor: '#fecaca', color: '#7f1d1d' }
       });
     }
     
@@ -37,15 +34,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const result = await signUp(email, password, username);
     
     if (!result.error) {
-      uiToast({
-        title: 'Welcome to HistoryGuessr!',
-        description: 'Your account has been created successfully.',
+      toast("Welcome to HistoryGuessr! Your account has been created successfully.", {
+        position: "top-center",
       });
     } else {
-      uiToast({
-        title: 'Registration failed',
-        description: result.error.message,
-        variant: 'destructive',
+      toast(`Registration failed: ${result.error.message}`, {
+        position: "top-center",
+        style: { backgroundColor: '#fecaca', color: '#7f1d1d' }
       });
     }
     
@@ -56,16 +51,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const handleSignOut = async () => {
     const result = await signOut();
     
-    uiToast({
-      title: 'You have been signed out',
-      description: 'Come back soon!',
+    toast("You have been signed out. Come back soon!", {
+      position: "top-center",
     });
     
     if (result.error) {
-      uiToast({
-        title: 'Sign out failed',
-        description: 'Please try again',
-        variant: 'destructive',
+      toast("Sign out failed. Please try again", {
+        position: "top-center",
+        style: { backgroundColor: '#fecaca', color: '#7f1d1d' }
       });
     }
   };
@@ -80,9 +73,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Refresh profile data
       await fetchProfile(user.id);
       
-      uiToast({
-        title: 'Profile updated',
-        description: 'Your profile has been updated successfully.',
+      toast("Your profile has been updated successfully.", {
+        position: "top-center",
       });
     }
     
@@ -99,9 +91,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Refresh profile after avatar update
       await fetchProfile(user.id);
       
-      uiToast({
-        title: 'Avatar updated',
-        description: 'Your profile picture has been updated successfully.',
+      toast("Your profile picture has been updated successfully.", {
+        position: "top-center",
       });
     }
     
