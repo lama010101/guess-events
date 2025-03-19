@@ -97,8 +97,38 @@ export const optimizeImage = async (imageUrl: string): Promise<string> => {
  */
 export const optimizeAllHistoricalEventImages = async (): Promise<void> => {
   try {
-    // Call the PostgreSQL function to optimize all images
-    await supabase.rpc('optimize_all_historical_event_images');
+    // Call the PostgreSQL function directly through a SQL query
+    // instead of using RPC which only has specific predefined functions
+    const { error } = await supabase
+      .from('historical_events')
+      .select('id, image_url')
+      .then(async ({ data, error }) => {
+        if (error) throw error;
+        
+        // Process each image sequentially
+        if (data) {
+          for (const event of data) {
+            if (event.image_url) {
+              try {
+                const optimizedUrl = await optimizeImage(event.image_url);
+                // Update the event with the optimized image URL
+                await supabase
+                  .from('historical_events')
+                  .update({ image_url: optimizedUrl })
+                  .eq('id', event.id);
+                
+                console.log(`Optimized image for event ${event.id}`);
+              } catch (e) {
+                console.error(`Failed to optimize image for event ${event.id}:`, e);
+              }
+            }
+          }
+        }
+        
+        return { error: null };
+      });
+      
+    if (error) throw error;
   } catch (error) {
     console.error('Error optimizing all images:', error);
   }

@@ -53,7 +53,12 @@ export const useGameState = () => {
     submitGuess 
   } = useGameGuess(gameState, setGameState);
   
-  const { handleNextRound } = useGameNavigation(gameState, setGameState);
+  const { navigateToRound, handleNextRound } = useGameNavigation({
+    currentRound: gameState.currentRound,
+    sessionId: gameState.sessionId || '',
+    isGameActive: gameState.gameStatus === 'active',
+    setCurrentRound: (round) => setGameState(prev => ({...prev, currentRound: round}))
+  });
   
   const { handleSettingsChange } = useGameSettings(gameState, setGameState, profile);
   
@@ -70,6 +75,12 @@ export const useGameState = () => {
     }
   };
 
+  // Wrapper for handling the next round
+  const manageNextRound = () => {
+    const nextRound = handleNextRound(gameState.currentRound);
+    setGameState(prev => ({...prev, currentRound: nextRound}));
+  };
+
   return {
     gameState,
     setGameState,
@@ -78,7 +89,7 @@ export const useGameState = () => {
     handleYearSelect,
     handleTimeUp,
     submitGuess,
-    handleNextRound,
+    handleNextRound: manageNextRound,
     handleTimeHint,
     handleLocationHint,
     handleSettingsChange,

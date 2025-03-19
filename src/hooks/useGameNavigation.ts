@@ -51,7 +51,14 @@ export const useGameNavigation = ({
     }
   };
   
-  return { navigateToRound };
+  // Add the handleNextRound function that takes only the gameState argument
+  const handleNextRound = (currentRound: number) => {
+    const nextRound = currentRound + 1;
+    navigateToRound(nextRound);
+    return nextRound;
+  };
+  
+  return { navigateToRound, handleNextRound };
 };
 
 export default useGameNavigation;

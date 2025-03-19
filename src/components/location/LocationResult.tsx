@@ -1,5 +1,5 @@
+
 import React from 'react';
-import { getDistanceString } from '@/utils/gameUtils';
 import { Compass } from 'lucide-react';
 
 interface LocationResultProps {
@@ -26,8 +26,14 @@ const LocationResult: React.FC<LocationResultProps> = ({
       return `${feet} feet`;
     }
     
-    // Otherwise use the standard formatting
-    return getDistanceString(distance, unit);
+    // For larger distances, format with 1 decimal place
+    if (unit === 'km') {
+      return `${distance.toFixed(1)} km`;
+    } else {
+      // Convert to miles and format
+      const miles = distance * 0.621371;
+      return `${miles.toFixed(1)} mi`;
+    }
   }, [distance, unit]);
 
   return (

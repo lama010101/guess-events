@@ -1,3 +1,4 @@
+
 import { HistoricalEvent, PlayerGuess, RoundResult } from '@/types/game';
 
 // Function to calculate the distance between two coordinates using Haversine formula
@@ -32,6 +33,20 @@ export function shuffleArray<T>(array: T[]): T[] {
     [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
   }
   return newArray;
+}
+
+// Add the missing getDistanceString function
+export function getDistanceString(distance: number, unit: 'km' | 'mi'): string {
+  if (unit === 'mi') {
+    // Convert to miles
+    const miles = convertToMiles(distance);
+    
+    // Format with 1 decimal place for precision
+    return `${miles.toFixed(1)} mi`;
+  }
+  
+  // Return kilometers with 1 decimal
+  return `${distance.toFixed(1)} km`;
 }
 
 export function calculateRoundResult(event: HistoricalEvent, guess: PlayerGuess): RoundResult {
