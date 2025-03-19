@@ -1,34 +1,59 @@
 
 import React, { useRef, useEffect } from 'react';
-import 'leaflet/dist/leaflet.css';
 import { useMapInteraction } from '@/hooks/useMapInteraction';
-import { createMapStyles } from '@/utils/mapUtils';
 
 interface GameMapProps {
   onLocationSelect: (lat: number, lng: number) => void;
   selectedLocation: { lat: number; lng: number } | null;
   correctLocation?: { lat: number; lng: number; name: string };
   showCorrectPin?: boolean;
+  showConnectingLine?: boolean;
   isDisabled?: boolean;
   userAvatar?: string | null;
-  locationHint?: { lat: number; lng: number; radiusKm: number } | undefined;
+  locationHint?: { lat: number; lng: number; radiusKm: number };
   disableScroll?: boolean;
+  correctLocationIcon?: React.ReactNode;
 }
 
-const GameMap: React.FC<GameMapProps> = (props) => {
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const { initializeMap } = useMapInteraction(props);
+const GameMap: React.FC<GameMapProps> = ({
+  onLocationSelect,
+  selectedLocation,
+  correctLocation,
+  showCorrectPin = false,
+  showConnectingLine = false,
+  isDisabled = false,
+  userAvatar = null,
+  locationHint,
+  disableScroll = false,
+  correctLocationIcon
+}) => {
+  const mapRef = useRef<HTMLDivElement>(null);
+  
+  const { initializeMap } = useMapInteraction({
+    onLocationSelect,
+    selectedLocation,
+    correctLocation,
+    showCorrectPin,
+    showConnectingLine,
+    isDisabled,
+    userAvatar,
+    locationHint,
+    disableScroll,
+    correctLocationIcon,
+  });
   
   useEffect(() => {
-    createMapStyles();
-    
-    if (mapContainerRef.current) {
-      initializeMap(mapContainerRef.current);
+    if (mapRef.current) {
+      initializeMap(mapRef.current);
     }
   }, [initializeMap]);
-
+  
   return (
-    <div ref={mapContainerRef} className="h-full w-full rounded-md overflow-hidden"></div>
+    <div 
+      ref={mapRef} 
+      className="w-full h-full rounded-md relative z-10 touch-manipulation" 
+      style={{ touchAction: disableScroll ? 'none' : 'pinch-zoom' }}
+    />
   );
 };
 

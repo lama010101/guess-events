@@ -1,232 +1,107 @@
 
-import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { UserPlus, LogIn, User, Trophy, Settings, Users } from 'lucide-react';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useNavigate } from "react-router-dom";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import LoginForm from './LoginForm';
-import RegisterForm from './RegisterForm';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
-  DialogTitle,
-  DialogClose
-} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Spinner } from '@/components/ui/spinner';
+import { Link } from 'react-router-dom';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { User, LogOut, Settings, UserCircle } from 'lucide-react';
 
 interface AuthButtonProps {
   topBar?: boolean;
 }
 
 const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
-  const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
-  const { user, profile, signOut, isLoading } = useAuth();
+  const { user, profile, isLoading, signOut } = useAuth();
+  const [isMounted, setIsMounted] = useState(false);
+  const [localLoading, setLocalLoading] = useState(true);
+
+  // Set mounted status to prevent hydration mismatch
+  useEffect(() => {
+    setIsMounted(true);
+    
+    // Add a short timeout to prevent flickering on initial load
+    const timer = setTimeout(() => {
+      setLocalLoading(false);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
   
-  const handleSignOut = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  // Handle loading states
+  const showLoading = isLoading || !isMounted || localLoading;
+  
+  const handleSignOut = async () => {
     try {
       await signOut();
-      window.location.reload();
     } catch (error) {
-      console.error("Sign out error:", error);
+      console.error('Error signing out:', error);
     }
   };
   
-  const handleViewProfile = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (user) {
-      navigate(`/profile/${user.id}`);
-    }
-  };
-  
-  const handleGoToLeaderboard = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    navigate('/leaderboard');
-  };
-
-  const handleGoToSettings = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    navigate('/settings');
-  };
-
-  const handleGoToFriends = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    navigate('/friends');
-  };
-
-  const handleGoToAdmin = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    navigate('/admin');
-  };
-  
-  const handleGoToScraper = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    navigate('/admin/scraper');
-  };
-  
-  const handleOpenDialog = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setOpen(true);
-  };
-  
-  const handleAuthSuccess = () => {
-    setOpen(false);
-  };
+  // Don't render anything during SSR
+  if (!isMounted) return null;
   
   // Show loading state
-  if (isLoading) {
+  if (showLoading) {
     return (
-      <Button 
-        variant={topBar ? "outline" : "default"} 
-        size={topBar ? "sm" : "default"}
-        className={`${topBar ? "h-8" : ""} pointer-events-auto z-50`}
-        disabled
-        type="button"
-      >
-        <span className="animate-pulse">Loading...</span>
+      <Button variant="outline" disabled className="h-9 px-4">
+        <Spinner size="sm" className="mr-2" />
+        Loading...
       </Button>
     );
   }
   
-  // Not authenticated
+  // User is not logged in
   if (!user) {
     return (
-      <>
-        <Button 
-          variant={topBar ? "outline" : "default"} 
-          onClick={handleOpenDialog}
-          size={topBar ? "sm" : "default"}
-          className={`${topBar ? "h-8" : ""} cursor-pointer z-50 relative pointer-events-auto`}
-          type="button"
-        >
-          <UserPlus className="mr-2 h-4 w-4" />
-          {!topBar && "Register / Sign In"}
+      <Link to="/auth">
+        <Button variant={topBar ? "outline" : "default"} className="h-9 px-4">
+          <User className="h-4 w-4 mr-2" />
+          Sign In
         </Button>
-        
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="sm:max-w-md z-[9999]">
-            <DialogHeader>
-              <DialogTitle>Sign In or Register</DialogTitle>
-              <DialogDescription>
-                Create an account or sign in to access all features
-              </DialogDescription>
-            </DialogHeader>
-            
-            <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="register">Register</TabsTrigger>
-              </TabsList>
-              <TabsContent value="login">
-                <LoginForm onSuccess={handleAuthSuccess} />
-              </TabsContent>
-              <TabsContent value="register">
-                <RegisterForm onSuccess={handleAuthSuccess} />
-              </TabsContent>
-            </Tabs>
-            
-            <DialogClose asChild>
-              <Button variant="outline" onClick={() => setOpen(false)} type="button">
-                Continue as Guest
-              </Button>
-            </DialogClose>
-          </DialogContent>
-        </Dialog>
-      </>
+      </Link>
     );
   }
   
-  // If the user is authenticated, show the user avatar
-  if (user && profile) {
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-8 w-8 rounded-full pointer-events-auto z-50" type="button">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={profile.avatar_url || ''} alt={profile.username} />
-              <AvatarFallback>{profile.username.slice(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56 z-[9999]" align="end" forceMount>
-          <DropdownMenuLabel className="font-normal">
-            <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">{profile.username}</p>
-              <p className="text-xs leading-none text-muted-foreground">
-                Account Settings
-              </p>
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleViewProfile} className="cursor-pointer">
-            <User className="mr-2 h-4 w-4" />
-            <span>Profile</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleGoToLeaderboard} className="cursor-pointer">
-            <Trophy className="mr-2 h-4 w-4" />
-            <span>Leaderboard</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleGoToFriends} className="cursor-pointer">
-            <Users className="mr-2 h-4 w-4" />
-            <span>Friends</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleGoToSettings} className="cursor-pointer">
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
-          </DropdownMenuItem>
-          {profile.role === 'admin' && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleGoToAdmin} className="cursor-pointer">
-                <span>Admin Dashboard</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleGoToScraper} className="cursor-pointer">
-                <span>Scraper Dashboard</span>
-              </DropdownMenuItem>
-            </>
-          )}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
-            <LogIn className="mr-2 h-4 w-4" />
-            <span>Sign out</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
-  }
-  
-  // Fallback return
+  // User is logged in
+  const displayName = profile?.username || user.email?.split('@')[0] || 'User';
+  const avatarUrl = profile?.avatar_url;
+
   return (
-    <Button 
-      variant={topBar ? "outline" : "default"} 
-      onClick={handleOpenDialog}
-      size={topBar ? "sm" : "default"}
-      className={`${topBar ? "h-8" : ""}`}
-      type="button"
-    >
-      <UserPlus className="mr-2 h-4 w-4" />
-      {!topBar && "Sign In"}
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="h-9 px-2 gap-2">
+          <Avatar className="h-6 w-6">
+            <AvatarImage src={avatarUrl || undefined} alt={displayName} />
+            <AvatarFallback>{displayName.charAt(0).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <span className="hidden md:inline">{displayName}</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <Link to="/profile">
+          <DropdownMenuItem className="cursor-pointer">
+            <UserCircle className="h-4 w-4 mr-2" />
+            Profile
+          </DropdownMenuItem>
+        </Link>
+        <Link to="/settings">
+          <DropdownMenuItem className="cursor-pointer">
+            <Settings className="h-4 w-4 mr-2" />
+            Settings
+          </DropdownMenuItem>
+        </Link>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="cursor-pointer" onClick={handleSignOut}>
+          <LogOut className="h-4 w-4 mr-2" />
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 

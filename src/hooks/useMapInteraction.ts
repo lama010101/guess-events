@@ -1,5 +1,5 @@
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import L from 'leaflet';
 import { setupLeafletIcons, createAvatarIcon, createCorrectLocationIcon } from '@/utils/mapUtils';
 
@@ -8,10 +8,12 @@ interface UseMapInteractionProps {
   selectedLocation: { lat: number; lng: number } | null;
   correctLocation?: { lat: number; lng: number; name: string };
   showCorrectPin?: boolean;
+  showConnectingLine?: boolean;
   isDisabled?: boolean;
   userAvatar?: string | null;
   locationHint?: { lat: number; lng: number; radiusKm: number } | undefined;
   disableScroll?: boolean;
+  correctLocationIcon?: React.ReactNode;
 }
 
 export const useMapInteraction = ({
@@ -19,15 +21,18 @@ export const useMapInteraction = ({
   selectedLocation,
   correctLocation,
   showCorrectPin = false,
+  showConnectingLine = false,
   isDisabled = false,
   userAvatar = null,
   locationHint,
-  disableScroll = false
+  disableScroll = false,
+  correctLocationIcon
 }: UseMapInteractionProps) => {
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const correctMarkerRef = useRef<L.Marker | null>(null);
   const hintCircleRef = useRef<L.Circle | null>(null);
+  const connectionLineRef = useRef<L.Polyline | null>(null);
   
   // Initialize map
   useEffect(() => {
@@ -40,9 +45,37 @@ export const useMapInteraction = ({
       }
     };
   }, []);
+
+  // Draw connecting line between user guess and correct location
+  const drawConnectingLine = useCallback(() => {
+    if (!mapRef.current || !selectedLocation || !correctLocation || !showConnectingLine) return;
+    
+    // Remove existing line
+    if (connectionLineRef.current) {
+      connectionLineRef.current.remove();
+      connectionLineRef.current = null;
+    }
+    
+    // Create line
+    const line = L.polyline(
+      [
+        [selectedLocation.lat, selectedLocation.lng],
+        [correctLocation.lat, correctLocation.lng]
+      ],
+      { 
+        color: '#6366F1',
+        weight: 2,
+        opacity: 0.7,
+        dashArray: '5, 5',
+        lineCap: 'round'
+      }
+    ).addTo(mapRef.current);
+    
+    connectionLineRef.current = line;
+  }, [selectedLocation, correctLocation, showConnectingLine]);
   
   // Setup map when container is available
-  const initializeMap = (container: HTMLDivElement) => {
+  const initializeMap = useCallback((container: HTMLDivElement) => {
     if (!container || mapRef.current) return;
     
     // Initialize map
@@ -50,7 +83,9 @@ export const useMapInteraction = ({
       center: [20, 0],
       zoom: 2,
       scrollWheelZoom: !disableScroll,
-      dragging: !disableScroll || !isDisabled
+      dragging: !disableScroll || !isDisabled,
+      touchZoom: true,
+      doubleClickZoom: true
     });
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -67,7 +102,7 @@ export const useMapInteraction = ({
         onLocationSelect(lat, lng);
       });
     }
-  };
+  }, [disableScroll, isDisabled, onLocationSelect]);
   
   // Update marker when selectedLocation changes
   useEffect(() => {
@@ -90,7 +125,10 @@ export const useMapInteraction = ({
         mapRef.current.setView([selectedLocation.lat, selectedLocation.lng], mapRef.current.getZoom());
       }
     }
-  }, [selectedLocation, userAvatar, showCorrectPin]);
+    
+    // Update connecting line
+    drawConnectingLine();
+  }, [selectedLocation, userAvatar, showCorrectPin, drawConnectingLine]);
   
   // Show correct pin when requested
   useEffect(() => {
@@ -103,7 +141,7 @@ export const useMapInteraction = ({
     }
     
     if (showCorrectPin) {
-      const correctIcon = createCorrectLocationIcon();
+      const correctIcon = createCorrectLocationIcon(correctLocationIcon);
       
       const correctMarker = L.marker([correctLocation.lat, correctLocation.lng], { 
         icon: correctIcon,
@@ -125,8 +163,11 @@ export const useMapInteraction = ({
         // If only correct marker exists, center on it
         mapRef.current.setView([correctLocation.lat, correctLocation.lng], 5);
       }
+      
+      // Update connecting line
+      drawConnectingLine();
     }
-  }, [correctLocation, showCorrectPin, selectedLocation]);
+  }, [correctLocation, showCorrectPin, selectedLocation, drawConnectingLine, correctLocationIcon]);
   
   // Handle location hint
   useEffect(() => {
@@ -168,3 +209,5 @@ export const useMapInteraction = ({
   
   return { initializeMap };
 };
+
+export default useMapInteraction;
