@@ -136,6 +136,8 @@ export type Database = {
           created_at: string
           deleted: boolean
           description: string
+          hint_location: string | null
+          hint_year: string | null
           id: string
           image_attribution: string | null
           image_license: string | null
@@ -149,6 +151,8 @@ export type Database = {
           created_at?: string
           deleted?: boolean
           description: string
+          hint_location?: string | null
+          hint_year?: string | null
           id?: string
           image_attribution?: string | null
           image_license?: string | null
@@ -162,6 +166,8 @@ export type Database = {
           created_at?: string
           deleted?: boolean
           description?: string
+          hint_location?: string | null
+          hint_year?: string | null
           id?: string
           image_attribution?: string | null
           image_license?: string | null

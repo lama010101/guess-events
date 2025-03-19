@@ -1,139 +1,57 @@
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
-import { GameState } from '@/types/game';
 
-export const useGameNavigation = (
-  gameState: GameState,
-  setGameState: React.Dispatch<React.SetStateAction<GameState>>
-) => {
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { useEffect } from 'react';
+
+interface GameNavigationProps {
+  currentRound: number;
+  sessionId: string;
+  isGameActive: boolean;
+  setCurrentRound: (round: number) => void;
+}
+
+export const useGameNavigation = ({
+  currentRound,
+  sessionId,
+  isGameActive,
+  setCurrentRound
+}: GameNavigationProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const params = useParams();
   
-  // Update URL with round parameter when game is in progress
+  // Initialize round from URL if available
   useEffect(() => {
-    if (gameState.gameStatus === 'in-progress') {
-      const currentUrl = new URL(window.location.href);
-      currentUrl.searchParams.set('round', gameState.currentRound.toString());
-      window.history.replaceState({}, '', currentUrl.toString());
-    }
-  }, [gameState.currentRound, gameState.gameStatus]);
-
-  // Sync round parameter from URL on initial load and after refreshes
-  useEffect(() => {
-    if (gameState.gameStatus === 'in-progress' || gameState.events.length > 0) {
-      const params = new URLSearchParams(location.search);
-      const roundParam = params.get('round');
-      
-      if (roundParam) {
-        const round = parseInt(roundParam);
-        if (!isNaN(round) && round >= 1 && round <= gameState.totalRounds && round !== gameState.currentRound) {
-          console.log(`Restoring game state to round ${round} from URL parameter`);
-          
-          // Check if this round has already been completed
-          const isRoundCompleted = gameState.roundResults.some(
-            (result, index) => index === round - 1
-          );
-          
-          if (isRoundCompleted) {
-            // If round is already completed, set status to round-result
-            setGameState(prev => ({
-              ...prev,
-              currentRound: round,
-              gameStatus: 'round-result'
-            }));
-          } else {
-            // Otherwise set to in-progress with fresh hints
-            setGameState(prev => ({
-              ...prev,
-              currentRound: round,
-              gameStatus: 'in-progress',
-              currentGuess: {
-                location: null,
-                year: 1962
-              },
-              timerStartTime: prev.settings.timerEnabled ? Date.now() : undefined,
-              timerRemaining: prev.settings.timerEnabled ? prev.settings.timerDuration * 60 : undefined,
-              hints: {
-                available: prev.settings.maxHints,
-                timeHintUsed: false,
-                locationHintUsed: false,
-                timeHintRange: undefined,
-                locationHintRegion: undefined
-              }
-            }));
-          }
-        }
+    if (isGameActive && params.round) {
+      const roundFromUrl = parseInt(params.round);
+      if (!isNaN(roundFromUrl) && roundFromUrl !== currentRound) {
+        setCurrentRound(roundFromUrl);
       }
     }
-  }, [location.search, gameState.events.length]);
+  }, [params.round, isGameActive, currentRound, setCurrentRound]);
   
-  // Handle saving game state to sessionStorage for persistence
+  // Update URL when current round changes
   useEffect(() => {
-    if (gameState.events.length > 0) {
-      sessionStorage.setItem('gameState', JSON.stringify(gameState));
-    }
-  }, [gameState]);
-  
-  // Restore game state from sessionStorage on refresh/navigate
-  useEffect(() => {
-    const savedGameState = sessionStorage.getItem('gameState');
-    if (savedGameState && gameState.gameStatus === 'not-started') {
-      try {
-        const parsedState = JSON.parse(savedGameState) as GameState;
-        
-        // Only restore if it's a valid game state with events
-        if (parsedState.events && parsedState.events.length > 0) {
-          console.log('Restoring game state from session storage');
-          setGameState(parsedState);
-          
-          // Update URL with current round
-          const currentUrl = new URL(window.location.href);
-          currentUrl.searchParams.set('round', parsedState.currentRound.toString());
-          window.history.replaceState({}, '', currentUrl.toString());
-        }
-      } catch (error) {
-        console.error('Error restoring game state:', error);
+    if (isGameActive && sessionId && currentRound > 0) {
+      // Construct path without the round number
+      const basePath = location.pathname.replace(/\/round\/\d+$/, '');
+      const newPath = `${basePath}/round/${currentRound}`;
+      
+      // Only navigate if the path is different
+      if (location.pathname !== newPath) {
+        navigate(newPath, { replace: true });
       }
     }
-  }, []);
+  }, [currentRound, sessionId, isGameActive, navigate, location.pathname]);
   
-  const handleNextRound = () => {
-    if (gameState.currentRound === gameState.totalRounds) {
-      setGameState(prev => ({
-        ...prev,
-        gameStatus: 'game-over'
-      }));
-      const currentUrl = new URL(window.location.href);
-      currentUrl.searchParams.delete('round');
-      window.history.replaceState({}, '', currentUrl.toString());
-    } else {
-      const nextRound = gameState.currentRound + 1;
-      setGameState(prev => ({
-        ...prev,
-        currentRound: nextRound,
-        gameStatus: 'in-progress',
-        currentGuess: {
-          location: null,
-          year: 1962
-        },
-        timerStartTime: prev.settings.timerEnabled ? Date.now() : undefined,
-        timerRemaining: prev.settings.timerEnabled ? prev.settings.timerDuration * 60 : undefined,
-        hints: {
-          available: prev.settings.maxHints,
-          timeHintUsed: false,
-          locationHintUsed: false
-        }
-      }));
-      
-      const currentUrl = new URL(window.location.href);
-      currentUrl.searchParams.set('round', nextRound.toString());
-      window.history.replaceState({}, '', currentUrl.toString());
+  // Function to navigate to a specific round
+  const navigateToRound = (round: number) => {
+    if (isGameActive && sessionId) {
+      const basePath = location.pathname.replace(/\/round\/\d+$/, '');
+      navigate(`${basePath}/round/${round}`);
     }
   };
   
-  return {
-    handleNextRound
-  };
+  return { navigateToRound };
 };
 
 export default useGameNavigation;

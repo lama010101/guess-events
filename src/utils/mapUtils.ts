@@ -4,9 +4,7 @@ import ReactDOMServer from 'react-dom/server';
 
 // Setup Leaflet icons
 export const setupLeafletIcons = () => {
-  // Fix the icon paths
-  delete L.Icon.Default.prototype._getIconUrl;
-  
+  // Delete is not type-safe here, use proper interface extension instead
   L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
     iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',

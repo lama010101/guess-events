@@ -52,7 +52,7 @@ const GameMap: React.FC<GameMapProps> = ({
     <div 
       ref={mapRef} 
       className="w-full h-full rounded-md relative z-10 touch-manipulation" 
-      style={{ touchAction: disableScroll ? 'none' : 'pinch-zoom' }}
+      style={{ touchAction: 'none' }} // Always disable browser's touch actions for better map control
     />
   );
 };

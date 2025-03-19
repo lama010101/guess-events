@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import DailyCompetitionButton from '@/components/DailyCompetitionButton';
 import { Gamepad2, Users2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { Link } from 'react-router-dom';
 
 interface GameModeButtonsProps {
   dailyCompleted: boolean;
@@ -43,15 +44,17 @@ const GameModeButtons: React.FC<GameModeButtonsProps> = ({
         onStartGame={() => onStartGame('daily')}
       />
       
-      <Button 
-        className="w-full" 
-        size="lg" 
-        variant="outline"
-        onClick={handleFriendsClick}
-        type="button"
-      >
-        <Users2 className="mr-2 h-4 w-4" /> Play with Friends
-      </Button>
+      <Link to="/friends">
+        <Button 
+          className="w-full" 
+          size="lg" 
+          variant="outline"
+          onClick={handleFriendsClick}
+          type="button"
+        >
+          <Users2 className="mr-2 h-4 w-4" /> Play with Friends
+        </Button>
+      </Link>
       
       <Button 
         className="w-full" 

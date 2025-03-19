@@ -1,168 +1,130 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-/**
- * Helper function to compress and optimize images
- * @param file The image file to optimize
- * @param maxWidthHeight Maximum width/height dimension
- * @param quality JPEG quality (0-1)
- * @returns Promise with optimized image blob
- */
-export const optimizeImage = async (
-  file: File | Blob,
-  maxWidthHeight = 1200,
-  quality = 0.8
-): Promise<Blob> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      // Release object URL
-      URL.revokeObjectURL(img.src);
-      
-      // Calculate new dimensions
-      let width = img.width;
-      let height = img.height;
-      
-      if (width > height && width > maxWidthHeight) {
-        height *= maxWidthHeight / width;
-        width = maxWidthHeight;
-      } else if (height > maxWidthHeight) {
-        width *= maxWidthHeight / height;
-        height = maxWidthHeight;
-      }
-      
-      // Create canvas and draw image
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('Failed to get canvas context'));
-        return;
-      }
-      
-      ctx.drawImage(img, 0, 0, width, height);
-      
-      // Convert to blob with compression
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            const originalSize = file.size;
-            const optimizedSize = blob.size;
-            console.log(`Image optimized: ${(originalSize / 1024).toFixed(2)}KB → ${(optimizedSize / 1024).toFixed(2)}KB (${((1 - optimizedSize / originalSize) * 100).toFixed(2)}% reduction)`);
-            resolve(blob);
-          } else {
-            reject(new Error('Failed to create blob'));
-          }
-        },
-        'image/jpeg',
-        quality
-      );
-    };
-    
-    img.onerror = () => {
-      URL.revokeObjectURL(img.src);
-      reject(new Error('Failed to load image'));
-    };
-    
-    img.src = URL.createObjectURL(file);
-  });
-};
+const MAX_IMAGE_SIZE = 800; // Maximum width or height in pixels
 
 /**
- * Process an image URL, optimize it and return the new URL
- * @param imageUrl Original image URL
- * @returns Optimized image URL
+ * Optimize an image by resizing it and compressing it
+ * @param imageUrl The URL of the image to optimize
+ * @returns A Promise that resolves to the optimized image URL
  */
-export const processAndOptimizeImageUrl = async (imageUrl: string): Promise<string> => {
+export const optimizeImage = async (imageUrl: string): Promise<string> => {
   try {
-    // Download the image
-    const response = await fetch(imageUrl);
-    if (!response.ok) throw new Error('Failed to fetch image');
-    
-    const blob = await response.blob();
-    
-    // Skip optimization if already small
-    if (blob.size < 100 * 1024) {
-      console.log('Image already small, skipping optimization');
+    // Skip optimization for already optimized images
+    if (imageUrl.includes('optimized/')) {
       return imageUrl;
     }
     
-    // Optimize the image
-    const optimizedBlob = await optimizeImage(blob);
+    // Skip optimization for external URLs that we can't process
+    if (!imageUrl.includes('supabase.co') && !imageUrl.includes('localhost')) {
+      return imageUrl;
+    }
     
-    // Upload the optimized image
-    const fileName = imageUrl.split('/').pop() || 'optimized-image.jpg';
-    const optimizedFileName = `optimized-${fileName}`;
+    // Download the image
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
     
+    // Wait for the image to load
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = imageUrl;
+    });
+    
+    // Create a canvas for resizing
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      throw new Error('Could not get canvas context');
+    }
+    
+    // Calculate new dimensions while maintaining aspect ratio
+    let width = img.width;
+    let height = img.height;
+    
+    if (width > height && width > MAX_IMAGE_SIZE) {
+      height = Math.round((height * MAX_IMAGE_SIZE) / width);
+      width = MAX_IMAGE_SIZE;
+    } else if (height > MAX_IMAGE_SIZE) {
+      width = Math.round((width * MAX_IMAGE_SIZE) / height);
+      height = MAX_IMAGE_SIZE;
+    }
+    
+    // Set canvas dimensions and draw the resized image
+    canvas.width = width;
+    canvas.height = height;
+    ctx.drawImage(img, 0, 0, width, height);
+    
+    // Convert the canvas to a Blob with reduced quality
+    const blob = await new Promise<Blob>((resolve) => {
+      canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.8);
+    });
+    
+    // Generate a unique filename
+    const timestamp = new Date().getTime();
+    const randomString = Math.random().toString(36).substring(2, 8);
+    const fileName = `optimized/${timestamp}_${randomString}.jpg`;
+    
+    // Upload the optimized image to Supabase storage
     const { data, error } = await supabase.storage
       .from('event-images')
-      .upload(optimizedFileName, optimizedBlob, {
-        cacheControl: '3600',
-        upsert: true,
-        contentType: 'image/jpeg'
+      .upload(fileName, blob, {
+        contentType: 'image/jpeg',
+        cacheControl: '3600'
       });
     
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     
-    // Get the public URL
-    const { data: urlData } = supabase.storage
+    // Get the public URL of the uploaded image
+    const { data: urlData } = await supabase.storage
       .from('event-images')
-      .getPublicUrl(optimizedFileName);
+      .getPublicUrl(fileName);
     
     return urlData.publicUrl;
   } catch (error) {
-    console.error('Error optimizing image:', error);
-    // Return original URL if optimization fails
+    console.error('Image optimization error:', error);
+    // Return the original URL if optimization fails
     return imageUrl;
   }
 };
 
 /**
- * Bulk process multiple images in the historical_events table
- * @returns Promise with the number of images processed
+ * Optimize all historical event images in the database
+ * @returns A Promise that resolves when optimization is complete
  */
-export const optimizeAllEventImages = async (): Promise<number> => {
+export const optimizeAllHistoricalEventImages = async (): Promise<void> => {
   try {
-    // Get all events with images
-    const { data: events, error } = await supabase
-      .from('historical_events')
-      .select('id, image_url')
-      .not('image_url', 'is', null);
-    
-    if (error) throw error;
-    if (!events || events.length === 0) return 0;
-    
-    console.log(`Processing ${events.length} event images`);
-    
-    let processedCount = 0;
-    
-    // Process each image sequentially to avoid overloading
-    for (const event of events) {
-      if (!event.image_url) continue;
-      
-      try {
-        const optimizedUrl = await processAndOptimizeImageUrl(event.image_url);
-        
-        // Update the event with the optimized URL
-        if (optimizedUrl !== event.image_url) {
-          const { error: updateError } = await supabase
-            .from('historical_events')
-            .update({ image_url: optimizedUrl })
-            .eq('id', event.id);
-          
-          if (updateError) throw updateError;
-          processedCount++;
-        }
-      } catch (err) {
-        console.error(`Error processing image for event ${event.id}:`, err);
-      }
-    }
-    
-    return processedCount;
+    // Call the PostgreSQL function to optimize all images
+    await supabase.rpc('optimize_all_historical_event_images');
   } catch (error) {
-    console.error('Error in bulk image optimization:', error);
-    throw error;
+    console.error('Error optimizing all images:', error);
+  }
+};
+
+/**
+ * Ensure an image is optimized before displaying it
+ * @param url The URL of the image to optimize
+ * @returns The optimized image URL or the original URL if optimization fails
+ */
+export const getOptimizedImageUrl = (url: string | null): string => {
+  if (!url) return '/placeholder.svg';
+  
+  // For external URLs or already optimized URLs, return as is
+  if (!url.includes('supabase.co') || url.includes('optimized/')) {
+    return url;
+  }
+  
+  // Add transformation parameters for Supabase Storage images
+  // This uses the Imgproxy functionality built into Supabase
+  const transformationParams = 'width=800&height=800&resize=contain';
+  
+  // Check if the URL already has query parameters
+  if (url.includes('?')) {
+    return `${url}&${transformationParams}`;
+  } else {
+    return `${url}?${transformationParams}`;
   }
 };
