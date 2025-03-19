@@ -97,14 +97,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }
       
-      return result;
+      // Return void to match the expected type
+      return;
     } catch (error) {
       console.error("Unexpected sign out error:", error);
       toast(`An unexpected error occurred. Please try again.`, {
         position: "top-center",
         style: { backgroundColor: '#fecaca', color: '#7f1d1d' }
       });
-      return { error: error as Error };
+      // Return void to match the expected type
+      return;
     }
   };
 
