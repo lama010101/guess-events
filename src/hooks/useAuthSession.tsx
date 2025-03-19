@@ -16,7 +16,7 @@ export function useAuthSession() {
       setIsLoading(true);
       
       try {
-        console.log("Initializing auth...");
+        console.log("Initializing auth session...");
         // Get the current session
         const { data: { session } } = await supabase.auth.getSession();
         
@@ -24,14 +24,14 @@ export function useAuthSession() {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          console.log("Session found, fetching profile...");
+          console.log("Session found, fetching profile for:", session.user.id);
           await fetchProfile(session.user.id);
         } else {
-          console.log("No session found");
+          console.log("No active session found");
           setProfile(null);
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error('Error initializing auth session:', error);
       } finally {
         setIsLoading(false);
       }
@@ -41,20 +41,36 @@ export function useAuthSession() {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
-        setSession(session);
-        setUser(session?.user ?? null);
+      async (event, newSession) => {
+        console.log('Auth state changed:', event, newSession?.user?.id);
         
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          console.log('User signed in or token refreshed');
+          setSession(newSession);
+          setUser(newSession?.user ?? null);
+          
+          if (newSession?.user) {
+            await fetchProfile(newSession.user.id);
+          }
+        } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+          console.log('User signed out or deleted');
+          setSession(null);
+          setUser(null);
           setProfile(null);
+        } else if (event === 'USER_UPDATED') {
+          console.log('User updated');
+          setSession(newSession);
+          setUser(newSession?.user ?? null);
+          
+          if (newSession?.user) {
+            await fetchProfile(newSession.user.id);
+          }
         }
       }
     );
 
     return () => {
+      console.log("Cleaning up auth subscription");
       subscription.unsubscribe();
     };
   }, []);
@@ -70,12 +86,14 @@ export function useAuthSession() {
 
       if (error) {
         console.error('Error fetching profile:', error);
+        setProfile(null);
       } else if (data) {
         console.log('Profile fetched successfully:', data);
         setProfile(data as Profile);
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Unexpected error fetching profile:', error);
+      setProfile(null);
     }
   };
 
