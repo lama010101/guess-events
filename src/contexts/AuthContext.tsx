@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { signIn, signUp, signOut, updateProfile } from '@/services/authService';
@@ -13,7 +12,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { session, user, profile, isLoading, fetchProfile } = useAuthSession();
   const [initialized, setInitialized] = useState(false);
 
-  // Initialize auth state
   useEffect(() => {
     if (!isLoading && !initialized) {
       console.log("Auth provider initialized", { session, user, profile });
@@ -21,7 +19,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isLoading, session, user, profile, initialized]);
 
-  // Sign in wrapper with UI toast
   const handleSignIn = async (email: string, password: string) => {
     try {
       console.log("Attempting to sign in:", email);
@@ -50,7 +47,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Sign up wrapper with UI toast
   const handleSignUp = async (email: string, password: string, username: string) => {
     try {
       console.log("Attempting to register:", email, username);
@@ -79,7 +75,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Sign out wrapper with UI toast
   const handleSignOut = async () => {
     try {
       console.log("Signing out user");
@@ -97,7 +92,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }
       
-      // Return void to match the expected type
       return;
     } catch (error) {
       console.error("Unexpected sign out error:", error);
@@ -105,12 +99,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         position: "top-center",
         style: { backgroundColor: '#fecaca', color: '#7f1d1d' }
       });
-      // Return void to match the expected type
       return;
     }
   };
 
-  // Update profile wrapper with UI toast and profile refresh
   const handleUpdateProfile = async (updates: Partial<typeof profile>) => {
     try {
       if (!user) return { error: new Error('User not logged in') };
@@ -119,7 +111,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await updateProfile(user.id, updates);
       
       if (!result.error) {
-        // Refresh profile data
         await fetchProfile(user.id);
         
         toast("Your profile has been updated successfully.", {
@@ -144,7 +135,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Update avatar wrapper with UI toast
   const handleUpdateAvatar = async (file: File) => {
     try {
       if (!user) return { error: new Error('User not logged in'), url: null };
@@ -153,7 +143,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await updateUserAvatar(user.id, file);
       
       if (!result.error) {
-        // Refresh profile after avatar update
         await fetchProfile(user.id);
         
         toast("Your profile picture has been updated successfully.", {
