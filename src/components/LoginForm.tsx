@@ -28,8 +28,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     setError(null);
     
     try {
-      console.log("Attempting to sign in with:", email);
-      const { error } = await signIn(email, password);
+      console.log("Attempting to sign in with:", email, "Remember me:", rememberMe);
+      const { error } = await signIn(email, password, rememberMe);
       
       if (error) {
         setError(error.message);

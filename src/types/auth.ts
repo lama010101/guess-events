@@ -12,7 +12,7 @@ export type AuthContextType = {
   user: import('@supabase/supabase-js').User | null;
   profile: Profile | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any | null }>;
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{ error: any | null }>;
   signUp: (email: string, password: string, username: string) => Promise<{ error: any | null }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: any | null }>;

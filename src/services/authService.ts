@@ -2,12 +2,16 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Profile } from '@/types/auth';
 
-export async function signIn(email: string, password: string) {
+export async function signIn(email: string, password: string, persistSession: boolean = false) {
   try {
-    console.log("Starting sign in process for:", email);
+    console.log("Starting sign in process for:", email, "with persistence:", persistSession);
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
+      options: {
+        // Set session persistence based on user preference
+        persistSession
+      }
     });
     
     if (error) {

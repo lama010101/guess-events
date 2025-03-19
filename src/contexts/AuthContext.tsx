@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { signIn, signUp, signOut, updateProfile } from '@/services/authService';
@@ -19,10 +20,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isLoading, session, user, profile, initialized]);
 
-  const handleSignIn = async (email: string, password: string) => {
+  const handleSignIn = async (email: string, password: string, rememberMe: boolean = false) => {
     try {
-      console.log("Attempting to sign in:", email);
-      const result = await signIn(email, password);
+      console.log("Attempting to sign in:", email, "Remember me:", rememberMe);
+      const result = await signIn(email, password, rememberMe);
       
       if (!result.error) {
         toast("Welcome back! You have successfully signed in.", {
