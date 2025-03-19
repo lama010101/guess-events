@@ -13,6 +13,8 @@ interface GameViewProps {
   onSubmitGuess: () => void;
   onTimeHint: () => void;
   onLocationHint: () => void;
+  onWatchAd?: () => void;
+  hintCoins?: number;
 }
 
 const GameView: React.FC<GameViewProps> = ({
@@ -22,7 +24,9 @@ const GameView: React.FC<GameViewProps> = ({
   onTimeUp,
   onSubmitGuess,
   onTimeHint,
-  onLocationHint
+  onLocationHint,
+  onWatchAd,
+  hintCoins
 }) => {
   const [activeView, setActiveView] = useState<'photo' | 'map'>('photo');
 
@@ -52,6 +56,8 @@ const GameView: React.FC<GameViewProps> = ({
           gameState={gameState}
           onTimeHint={onTimeHint}
           onLocationHint={onLocationHint}
+          onWatchAd={onWatchAd}
+          hintCoins={hintCoins}
         />
       </div>
     </div>

@@ -1,5 +1,4 @@
-
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +7,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Settings, Home, Medal, BarChart, Camera, CameraIcon } from "lucide-react";
+import { UserPlus, Settings, Home, Medal, BarChart, Camera, CameraIcon, LightbulbIcon, PlayCircleIcon } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import AuthButton from '@/components/AuthButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,7 +20,7 @@ const UserProfile = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const { user, profile, updateProfile, updateAvatar } = useAuth();
   const [username, setUsername] = useState('');
-  const [distanceUnit, setDistanceUnit] = useState<'km' | 'miles'>('km');
+  const [distanceUnit, setDistanceUnit<'km' | 'miles'>('km');
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [userData, setUserData] = useState<any>(null);
@@ -34,7 +34,14 @@ const UserProfile = () => {
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // This function handles the distanceUnit change with type safety
+  const [hintWallet, setHintWallet] = useState<{
+    id: string;
+    user_id: string;
+    hint_coins: number;
+    last_ad_watched: string | null;
+  } | null>(null);
+  const [isWatchingAd, setIsWatchingAd] = useState(false);
+  
   const handleDistanceUnitChange = (unit: 'km' | 'miles') => {
     setDistanceUnit(unit);
   };
@@ -46,7 +53,6 @@ const UserProfile = () => {
       
       if (isOwn && profile) {
         setUsername(profile.username);
-        // Ensure the distance unit is valid
         setDistanceUnit(profile.default_distance_unit === 'miles' ? 'miles' : 'km');
         loadStats(userId);
       } else {
@@ -69,7 +75,6 @@ const UserProfile = () => {
       if (data) {
         setUserData(data);
         setUsername(data.username);
-        // Ensure the distance unit is valid
         setDistanceUnit(data.default_distance_unit === 'miles' ? 'miles' : 'km');
         loadStats(id);
       }
@@ -200,6 +205,78 @@ const UserProfile = () => {
   
   const displayProfile = isOwnProfile ? profile : userData;
   
+  useEffect(() => {
+    if (user) {
+      fetchHintWallet();
+    }
+  }, [user]);
+  
+  const fetchHintWallet = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('hints_wallet')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching hint wallet:', error);
+        return;
+      }
+      
+      if (data) {
+        setHintWallet(data);
+      }
+    } catch (error) {
+      console.error('Error fetching hint wallet:', error);
+    }
+  };
+  
+  const handleWatchAd = async () => {
+    if (!user || isWatchingAd) return;
+    
+    setIsWatchingAd(true);
+    
+    setTimeout(async () => {
+      try {
+        const newCoins = (hintWallet?.hint_coins || 0) + 4;
+        
+        const { error } = await supabase
+          .from('hints_wallet')
+          .update({ 
+            hint_coins: newCoins,
+            last_ad_watched: new Date().toISOString()
+          })
+          .eq('user_id', user.id);
+          
+        if (error) throw error;
+        
+        setHintWallet(prev => prev ? {
+          ...prev,
+          hint_coins: newCoins,
+          last_ad_watched: new Date().toISOString()
+        } : null);
+        
+        toast({
+          title: "Ad Completed",
+          description: "You earned 4 hint coins!",
+        });
+      } catch (error) {
+        console.error('Error updating hint coins:', error);
+        
+        toast({
+          title: "Error",
+          description: "Failed to add hint coins. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsWatchingAd(false);
+      }
+    }, 2000);
+  };
+  
   if (!user) {
     return (
       <div className="min-h-screen bg-[#f3f3f3] p-4 flex flex-col items-center justify-center">
@@ -319,7 +396,7 @@ const UserProfile = () => {
           
           <div className="md:col-span-2">
             <Tabs defaultValue="stats" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="stats" className="flex items-center gap-2">
                   <BarChart className="h-4 w-4" />
                   Statistics
@@ -327,6 +404,10 @@ const UserProfile = () => {
                 <TabsTrigger value="friends" className="flex items-center gap-2">
                   <UserPlus className="h-4 w-4" />
                   Friends
+                </TabsTrigger>
+                <TabsTrigger value="hints" className="flex items-center gap-2">
+                  <LightbulbIcon className="h-4 w-4" />
+                  Hint Wallet
                 </TabsTrigger>
               </TabsList>
               
@@ -434,6 +515,58 @@ const UserProfile = () => {
                               Invite to Game
                             </Button>
                           </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="hints">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Hint Wallet</CardTitle>
+                    <CardDescription>Manage your hint coins</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-yellow-50 p-6 rounded-lg shadow mb-6">
+                      <h3 className="text-xl font-semibold mb-2">Your Hint Coins</h3>
+                      <div className="flex justify-between items-center">
+                        <div className="text-4xl font-bold text-yellow-600">
+                          {hintWallet?.hint_coins || 10}
+                        </div>
+                        <Button 
+                          onClick={handleWatchAd} 
+                          className="bg-green-600 hover:bg-green-700"
+                          disabled={isWatchingAd}
+                        >
+                          {isWatchingAd ? (
+                            <>
+                              <Spinner size="sm" className="mr-2" /> 
+                              Loading Ad...
+                            </>
+                          ) : (
+                            <>
+                              <PlayCircleIcon className="h-4 w-4 mr-2" />
+                              Watch Ad for +4 Coins
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <h3 className="font-semibold">About Hints</h3>
+                      <div className="bg-white p-4 rounded-lg shadow">
+                        <h4 className="font-medium mb-2">Time Hint</h4>
+                        <p className="text-gray-600">Shows the year with the last digit hidden</p>
+                      </div>
+                      <div className="bg-white p-4 rounded-lg shadow">
+                        <h4 className="font-medium mb-2">Location Hint</h4>
+                        <p className="text-gray-600">Shows the country where the event occurred</p>
+                      </div>
+                      <div className="bg-white p-4 rounded-lg shadow">
+                        <h4 className="font-medium mb-2">Hint Coins</h4>
+                        <p className="text-gray-600">You start with 10 coins and can earn more by watching ads</p>
                       </div>
                     </div>
                   </CardContent>

@@ -66,8 +66,12 @@ export interface GameState {
     available: number;
     timeHintUsed: boolean;
     locationHintUsed: boolean;
-    timeHintRange?: { min: number, max: number };
-    locationHintRegion?: { lat: number, lng: number, radiusKm: number };
+    timeHintRange?: { maskedYear: string };
+    locationHintRegion?: { 
+      country: string;
+      lat: number; 
+      lng: number;
+    };
   };
 }
 
@@ -101,5 +105,13 @@ export interface FriendRequest {
   from: UserProfile;
   to: UserProfile;
   status: 'pending' | 'accepted' | 'rejected';
+  createdAt: Date;
+}
+
+export interface HintWallet {
+  id: string;
+  userId: string;
+  hintCoins: number;
+  lastAdWatched?: Date;
   createdAt: Date;
 }

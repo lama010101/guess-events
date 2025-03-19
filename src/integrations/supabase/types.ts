@@ -131,13 +131,38 @@ export type Database = {
           },
         ]
       }
+      hints_wallet: {
+        Row: {
+          created_at: string
+          hint_coins: number
+          id: string
+          last_ad_watched: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hint_coins?: number
+          id?: string
+          last_ad_watched?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hint_coins?: number
+          id?: string
+          last_ad_watched?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       historical_events: {
         Row: {
           created_at: string
           deleted: boolean
           description: string
-          hint_location: string | null
-          hint_year: string | null
           id: string
           image_attribution: string | null
           image_license: string | null
@@ -151,8 +176,6 @@ export type Database = {
           created_at?: string
           deleted?: boolean
           description: string
-          hint_location?: string | null
-          hint_year?: string | null
           id?: string
           image_attribution?: string | null
           image_license?: string | null
@@ -166,8 +189,6 @@ export type Database = {
           created_at?: string
           deleted?: boolean
           description?: string
-          hint_location?: string | null
-          hint_year?: string | null
           id?: string
           image_attribution?: string | null
           image_license?: string | null

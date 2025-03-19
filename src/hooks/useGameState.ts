@@ -56,13 +56,19 @@ export const useGameState = () => {
   const { navigateToRound, handleNextRound } = useGameNavigation({
     currentRound: gameState.currentRound,
     sessionId: gameState.sessionId || '',
-    isGameActive: gameState.gameStatus === 'in-progress',  // FIX: Use 'in-progress' instead of 'active'
+    isGameActive: gameState.gameStatus === 'in-progress',
     setCurrentRound: (round) => setGameState(prev => ({...prev, currentRound: round}))
   });
   
   const { handleSettingsChange } = useGameSettings(gameState, setGameState, profile);
   
-  const { handleTimeHint, handleLocationHint } = useHints(gameState, setGameState);
+  // Use the updated hints hook
+  const { 
+    handleTimeHint, 
+    handleLocationHint, 
+    watchAdForHints,
+    hintCoins
+  } = useHints(gameState, setGameState);
   
   // Initialize the timer
   useGameTimer(gameState, setGameState, handleTimeUp);
@@ -92,6 +98,8 @@ export const useGameState = () => {
     handleNextRound: manageNextRound,
     handleTimeHint,
     handleLocationHint,
+    watchAdForHints,
+    hintCoins,
     handleSettingsChange,
     calculateCumulativeScore: () => calculateCumulativeScore(gameState.roundResults)
   };

@@ -27,6 +27,8 @@ const Index = () => {
     handleNextRound,
     handleTimeHint,
     handleLocationHint,
+    watchAdForHints,
+    hintCoins,
     handleSettingsChange,
     calculateCumulativeScore
   } = useGameState();
@@ -70,6 +72,8 @@ const Index = () => {
               onSubmitGuess={submitGuess}
               onTimeHint={handleTimeHint}
               onLocationHint={handleLocationHint}
+              onWatchAd={watchAdForHints}
+              hintCoins={hintCoins}
             />
           </GameContainer>
         );

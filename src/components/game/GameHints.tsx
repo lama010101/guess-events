@@ -7,12 +7,16 @@ interface GameHintsProps {
   gameState: GameState;
   onTimeHint: () => void;
   onLocationHint: () => void;
+  onWatchAd?: () => void;
+  hintCoins?: number;
 }
 
 const GameHints: React.FC<GameHintsProps> = ({
   gameState,
   onTimeHint,
-  onLocationHint
+  onLocationHint,
+  onWatchAd,
+  hintCoins
 }) => {
   if (!gameState.settings.hintsEnabled) {
     return null;
@@ -23,11 +27,14 @@ const GameHints: React.FC<GameHintsProps> = ({
       <HintSystem
         onTimeHint={onTimeHint}
         onLocationHint={onLocationHint}
+        onWatchAd={onWatchAd}
         timeHintUsed={gameState.hints.timeHintUsed}
         locationHintUsed={gameState.hints.locationHintUsed}
         hintsAvailable={gameState.hints.available}
         timeHintRange={gameState.hints.timeHintRange}
         locationHintRegion={gameState.hints.locationHintRegion}
+        hintCoins={hintCoins}
+        showWatchAdButton={true}
       />
     </div>
   );
