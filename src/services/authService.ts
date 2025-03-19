@@ -49,7 +49,7 @@ export async function signUp(email: string, password: string, username: string) 
   }
 }
 
-export async function signOut() {
+export async function signOut(): Promise<{ error: any | null }> {
   try {
     console.log("Starting sign out process");
     const { error } = await supabase.auth.signOut();

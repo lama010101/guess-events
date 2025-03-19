@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Session, User } from '@supabase/supabase-js';
+import { Session, User, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile } from '@/types/auth';
 
@@ -41,7 +41,7 @@ export function useAuthSession() {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
+      async (event: AuthChangeEvent, newSession) => {
         console.log('Auth state changed:', event, newSession?.user?.id);
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
