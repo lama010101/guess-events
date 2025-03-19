@@ -33,7 +33,10 @@ export function useAuthSession() {
       } catch (error) {
         console.error('Error initializing auth session:', error);
       } finally {
-        setIsLoading(false);
+        // Ensure loading state is completed, even if there was an error
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 500); // Short timeout to ensure UI has time to react
       }
     };
     
@@ -52,11 +55,13 @@ export function useAuthSession() {
           if (newSession?.user) {
             await fetchProfile(newSession.user.id);
           }
+          setIsLoading(false);
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
           setSession(null);
           setUser(null);
           setProfile(null);
+          setIsLoading(false);
         } else if (event === 'USER_UPDATED') {
           console.log('User updated');
           setSession(newSession);
@@ -65,6 +70,7 @@ export function useAuthSession() {
           if (newSession?.user) {
             await fetchProfile(newSession.user.id);
           }
+          setIsLoading(false);
         }
       }
     );

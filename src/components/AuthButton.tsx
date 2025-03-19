@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { UserPlus, LogIn, User, Trophy, Settings, Users } from 'lucide-react';
@@ -47,9 +46,12 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
         if (isMounted) {
           setLoadingTimeout(true);
         }
-      }, 3000);
+      }, 2000); // Reduced timeout to prevent extended loading state
       
       return () => clearTimeout(timer);
+    } else {
+      // Reset loading timeout when isLoading is false
+      setLoadingTimeout(false);
     }
     
     return () => setIsMounted(false);
@@ -114,7 +116,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     setOpen(false);
   };
   
-  // Show default content if loading takes too long
+  // Show default content if loading takes too long or we're not authenticated
   if ((isLoading && loadingTimeout) || (!user && !isLoading)) {
     return (
       <>
