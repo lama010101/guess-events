@@ -6,14 +6,15 @@ export async function signIn(email: string, password: string, persistSession: bo
   try {
     console.log("Starting sign in process for:", email, "with persistence:", persistSession);
     
-    // Set the session persistence at the client level before signing in
-    supabase.auth.setSession({
-      access_token: '',
-      refresh_token: ''
-    });
-    
-    // Configure Supabase auth to respect the persistence setting
-    supabase.auth.setAutoRefreshToken(persistSession);
+    // Configure the persistence level before signing in
+    if (!persistSession) {
+      // For non-persistent sessions, we'll set the session to be temporary
+      // by configuring a short expiry in the browser
+      sessionStorage.setItem('supabase-auth-temp-session', 'true');
+    } else {
+      // For persistent sessions, remove any temporary session marker
+      sessionStorage.removeItem('supabase-auth-temp-session');
+    }
     
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
