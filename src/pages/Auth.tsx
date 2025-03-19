@@ -18,13 +18,18 @@ const Auth = () => {
     setView(prev => prev === 'login' ? 'register' : 'login');
   };
   
+  // When registration is successful, switch back to login view
+  const handleRegisterSuccess = () => {
+    setView('login');
+  };
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
       <div className="w-full max-w-md">
         {view === 'login' ? (
           <LoginForm onToggleView={toggleView} />
         ) : (
-          <RegisterForm onToggleView={toggleView} />
+          <RegisterForm onSuccess={handleRegisterSuccess} />
         )}
       </div>
     </div>
