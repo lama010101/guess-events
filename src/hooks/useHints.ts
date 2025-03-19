@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { GameState } from '@/types/game';
 import { useToast } from '@/hooks/use-toast';
@@ -13,14 +12,12 @@ export const useHints = (
   const { user } = useAuth();
   const [hintCoins, setHintCoins] = useState<number>(10);
   
-  // Fetch user's hint coins when component loads
   useEffect(() => {
     if (user) {
       fetchHintCoins();
     }
   }, [user]);
   
-  // Fetch hint coins from database
   const fetchHintCoins = async () => {
     if (!user) return;
     
@@ -41,7 +38,6 @@ export const useHints = (
     }
   };
   
-  // Update hint coins in database
   const updateHintCoins = async (newCoins: number) => {
     if (!user) return;
     
@@ -60,7 +56,6 @@ export const useHints = (
   };
   
   const handleTimeHint = async () => {
-    // Check if hints are enabled in settings
     if (!gameState.settings.hintsEnabled) {
       toast({
         title: "Hints Disabled",
@@ -70,7 +65,6 @@ export const useHints = (
       return;
     }
     
-    // If hint already used, just show it again
     if (gameState.hints.timeHintUsed) {
       const currentEvent = gameState.events[gameState.currentRound - 1];
       const yearStr = currentEvent.year.toString();
@@ -83,7 +77,6 @@ export const useHints = (
       return;
     }
     
-    // Check if user has enough hint coins
     if (hintCoins < 1 && user) {
       toast({
         title: "Not Enough Hint Coins",
@@ -93,13 +86,11 @@ export const useHints = (
       return;
     }
     
-    // Use one of the available hints
     if (gameState.hints.available > 0 || !user) {
       const currentEvent = gameState.events[gameState.currentRound - 1];
       const yearStr = currentEvent.year.toString();
       const maskedYear = yearStr.slice(0, -1) + "X";
       
-      // If user is logged in, deduct hint coin
       if (user) {
         await updateHintCoins(hintCoins - 1);
       }
@@ -128,7 +119,6 @@ export const useHints = (
   };
   
   const handleLocationHint = async () => {
-    // Check if hints are enabled in settings
     if (!gameState.settings.hintsEnabled) {
       toast({
         title: "Hints Disabled",
@@ -138,7 +128,6 @@ export const useHints = (
       return;
     }
     
-    // If hint already used, just show it again
     if (gameState.hints.locationHintUsed) {
       toast({
         title: "Location Hint",
@@ -147,7 +136,6 @@ export const useHints = (
       return;
     }
     
-    // Check if user has enough hint coins
     if (hintCoins < 1 && user) {
       toast({
         title: "Not Enough Hint Coins",
@@ -157,15 +145,11 @@ export const useHints = (
       return;
     }
     
-    // Use one of the available hints
     if (gameState.hints.available > 0 || !user) {
       const currentEvent = gameState.events[gameState.currentRound - 1];
       
-      // For this example, we'll just use the location name as the country
-      // In a real implementation, you'd have a proper country field
       const country = currentEvent.location.name.split(',').pop()?.trim() || 'Unknown';
       
-      // If user is logged in, deduct hint coin
       if (user) {
         await updateHintCoins(hintCoins - 1);
       }
@@ -179,7 +163,8 @@ export const useHints = (
           locationHintRegion: {
             country,
             lat: currentEvent.location.lat,
-            lng: currentEvent.location.lng
+            lng: currentEvent.location.lng,
+            radiusKm: 300
           }
         }
       }));
@@ -207,16 +192,12 @@ export const useHints = (
       return;
     }
     
-    // In a real implementation, you'd integrate an ad SDK here
-    // For this example, we'll simulate watching an ad
     toast({
       title: "Ad Starting",
       description: "Simulating ad playback...",
     });
     
-    // Simulate ad playback
     setTimeout(async () => {
-      // Add 4 hint coins to the user's wallet
       const newCoins = hintCoins + 4;
       await updateHintCoins(newCoins);
       

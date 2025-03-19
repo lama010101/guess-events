@@ -10,7 +10,12 @@ interface GameMapProps {
   showConnectingLine?: boolean;
   isDisabled?: boolean;
   userAvatar?: string | null;
-  locationHint?: { lat: number; lng: number; radiusKm: number };
+  locationHint?: { 
+    lat: number; 
+    lng: number; 
+    country: string;
+    radiusKm?: number; 
+  };
   disableScroll?: boolean;
   correctLocationIcon?: React.ReactNode;
 }

@@ -1,4 +1,3 @@
-
 import { useRef, useEffect, useCallback } from 'react';
 import L from 'leaflet';
 import { setupLeafletIcons, createAvatarIcon, createCorrectLocationIcon } from '@/utils/mapUtils';
@@ -11,7 +10,12 @@ interface UseMapInteractionProps {
   showConnectingLine?: boolean;
   isDisabled?: boolean;
   userAvatar?: string | null;
-  locationHint?: { lat: number; lng: number; radiusKm: number } | undefined;
+  locationHint?: { 
+    lat: number; 
+    lng: number; 
+    country: string;
+    radiusKm?: number; 
+  };
   disableScroll?: boolean;
   correctLocationIcon?: React.ReactNode;
 }
@@ -34,7 +38,6 @@ export const useMapInteraction = ({
   const hintCircleRef = useRef<L.Circle | null>(null);
   const connectionLineRef = useRef<L.Polyline | null>(null);
   
-  // Initialize map
   useEffect(() => {
     setupLeafletIcons();
     
@@ -46,17 +49,14 @@ export const useMapInteraction = ({
     };
   }, []);
 
-  // Draw connecting line between user guess and correct location
   const drawConnectingLine = useCallback(() => {
     if (!mapRef.current || !selectedLocation || !correctLocation || !showConnectingLine) return;
     
-    // Remove existing line
     if (connectionLineRef.current) {
       connectionLineRef.current.remove();
       connectionLineRef.current = null;
     }
     
-    // Create line
     const line = L.polyline(
       [
         [selectedLocation.lat, selectedLocation.lng],
@@ -73,12 +73,10 @@ export const useMapInteraction = ({
     
     connectionLineRef.current = line;
   }, [selectedLocation, correctLocation, showConnectingLine]);
-  
-  // Setup map when container is available
+
   const initializeMap = useCallback((container: HTMLDivElement) => {
     if (!container || mapRef.current) return;
     
-    // Initialize map
     const map = L.map(container, {
       center: [20, 0],
       zoom: 2,
@@ -95,7 +93,6 @@ export const useMapInteraction = ({
     
     mapRef.current = map;
     
-    // Add click event if not disabled
     if (!isDisabled) {
       map.on('click', (e: L.LeafletMouseEvent) => {
         const { lat, lng } = e.latlng;
@@ -103,38 +100,31 @@ export const useMapInteraction = ({
       });
     }
   }, [disableScroll, isDisabled, onLocationSelect]);
-  
-  // Update marker when selectedLocation changes
+
   useEffect(() => {
     if (!mapRef.current) return;
     
-    // Remove existing marker
     if (markerRef.current) {
       markerRef.current.remove();
       markerRef.current = null;
     }
     
-    // Add new marker if location is selected
     if (selectedLocation) {
       const icon = createAvatarIcon(userAvatar);
       const marker = L.marker([selectedLocation.lat, selectedLocation.lng], { icon }).addTo(mapRef.current);
       markerRef.current = marker;
       
-      // Center map on the marker
       if (!showCorrectPin) {
         mapRef.current.setView([selectedLocation.lat, selectedLocation.lng], mapRef.current.getZoom());
       }
     }
     
-    // Update connecting line
     drawConnectingLine();
   }, [selectedLocation, userAvatar, showCorrectPin, drawConnectingLine]);
-  
-  // Show correct pin when requested
+
   useEffect(() => {
     if (!mapRef.current || !correctLocation) return;
     
-    // Remove existing correct marker
     if (correctMarkerRef.current) {
       correctMarkerRef.current.remove();
       correctMarkerRef.current = null;
@@ -145,14 +135,13 @@ export const useMapInteraction = ({
       
       const correctMarker = L.marker([correctLocation.lat, correctLocation.lng], { 
         icon: correctIcon,
-        zIndexOffset: 1000 // Ensure it's on top
+        zIndexOffset: 1000
       })
         .addTo(mapRef.current)
         .bindTooltip(correctLocation.name);
       
       correctMarkerRef.current = correctMarker;
       
-      // If both markers exist, set bounds to show both
       if (markerRef.current) {
         const bounds = L.latLngBounds(
           [correctLocation.lat, correctLocation.lng],
@@ -160,39 +149,34 @@ export const useMapInteraction = ({
         );
         mapRef.current.fitBounds(bounds, { padding: [50, 50] });
       } else {
-        // If only correct marker exists, center on it
         mapRef.current.setView([correctLocation.lat, correctLocation.lng], 5);
       }
       
-      // Update connecting line
       drawConnectingLine();
     }
   }, [correctLocation, showCorrectPin, selectedLocation, drawConnectingLine, correctLocationIcon]);
-  
-  // Handle location hint
+
   useEffect(() => {
     if (!mapRef.current) return;
     
-    // Remove existing hint circle
     if (hintCircleRef.current) {
       hintCircleRef.current.remove();
       hintCircleRef.current = null;
     }
     
     if (locationHint) {
+      const radius = locationHint.radiusKm ? locationHint.radiusKm * 1000 : 100000;
       const circle = L.circle([locationHint.lat, locationHint.lng], {
-        radius: locationHint.radiusKm * 1000, // Convert km to meters
+        radius: radius,
         className: 'hint-circle'
       }).addTo(mapRef.current);
       
       hintCircleRef.current = circle;
       
-      // Zoom to show the circle
       mapRef.current.fitBounds(circle.getBounds(), { padding: [50, 50] });
     }
   }, [locationHint]);
-  
-  // Update scroll wheel when disableScroll changes
+
   useEffect(() => {
     if (!mapRef.current) return;
     
@@ -206,7 +190,7 @@ export const useMapInteraction = ({
       mapRef.current.dragging.enable();
     }
   }, [disableScroll, isDisabled]);
-  
+
   return { initializeMap };
 };
 

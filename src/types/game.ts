@@ -1,4 +1,3 @@
-
 export interface HistoricalEvent {
   id: string;
   imageUrl: string;
@@ -71,6 +70,7 @@ export interface GameState {
       country: string;
       lat: number; 
       lng: number;
+      radiusKm?: number;
     };
   };
 }
