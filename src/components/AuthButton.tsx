@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from "@/components/ui/button";
@@ -17,11 +16,9 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
   const [isMounted, setIsMounted] = useState(false);
   const [localLoading, setLocalLoading] = useState(true);
 
-  // Set mounted status to prevent hydration mismatch
   useEffect(() => {
     setIsMounted(true);
     
-    // Add a short timeout to prevent flickering on initial load
     const timer = setTimeout(() => {
       setLocalLoading(false);
     }, 1000);
@@ -29,7 +26,6 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     return () => clearTimeout(timer);
   }, []);
   
-  // Handle loading states
   const showLoading = isLoading || !isMounted || localLoading;
   
   const handleSignOut = async () => {
@@ -40,10 +36,8 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     }
   };
   
-  // Don't render anything during SSR
   if (!isMounted) return null;
   
-  // Show loading state
   if (showLoading) {
     return (
       <Button variant="outline" disabled className="h-9 px-4">
@@ -53,7 +47,6 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     );
   }
   
-  // User is not logged in
   if (!user) {
     return (
       <Link to="/auth">
@@ -65,7 +58,6 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     );
   }
   
-  // User is logged in
   const displayName = profile?.username || user.email?.split('@')[0] || 'User';
   const avatarUrl = profile?.avatar_url;
 
@@ -83,7 +75,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>My Account</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <Link to="/profile">
+        <Link to={`/profile/${user.id}`}>
           <DropdownMenuItem className="cursor-pointer">
             <UserCircle className="h-4 w-4 mr-2" />
             Profile
