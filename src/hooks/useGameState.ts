@@ -56,7 +56,7 @@ export const useGameState = () => {
   const { navigateToRound, handleNextRound } = useGameNavigation({
     currentRound: gameState.currentRound,
     sessionId: gameState.sessionId || '',
-    isGameActive: gameState.gameStatus === 'active',
+    isGameActive: gameState.gameStatus === 'in-progress',  // FIX: Use 'in-progress' instead of 'active'
     setCurrentRound: (round) => setGameState(prev => ({...prev, currentRound: round}))
   });
   
