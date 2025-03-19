@@ -5,13 +5,19 @@ import { Profile } from '@/types/auth';
 export async function signIn(email: string, password: string, persistSession: boolean = false) {
   try {
     console.log("Starting sign in process for:", email, "with persistence:", persistSession);
+    
+    // Set the session persistence at the client level before signing in
+    supabase.auth.setSession({
+      access_token: '',
+      refresh_token: ''
+    });
+    
+    // Configure Supabase auth to respect the persistence setting
+    supabase.auth.setAutoRefreshToken(persistSession);
+    
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
-      options: {
-        // Set session persistence based on user preference
-        persistSession
-      }
     });
     
     if (error) {
