@@ -13,19 +13,17 @@ export function useAuthSession() {
   useEffect(() => {
     // Get initial session
     const initAuth = async () => {
-      setIsLoading(true);
-      
       try {
         console.log("Initializing auth session...");
         // Get the current session
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data } = await supabase.auth.getSession();
         
-        setSession(session);
-        setUser(session?.user ?? null);
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
         
-        if (session?.user) {
-          console.log("Session found, fetching profile for:", session.user.id);
-          await fetchProfile(session.user.id);
+        if (data.session?.user) {
+          console.log("Session found, fetching profile for:", data.session.user.id);
+          await fetchProfile(data.session.user.id);
         } else {
           console.log("No active session found");
           setProfile(null);
@@ -33,10 +31,7 @@ export function useAuthSession() {
       } catch (error) {
         console.error('Error initializing auth session:', error);
       } finally {
-        // Ensure loading state is completed, even if there was an error
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 500); // Short timeout to ensure UI has time to react
+        setIsLoading(false);
       }
     };
     

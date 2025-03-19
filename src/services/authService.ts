@@ -2,23 +2,20 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Profile } from '@/types/auth';
 
-export async function signIn(email: string, password: string, persistSession: boolean = false) {
+export async function signIn(email: string, password: string, rememberMe: boolean = false) {
   try {
-    console.log("Starting sign in process for:", email, "with persistence:", persistSession);
+    console.log("Starting sign in process for:", email, "with persistence:", rememberMe);
     
-    // Configure the persistence level before signing in
-    if (!persistSession) {
-      // For non-persistent sessions, we'll set the session to be temporary
-      // by configuring a short expiry in the browser
+    // For non-persistent sessions (remember me not checked), we'll set a marker in sessionStorage
+    if (!rememberMe) {
       sessionStorage.setItem('supabase-auth-temp-session', 'true');
     } else {
-      // For persistent sessions, remove any temporary session marker
       sessionStorage.removeItem('supabase-auth-temp-session');
     }
     
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      password,
+      password
     });
     
     if (error) {

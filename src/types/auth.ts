@@ -17,4 +17,5 @@ export type AuthContextType = {
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: any | null }>;
   updateAvatar: (file: File) => Promise<{ error: any | null, url: string | null }>;
+  signInWithGoogle: () => Promise<{ data: any | null, error: any | null }>;
 };

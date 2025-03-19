@@ -5,7 +5,7 @@ import { signIn, signUp, signOut, updateProfile } from '@/services/authService';
 import { updateUserAvatar } from '@/services/avatarService';
 import { toast } from 'sonner';
 import { AuthContextType } from '@/types/auth';
-import { supabase } from '@/integrations/supabase/client';
+import { signInWithGoogle } from '@/integrations/supabase/auth';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -168,6 +168,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const handleSignInWithGoogle = async () => {
+    try {
+      const result = await signInWithGoogle();
+      if (result.error) {
+        toast.error(`Google sign-in failed: ${result.error.message}`);
+      }
+      return result;
+    } catch (error) {
+      console.error("Unexpected Google sign-in error:", error);
+      toast.error("Failed to sign in with Google. Please try again.");
+      return { data: null, error };
+    }
+  };
+
   const value: AuthContextType = {
     session,
     user,
@@ -178,6 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut: handleSignOut,
     updateProfile: handleUpdateProfile,
     updateAvatar: handleUpdateAvatar,
+    signInWithGoogle: handleSignInWithGoogle
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

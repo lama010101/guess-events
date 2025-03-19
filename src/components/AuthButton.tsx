@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { UserPlus, LogIn, User, Trophy, Settings, Users } from 'lucide-react';
 import { 
@@ -33,31 +34,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
   const navigate = useNavigate();
   const { user, profile, signOut, isLoading } = useAuth();
   
-  // Track component mounting to prevent state updates on unmounted component
-  const [isMounted, setIsMounted] = useState(false);
-  const [loadingTimeout, setLoadingTimeout] = useState(false);
-  
-  useEffect(() => {
-    setIsMounted(true);
-    
-    // Set a timeout to handle potentially stuck loading state
-    if (isLoading) {
-      const timer = setTimeout(() => {
-        if (isMounted) {
-          setLoadingTimeout(true);
-        }
-      }, 2000); // Reduced timeout to prevent extended loading state
-      
-      return () => clearTimeout(timer);
-    } else {
-      // Reset loading timeout when isLoading is false
-      setLoadingTimeout(false);
-    }
-    
-    return () => setIsMounted(false);
-  }, [isLoading]);
-  
-  const handleSignOut = async (e) => {
+  const handleSignOut = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     try {
@@ -68,7 +45,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     }
   };
   
-  const handleViewProfile = (e) => {
+  const handleViewProfile = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (user) {
@@ -76,37 +53,37 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     }
   };
   
-  const handleGoToLeaderboard = (e) => {
+  const handleGoToLeaderboard = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     navigate('/leaderboard');
   };
 
-  const handleGoToSettings = (e) => {
+  const handleGoToSettings = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     navigate('/settings');
   };
 
-  const handleGoToFriends = (e) => {
+  const handleGoToFriends = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     navigate('/friends');
   };
 
-  const handleGoToAdmin = (e) => {
+  const handleGoToAdmin = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     navigate('/admin');
   };
   
-  const handleGoToScraper = (e) => {
+  const handleGoToScraper = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     navigate('/admin/scraper');
   };
   
-  const handleOpenDialog = (e) => {
+  const handleOpenDialog = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setOpen(true);
@@ -116,8 +93,23 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     setOpen(false);
   };
   
-  // Show default content if loading takes too long or we're not authenticated
-  if ((isLoading && loadingTimeout) || (!user && !isLoading)) {
+  // Show loading state
+  if (isLoading) {
+    return (
+      <Button 
+        variant={topBar ? "outline" : "default"} 
+        size={topBar ? "sm" : "default"}
+        className={`${topBar ? "h-8" : ""} pointer-events-auto z-50`}
+        disabled
+        type="button"
+      >
+        <span className="animate-pulse">Loading...</span>
+      </Button>
+    );
+  }
+  
+  // Not authenticated
+  if (!user) {
     return (
       <>
         <Button 
@@ -161,21 +153,6 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
           </DialogContent>
         </Dialog>
       </>
-    );
-  }
-  
-  // Brief loading state
-  if (isLoading && !loadingTimeout) {
-    return (
-      <Button 
-        variant={topBar ? "outline" : "default"} 
-        size={topBar ? "sm" : "default"}
-        className={`${topBar ? "h-8" : ""} pointer-events-auto z-50`}
-        disabled
-        type="button"
-      >
-        <span className="animate-pulse">Loading...</span>
-      </Button>
     );
   }
   
@@ -238,7 +215,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ topBar = false }) => {
     );
   }
   
-  // Fallback return - should rarely hit this
+  // Fallback return
   return (
     <Button 
       variant={topBar ? "outline" : "default"} 
