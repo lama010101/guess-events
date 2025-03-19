@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ const UserProfile = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const { user, profile, updateProfile, updateAvatar } = useAuth();
   const [username, setUsername] = useState('');
-  const [distanceUnit, setDistanceUnit<'km' | 'miles'>('km');
+  const [distanceUnit, setDistanceUnit] = useState<'km' | 'miles'>('km');
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [userData, setUserData] = useState<any>(null);
